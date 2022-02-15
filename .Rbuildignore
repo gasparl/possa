@@ -1,0 +1,8 @@
+^POSSA\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+^EXAMPLE\.md$
+^POSSA\.pdf$
+^example_images
+.RData
+.Rhistory
