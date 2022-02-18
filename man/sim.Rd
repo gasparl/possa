@@ -7,7 +7,12 @@
 sim(f_sample, n_obs, f_test, n_iter = 1000, seed = 8)
 }
 \arguments{
-\item{f_sample}{Function.}
+\item{f_sample}{Function. create any sample variables; use list for varying factors and indicate different parameters in the list elements (as number vectors)}
+
+\item{n_obs}{A number, a numeric vector, or a list of numeric vectors. (Any of the numbers can always be \code{NA} values as well.)
+Specifies samples sizes for any sample variable from f_sample that is to be used in f_test. H1 and H2 has to be specified with "_h" ending, then it's converted to "_h0" and "_h1".}
+
+\item{f_test}{Function. Uses as input the sample variables created in f_sample AND specified in n_obs. The obtained p values must be specified with "p_" start and "_h0" and "_h1" endings (e.g., p_h0, p_h1; p_ttest_h0, p_ttest_h1).}
 
 \item{n_iter}{Number of iterations.}
 }
@@ -15,8 +20,11 @@ sim(f_sample, n_obs, f_test, n_iter = 1000, seed = 8)
 Returns \code{\link{data.frame}}, etc.
 }
 \description{
-Simulation procedure, running the tests in many iterations to get
- p values.
+This function performs the simulation procedure in order to get p
+ values. The sample is simulated via the given \code{f_sample} function, and
+ the significance test is performed via the given \code{f_test} function. The
+ numbers of observations per look (for a sequential design) are specified in
+ \code{n_obs}.
 }
 \details{
 

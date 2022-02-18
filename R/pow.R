@@ -3,6 +3,10 @@
 #'@description Calculates power (and local alphas) based on given global alpha
 #'  and simulated p values.
 #'@param p_values Data frame.
+#'@param alpha_locals (...) When named, it must refer to p values skipping the _h0/_h1 suffix, so in a pattern of "p_" (default) or p_ttest.
+#'
+#'
+#'
 #'@param round_to Number \code{\link[=ro]{to round}} to.
 #'@param hush Logical. If \code{TRUE}, prevents printing any details to console.
 #'
@@ -412,6 +416,9 @@ pow = function(p_values,
                                              n_cols,
                                              fac_cols
                                          )]
+        if (!length(descr_cols) > 0) {
+            descr_cols = FALSE
+        }
     }
     out_dfs = list()
     # calculate results separately for each factor combination
@@ -445,8 +452,9 @@ pow = function(p_values,
             cat('', fill = TRUE)
         }
         tot_samples = c()
+        print(n_cols)
         for (lk in looks) {
-            tot_samples = c(tot_samples, sum(pvals_df[.(lk), ..n_cols, mult = 'first']))
+            tot_samples = c(tot_samples, sum(pvals_df[.(lk), .SD, .SDcols = n_cols, mult = 'first']))
         }
         look_ratios = tot_samples / tot_samples[mlook]
         ## Fixed design calculation below

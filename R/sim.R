@@ -1,8 +1,14 @@
 #'@title Simulation procedure
 #'
-#'@description Simulation procedure, running the tests in many iterations to get
-#'  p values.
-#'@param f_sample Function.
+#'@description This function performs the simulation procedure in order to get p
+#'  values. The sample is simulated via the given \code{f_sample} function, and
+#'  the significance test is performed via the given \code{f_test} function. The
+#'  numbers of observations per look (for a sequential design) are specified in
+#'  \code{n_obs}.
+#'@param f_sample Function. create any sample variables; use list for varying factors and indicate different parameters in the list elements (as number vectors)
+#'@param n_obs A number, a numeric vector, or a list of numeric vectors. (Any of the numbers can always be \code{NA} values as well.)
+#' Specifies samples sizes for any sample variable from f_sample that is to be used in f_test. H1 and H2 has to be specified with "_h" ending, then it's converted to "_h0" and "_h1".
+#'@param f_test Function. Uses as input the sample variables created in f_sample AND specified in n_obs. The obtained p values must be specified with "p_" start and "_h0" and "_h1" endings (e.g., p_h0, p_h1; p_ttest_h0, p_ttest_h1).
 #'@param n_iter Number of iterations.
 #'
 #'@details
@@ -35,8 +41,7 @@ sim = function(f_sample,
                   list(
                       val_arg(f_sample, c('function', 'list')),
                       val_arg(f_test, c('function')),
-                      val_arg(n_iter, c('num'), 1),
-                      val_arg(hush, c('bool'), 1)
+                      val_arg(n_iter, c('num'), 1)
                   ))
 
     set.seed(seed)
@@ -53,7 +58,7 @@ sim = function(f_sample,
         df_combs = sapply(expand.grid(f_s_args), as.vector)
         f_s_a_list = list()
         for (rownum in 1:nrow(df_combs)) {
-            f_s_a_list[[rownum]] = as.list(df_combs[rownum, ])
+            f_s_a_list[[rownum]] = as.list(df_combs[rownum,])
         }
     } else {
         # set to have no combinations; single sample test (hence 1 cycle below)
@@ -128,7 +133,7 @@ sim = function(f_sample,
     }
     close(pb)
     df_pvals = as.data.frame(do.call(rbind, list_vals))
-    df_pvals = df_pvals[order(df_pvals$iter, df_pvals$look), ]
+    df_pvals = df_pvals[order(df_pvals$iter, df_pvals$look),]
     for (c_nam in names(n_obs)) {
         class(df_pvals[[c_nam]]) = c(class(df_pvals[[c_nam]]), "possa_n")
     }

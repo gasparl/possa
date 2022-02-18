@@ -29,6 +29,8 @@ pow(
 \arguments{
 \item{p_values}{Data frame.}
 
+\item{alpha_locals}{(...) When named, it must refer to p values skipping the _h0/_h1 suffix, so in a pattern of "p_" (default) or p_ttest.}
+
 \item{round_to}{Number \code{\link[=ro]{to round}} to.}
 
 \item{hush}{Logical. If \code{TRUE}, prevents printing any details to console.}

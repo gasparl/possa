@@ -2,3 +2,4 @@
 
 export(pow)
 export(sim)
+import(data.table)
