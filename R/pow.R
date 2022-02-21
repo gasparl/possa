@@ -3,12 +3,78 @@
 #'@description Calculates power (and local alphas) based on given global alpha
 #'  and simulated p values.
 #'@param p_values Data frame.
-#'@param alpha_locals (...) When named, it must refer to p values skipping the _h0/_h1 suffix, so in a pattern of "p_" (default) or p_ttest.
-#'
-#'
-#'
+#'@param alpha_locals (...) When \code{NULL} (default), sets "fixed design" (no
+#'  interim stopping alphas) with final alpha as specified as
+#'  \code{alpha_global}. (This is useful for cases where only futility bounds
+#'  are to be set for stopping.) When named, it must refer to p values skipping
+#'  the _h0/_h1 suffix, so in a pattern of "p_" (default) or p_ttest.
+#'@param alpha_global Global alpha (error rate); \code{0.05} by default.
+#'@param fut_locals (...) When \code{NULL} (default), sets no futility bounds.
+#'@param adjust (...) When \code{NULL} (default), function replaces \code{NA}s.
+#'@param adj_init (...) When \code{NULL} (default), it is calculated as
+#'  Bonferroni-corrected global alpha for the number of looks, with the
+#'  assumption that it (\code{adj_init}) is used as a replacement for
+#'  \code{NA}s.
+#'@param group_by When given as a character element or vector, specifies the
+#'  factors by which to group the analysis: the \code{p_values} data will be
+#'  divided into parts by these factors and these parts will be analyzed
+#'  separately, with power and error information (and descriptives, if
+#'  specified) printed per each part. By default \code{NULL}, it identifies
+#'  factors, if any, given to the \code{sim} function (via \code{f_sample}) that
+#'  produced the given \code{p_values} data.
+#'@param alpha_locals_extra Optional extra and "non-stopper" alphas via which to
+#'  evaluate p values per look, but without stopping the data collection
+#'  regardless of statistical significance.
+#'@param design_fix Whether to calculate fixed design (as comparable
+#'  alternative(s) to given "looks" of the sequential design). If \code{NULL}
+#'  (default), (...) Altogether omitted when \code{FALSE}.
+#'@param design_seq Whether to calculate sequential design. (Although this R
+#'  package is designed for sequential analysis, it can be used for just fixed
+#'  designs too.) If \code{NULL} (default), (...) Altogether omitted when
+#'  \code{FALSE}.
+#'@param descr_cols When given as a character element or vector, specifies the
+#'  factors for which descriptive data should be shown (by group, if
+#'  applicable). By default \code{TRUE}, it identifies (similar as
+#'  \code{group_by}) factors, if any, given to the \code{sim} function (via
+#'  \code{f_sample}) that produced the given \code{p_values} data.
+#'@param descr_func Function used for printing descriptives (see
+#'  \code{descr_cols}). By default, it uses the \code{\link{summary}}
+#'  \code{\link{base}} function.
 #'@param round_to Number \code{\link[=ro]{to round}} to.
-#'@param hush Logical. If \code{TRUE}, prevents printing any details to console.
+#'@param multi_logic When multiple p values are evaluated for stopping rules,
+#'  \code{multi_logic} specifies the function used for how to evaluate the
+#'  multiple outcomes as a single \code{TRUE} or \code{FALSE} value that decides
+#'  whether or not to stop at a given look. The default, \code{'all'}, specifies
+#'  that all of the p values must pass the boundary for stopping. The other
+#'  acceptable character input is \code{'any'}, which specifies that the
+#'  collection stops when any of the p values pass the boundary for stopping.
+#'  Instead of these strings, the actual \code{\link{all}} and \code{\link{any}}
+#'  would lead to identical outcomes, respectively, but the processing would be
+#'  far slower (since the string \code{'all'}/\code{'any'} inputs specify a
+#'  dedicated faster internal solution). For custom combinations, any custom
+#'  function can be given, which will take, as arguments, the p value columns in
+#'  their given order (either in the \code{p_values} data frame, or as specified
+#'  in \code{alpha_locals}), and should return a single \code{TRUE} or
+#'  \code{FALSE} value.
+#'@param multi_logic_fut Same as \code{multi_logic}, but for futility bounds
+#'  (for the columns specified in \code{fut_locals}).
+#'@param staircase_steps Numeric vector that specifies the (normally decreasing)
+#'  sequence of step sizes for the staircase that narrows down on the specified
+#'  global error error. By default (\code{NULL}) it is either "\code{0.01 * (0.5
+#'  ^ (seq(0, 11, 1)))}" (giving: \code{0.01, 0.005, 0.0025, ...}) or "0.5 *
+#'  (0.5 ^ (seq(0, 11, 1)))}" (giving: \code{0.05, 0.025, 0.0125, ...}). The
+#'  latter is chosen when adjustment via multiplication is assumed, which is
+#'  simply based on finding any multiplication sign (\code{\*}) in a given
+#'  custom \code{adjust} function. The former is chosen in any other case.
+#'@param alpha_precision During the error rate staircase procedure, at any point
+#'  where the simulated global error rate first matches the given
+#'  \code{alpha_global} at least for the number of fractional digits given here
+#'  (\code{alpha_precision}; default: \code{5}), the procedure stops and the
+#'  results are printed. Otherwise, the procedures stops only when all steps
+#'  given as \code{staircase_steps} have been used.
+#'@param seed Number for \code{\link{set.seed}}; \code{8} by default. Set to
+#'  \code{NULL} for random seed.
+#'@param hush Logical (default: \code{FALSE}). If \code{TRUE}, prevents printing any details to console.
 #'
 #'@details
 #'
@@ -321,7 +387,6 @@ pow = function(p_values,
         } else if (!is.null(adjust)) {
             staircase_steps = 0.01 * (0.5 ** (seq(0, 11, 1)))
             if (any(grepl('*', deparse(body(adjust)), fixed = TRUE))) {
-                print("FOUND MULTI!!!!")
                 if (is.null(adj_init)) {
                     adj_init = 1 # assumes multiplication
                 }
@@ -702,11 +767,11 @@ pow = function(p_values,
                 iters_out0 = ps_sub0[look == lk &
                                          h0_stoP == TRUE]
                 # remove stopped iterations
-                ps_sub0 = ps_sub0[!iter %in% iters_out0$iter, ]
+                ps_sub0 = ps_sub0[!iter %in% iters_out0$iter,]
                 # (same for H1)
                 iters_out1 = ps_sub1[look == lk &
-                                         h1_stoP == TRUE,]
-                ps_sub1 = ps_sub1[!iter %in% iters_out1$iter,]
+                                         h1_stoP == TRUE, ]
+                ps_sub1 = ps_sub1[!iter %in% iters_out1$iter, ]
                 outs = c()
                 # get info per p value column
                 for (p_nam in p_names_extr) {
