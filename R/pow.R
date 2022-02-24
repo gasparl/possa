@@ -3,18 +3,53 @@
 #'@description Calculates power (and local alphas) based on given global alpha
 #'  and simulated p values.
 #'@param p_values Data frame.
-#'@param alpha_locals (...) When \code{NULL} (default), sets "fixed design" (no
+#'@param alpha_locals A number, a numeric vector, or a list of numeric vectors. (Any of
+#'  the numbers included can always be \code{NA} values as well.)
+#'  (...)
+#'  When \code{NULL} (default), sets "fixed design" (no
 #'  interim stopping alphas) with final alpha as specified as
 #'  \code{alpha_global}. (This is useful for cases where only futility bounds
 #'  are to be set for stopping.) When named, it must refer to p values skipping
 #'  the _h0/_h1 suffix, so in a pattern of "p_" (default) or p_ttest.
-#'@param alpha_global Global alpha (error rate); \code{0.05} by default.
-#'@param fut_locals (...) When \code{NULL} (default), sets no futility bounds.
+#'@param alpha_global Global alpha (expected error rate in total); \code{0.05}
+#'  by default.
 #'@param adjust (...) When \code{NULL} (default), function replaces \code{NA}s.
 #'@param adj_init (...) When \code{NULL} (default), it is calculated as
 #'  Bonferroni-corrected global alpha for the number of looks, with the
 #'  assumption that it (\code{adj_init}) is used as a replacement for
 #'  \code{NA}s.
+#'@param staircase_steps Numeric vector that specifies the (normally decreasing)
+#'  sequence of step sizes for the staircase that narrows down on the specified
+#'  global error error. By default (\code{NULL}) it is either "\code{0.01 * (0.5
+#'  ^ (seq(0, 11, 1)))}" (giving: \code{0.01, 0.005, 0.0025, ...}) or "0.5 *
+#'  (0.5 ^ (seq(0, 11, 1)))}" (giving: \code{0.05, 0.025, 0.0125, ...}). The
+#'  latter is chosen when adjustment via multiplication is assumed, which is
+#'  simply based on finding any multiplication sign (\code{\*}) in a given
+#'  custom \code{adjust} function. The former is chosen in any other case.
+#'@param alpha_precision During the error rate staircase procedure, at any point
+#'  where the simulated global error rate first matches the given
+#'  \code{alpha_global} at least for the number of fractional digits given here
+#'  (\code{alpha_precision}; default: \code{5}), the procedure stops and the
+#'  results are printed. Otherwise, the procedures stops only when all steps
+#'  given as \code{staircase_steps} have been used.
+#'@param fut_locals (...) When \code{NULL} (default), sets no futility bounds.
+#'@param multi_logic When multiple p values are evaluated for stopping rules,
+#'  \code{multi_logic} specifies the function used for how to evaluate the
+#'  multiple outcomes as a single \code{TRUE} or \code{FALSE} value that decides
+#'  whether or not to stop at a given look. The default, \code{'all'}, specifies
+#'  that all of the p values must pass the boundary for stopping. The other
+#'  acceptable character input is \code{'any'}, which specifies that the
+#'  collection stops when any of the p values pass the boundary for stopping.
+#'  Instead of these strings, the actual \code{\link{all}} and \code{\link{any}}
+#'  would lead to identical outcomes, respectively, but the processing would be
+#'  far slower (since the string \code{'all'}/\code{'any'} inputs specify a
+#'  dedicated faster internal solution). For custom combinations, any custom
+#'  function can be given, which will take, as arguments, the p value columns in
+#'  their given order (either in the \code{p_values} data frame, or as specified
+#'  in \code{alpha_locals}), and should return a single \code{TRUE} or
+#'  \code{FALSE} value.
+#'@param multi_logic_fut Same as \code{multi_logic}, but for futility bounds
+#'  (for the columns specified in \code{fut_locals}).
 #'@param group_by When given as a character element or vector, specifies the
 #'  factors by which to group the analysis: the \code{p_values} data will be
 #'  divided into parts by these factors and these parts will be analyzed
@@ -41,37 +76,6 @@
 #'  \code{descr_cols}). By default, it uses the \code{\link{summary}}
 #'  \code{\link{base}} function.
 #'@param round_to Number \code{\link[=ro]{to round}} to.
-#'@param multi_logic When multiple p values are evaluated for stopping rules,
-#'  \code{multi_logic} specifies the function used for how to evaluate the
-#'  multiple outcomes as a single \code{TRUE} or \code{FALSE} value that decides
-#'  whether or not to stop at a given look. The default, \code{'all'}, specifies
-#'  that all of the p values must pass the boundary for stopping. The other
-#'  acceptable character input is \code{'any'}, which specifies that the
-#'  collection stops when any of the p values pass the boundary for stopping.
-#'  Instead of these strings, the actual \code{\link{all}} and \code{\link{any}}
-#'  would lead to identical outcomes, respectively, but the processing would be
-#'  far slower (since the string \code{'all'}/\code{'any'} inputs specify a
-#'  dedicated faster internal solution). For custom combinations, any custom
-#'  function can be given, which will take, as arguments, the p value columns in
-#'  their given order (either in the \code{p_values} data frame, or as specified
-#'  in \code{alpha_locals}), and should return a single \code{TRUE} or
-#'  \code{FALSE} value.
-#'@param multi_logic_fut Same as \code{multi_logic}, but for futility bounds
-#'  (for the columns specified in \code{fut_locals}).
-#'@param staircase_steps Numeric vector that specifies the (normally decreasing)
-#'  sequence of step sizes for the staircase that narrows down on the specified
-#'  global error error. By default (\code{NULL}) it is either "\code{0.01 * (0.5
-#'  ^ (seq(0, 11, 1)))}" (giving: \code{0.01, 0.005, 0.0025, ...}) or "0.5 *
-#'  (0.5 ^ (seq(0, 11, 1)))}" (giving: \code{0.05, 0.025, 0.0125, ...}). The
-#'  latter is chosen when adjustment via multiplication is assumed, which is
-#'  simply based on finding any multiplication sign (\code{\*}) in a given
-#'  custom \code{adjust} function. The former is chosen in any other case.
-#'@param alpha_precision During the error rate staircase procedure, at any point
-#'  where the simulated global error rate first matches the given
-#'  \code{alpha_global} at least for the number of fractional digits given here
-#'  (\code{alpha_precision}; default: \code{5}), the procedure stops and the
-#'  results are printed. Otherwise, the procedures stops only when all steps
-#'  given as \code{staircase_steps} have been used.
 #'@param seed Number for \code{\link{set.seed}}; \code{8} by default. Set to
 #'  \code{NULL} for random seed.
 #'@param hush Logical (default: \code{FALSE}). If \code{TRUE}, prevents printing any details to console.
@@ -84,7 +88,7 @@
 #'
 #'@note
 #'
-#' Some notes.
+#' This function uses, internally, the \code{\link{data.table}} R package.
 #'
 #'@references
 #'
@@ -100,9 +104,13 @@
 pow = function(p_values,
                alpha_locals = NULL,
                alpha_global = 0.05,
-               fut_locals = NULL,
                adjust = NULL,
                adj_init = NULL,
+               staircase_steps = NULL,
+               alpha_precision = 5,
+               fut_locals = NULL,
+               multi_logic = 'all',
+               multi_logic_fut = 'all',
                group_by = NULL,
                alpha_locals_extra = NULL,
                design_fix = NULL,
@@ -110,10 +118,6 @@ pow = function(p_values,
                descr_cols = TRUE,
                descr_func = summary,
                round_to = 3,
-               multi_logic = 'all',
-               multi_logic_fut = 'all',
-               staircase_steps = NULL,
-               alpha_precision = 5,
                seed = 8,
                hush = FALSE) {
     validate_args(
