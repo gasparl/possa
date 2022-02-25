@@ -1,37 +1,91 @@
 #'@title Power calculation
 #'
-#'@description Calculates power (and local alphas) based on given global alpha
-#'  and simulated p values.
-#'@param p_values Data frame.
-#'@param alpha_locals A number, a numeric vector, or a list of numeric vectors. (Any of
-#'  the numbers included can always be \code{NA} values as well.)
-#'  (...)
-#'  When \code{NULL} (default), sets "fixed design" (no
-#'  interim stopping alphas) with final alpha as specified as
-#'  \code{alpha_global}. (This is useful for cases where only futility bounds
-#'  are to be set for stopping.) When named, it must refer to p values skipping
-#'  the _h0/_h1 suffix, so in a pattern of "p_" (default) or p_ttest.
+#'@description Calculates power (and local alphas) based on simulated p values
+#'  (which should be provided as created by the
+#'  \code{\link[POSSA:sim]{POSSA::sim}} function). The calculation for
+#'  sequential testing involves a staircase procedure during which an initially
+#'  provided set of local alphas is continually adjusted until the (approximate)
+#'  specified global error rate (e.g., global alpha = .05) is reached: the value
+#'  of adjustment is decreasing while global error rate is larger than
+#'  specified, and increasing while global error rate is smaller than specified;
+#'  a smaller step is chosen whenever the direction (increase vs. decrease)
+#'  changes; the procedure stops when the global error rate is close enough to
+#'  the specified one (e.g., matches it up to 4 fractional digits) or when the
+#'  specified smallest step is passed. The adjustment works via a dedicated
+#'  ("\code{adjust}") function that either replaces missing (\code{NA}) values
+#'  with varying alternatives or (when there are no missing values) in some
+#'  manner varyingly modifies the initial values (e.g. by addition or
+#'  multiplication).
+#'@param p_values A \code{\link{data.frame}} containing the simulated
+#'  iterations, looks, and corresponding H0 and H1 p value outcomes, as returned
+#'  by the \code{\link[POSSA:sim]{POSSA::sim}} function. (Custom data frames are
+#'  also accepted, but may not work as expected.)
+#'@param alpha_locals A number, a numeric vector, or a named \code{\link{list}}
+#'  of numeric vectors, that specify the initial set of local alphas that may
+#'  stop the experiment at the given interim looks and also decide on
+#'  statistical significance; to be adjusted via the \code{adjust} function; see
+#'  the \code{adjust} parameter below. Any of the numbers included can always be
+#'  \code{NA} values as well (which indicates alphas to be calculated; again,
+#'  see the related \code{adjust} parameter below). In case of a vector or a
+#'  list of vectors, the length of each vector must correspond exactly to the
+#'  maximum number of looks in the \code{p_values} data frame. When a
+#'  \code{\link{list}} is given, the names of the list element(s) must
+#'  correspond to the root of the related H0 and H1 p value column name pair(s)
+#'  (in the \code{p_values} data frame), that is, without the "\code{_h0}" and
+#'  "\code{_h1}" suffixes: for example, if the column name pairs is
+#'  "\code{p_test4_h0}" and "\code{p_test4_h1}", the name of the corresponding
+#'  list element should be "\code{p_test4}". If a single number or a single
+#'  numeric vector is given, all potential p value column pairs are
+#'  automatically detected as starting with "\code{p_}" prefix and ending with
+#'  "\code{_h0}" and "\code{_h1}". In case of a single vector given, each such
+#'  automatically detected p value pair receives this same vector. In case of a
+#'  single number given, this all elements of all vectors will be this same
+#'  number. The default \code{NULL} value specifies "fixed design" (no interim
+#'  stopping alphas) with final alpha as specified as \code{alpha_global}. (This
+#'  is useful for cases where only futility bounds are to be set for stopping.)
 #'@param alpha_global Global alpha (expected error rate in total); \code{0.05}
 #'  by default.
-#'@param adjust (...) When \code{NULL} (default), function replaces \code{NA}s.
-#'@param adj_init (...) When \code{NULL} (default), it is calculated as
-#'  Bonferroni-corrected global alpha for the number of looks, with the
-#'  assumption that it (\code{adj_init}) is used as a replacement for
+#'@param adjust The function via which the initial vector local alphas is
+#'  modified with each step of the staircase procedure. Three arguments are
+#'  passed to it: \code{adj}, \code{orig}, and \code{prev}. The \code{adj}
+#'  parameter is mandatory; it passes the pivotal changing value that, starting
+#'  from an initial value (see \code{adj_init}), should, via the staircase
+#'  steps, decrease when the global error rate is too large, and increase when
+#'  the global error rate is too small. The \code{orig} parameter always passes
+#'  the same original vector of alphas as they were provided via
+#'  \code{alpha_locals}. The \code{prev} parameter (optional) passes the
+#'  "latest" vector of local alphas, which were obtained in the previous
+#'  adjustment step (or, in the initial run, it is the original vector, i.e.,
+#'  the same as \code{orig}). When \code{NULL} (default), function replaces
+#'  \code{NA}s with the varying adjustment value (as \code{{ prev[is.na(orig)] =
+#'  adj; return(prev) }}).
+#'@param adj_init The initial adjustment value that is used as the "\code{adj}"
+#'  parameter in the "\code{adjust}" function and is continually adjusted via
+#'  the staircase steps (see \code{staircase_steps} parameter). When \code{NULL}
+#'  (default), it is calculated as the global alpha divided by the maximum
+#'  number of looks (Bonferroni correction), as a rough initial approximation
+#'  with the assumption that "\code{adj}" is used as a replacement for
 #'  \code{NA}s.
 #'@param staircase_steps Numeric vector that specifies the (normally decreasing)
 #'  sequence of step sizes for the staircase that narrows down on the specified
-#'  global error error. By default (\code{NULL}) it is either "\code{0.01 * (0.5
-#'  ^ (seq(0, 11, 1)))}" (giving: \code{0.01, 0.005, 0.0025, ...}) or "0.5 *
-#'  (0.5 ^ (seq(0, 11, 1)))}" (giving: \code{0.05, 0.025, 0.0125, ...}). The
-#'  latter is chosen when adjustment via multiplication is assumed, which is
-#'  simply based on finding any multiplication sign (\code{\*}) in a given
-#'  custom \code{adjust} function. The former is chosen in any other case.
+#'  global error error by decreasing or increasing the adjustment value
+#'  (initially: \code{adj_init}): the step size (numeric value) is added for
+#'  increase, and subtracted for decrease. Whenever the direction (decrease vs.
+#'  increase) is changed, the staircase moves on to the next step size. When the
+#'  direction changes and there are no more steps remaining, the procedure is
+#'  finished (regardless of the global error rate). By default (\code{NULL}),
+#'  the \code{staircase_steps} is either "\code{0.01 * (0.5 ^ (seq(0, 11, 1)))}"
+#'  (giving: \code{0.01, 0.005, 0.0025, ...}) or "0.5 * (0.5 ^ (seq(0, 11,
+#'  1)))}" (giving: \code{0.05, 0.025, 0.0125, ...}). The latter is chosen when
+#'  adjustment via multiplication is assumed, which is simply based on finding
+#'  any multiplication sign (\code{\*}) in a given custom \code{adjust}
+#'  function. The former is chosen in any other case.
 #'@param alpha_precision During the error rate staircase procedure, at any point
-#'  where the simulated global error rate first matches the given
+#'  when the simulated global error rate first matches the given
 #'  \code{alpha_global} at least for the number of fractional digits given here
 #'  (\code{alpha_precision}; default: \code{5}), the procedure stops and the
-#'  results are printed. Otherwise, the procedures stops only when all steps
-#'  given as \code{staircase_steps} have been used.
+#'  results are printed. (Otherwise, the procedures finishes only when all steps
+#'  given as \code{staircase_steps} have been used.)
 #'@param fut_locals (...) When \code{NULL} (default), sets no futility bounds.
 #'@param multi_logic When multiple p values are evaluated for stopping rules,
 #'  \code{multi_logic} specifies the function used for how to evaluate the
@@ -77,8 +131,7 @@
 #'  \code{\link{base}} function.
 #'@param round_to Number \code{\link[=ro]{to round}} to.
 #'@param seed Number for \code{\link{set.seed}}; \code{8} by default. Set to
-#'  \code{NULL} for random seed.
-#'@param hush Logical (default: \code{FALSE}). If \code{TRUE}, prevents printing any details to console.
+#'  \code{NULL} for random seed
 #'
 #'@details
 #'
@@ -118,8 +171,7 @@ pow = function(p_values,
                descr_cols = TRUE,
                descr_func = summary,
                round_to = 3,
-               seed = 8,
-               hush = FALSE) {
+               seed = 8) {
     validate_args(
         match.call(),
         list(
@@ -136,8 +188,7 @@ pow = function(p_values,
             val_arg(multi_logic, c('char', 'num'), 1, c('all', 'any')),
             val_arg(multi_logic_fut, c('char', 'num'), 1, c('all', 'any')),
             val_arg(staircase_steps, c('null', 'num')),
-            val_arg(alpha_precision, c('num'), 1),
-            val_arg(hush, c('bool'), 1)
+            val_arg(alpha_precision, c('num'), 1)
         )
     )
 
