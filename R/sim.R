@@ -143,7 +143,7 @@ sim = function(fun_obs,
         # if just a vector given, all samples have this as samples sizes
         n_obs_orig = n_obs
         n_obs = list()
-        fpars = formalArgs(fun_obs) # required sample names guessed from fun_obs arguments
+        fpars = methods::formalArgs(fun_obs) # required sample names guessed from fun_obs arguments
         for (n_name in fpars[!fpars %in% names(f_s_args)]) {
             n_obs[[n_name]] = n_obs_orig # assign vector to each sample type
         }
@@ -169,7 +169,7 @@ sim = function(fun_obs,
         }
         for (i in 1:n_iter) {
             pb_count = pb_count + 1
-            setTxtProgressBar(pb, pb_count)
+            utils::setTxtProgressBar(pb, pb_count)
             samples = do.call(fun_obs, c(obs_per_it[[n_look]], f_s_a))
             list_vals[[length(list_vals) + 1]] =
                 c(

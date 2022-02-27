@@ -129,13 +129,9 @@
 #'@param descr_func Function used for printing descriptives (see
 #'  \code{descr_cols}). By default, it uses the \code{\link{summary}}
 #'  \code{\link{base}} function.
-#'@param round_to Number \code{\link[=ro]{to round}} to.
+#'@param round_to Number to round to.
 #'@param seed Number for \code{\link{set.seed}}; \code{8} by default. Set to
 #'  \code{NULL} for random seed
-#'
-#'@details
-#'
-# For details about blah.
 #'
 #'@return Returns \code{\link{data.frame}}, etc.
 #'
@@ -191,6 +187,16 @@ pow = function(p_values,
             val_arg(alpha_precision, c('num'), 1)
         )
     )
+    look = NULL
+    iter = NULL
+    h0_stoP = NULL
+    h1_stoP = NULL
+    ..p_h0_sign_names = NULL
+    ..p_h0_sign_names_plus = NULL
+    ..p_h1_sign_names = NULL
+    ..p_h1_sign_names_plus = NULL
+    min_look = NULL
+    _.possa_fact_combs = NULL
 
     set.seed(seed)
     if (!'possa_df' %in% class(p_values)) {
@@ -466,11 +472,11 @@ pow = function(p_values,
             return(prev)
         }
     } else {
-        if (!'adj' %in% formalArgs(adjust)) {
+        if (!'adj' %in% methods::formalArgs(adjust)) {
             stop('The "adjust" function must contain an "adj" parameter.')
         }
         for (a_arg in c('prev', 'orig')) {
-            if (!a_arg %in%  formalArgs(adjust)) {
+            if (!a_arg %in%  methods::formalArgs(adjust)) {
                 formals(adjust)[[a_arg]] = NA
             }
         }
@@ -519,8 +525,8 @@ pow = function(p_values,
         message('Custom "group_by" argument given. Be cautious.')
     }
     if (length(group_by) > 0) {
-        p_values[, possa_facts_combS := do.call(paste, c(.SD, sep = '; ')), .SDcols = group_by]
-        possafacts = unique(p_values$possa_facts_combS)
+        p_values[, _.possa_fact_combs := do.call(paste, c(.SD, sep = '; ')), .SDcols = group_by]
+        possafacts = unique(p_values$_.possa_fact_combs)
     } else {
         possafacts = NA
     }
@@ -557,7 +563,7 @@ pow = function(p_values,
                 }
             }
             # if applicable, take only given factor combination & print its "group" name
-            pvals_df = p_values[possa_facts_combS == possa_fact]
+            pvals_df = p_values[_.possa_fact_combs == possa_fact]
             cat('GROUP: ', possa_fact, fill = TRUE)
         }
         if (descr_cols[1] != FALSE) {
@@ -750,14 +756,14 @@ pow = function(p_values,
                         # change staircase direction (and also decrease step) if needed
                         a_step = -stair_steps[1] * sign(a_step)
                         stair_steps = stair_steps[-1]
-                        setTxtProgressBar(pb, getTxtProgressBar(pb) + 1)
+                        utils::setTxtProgressBar(pb, utils::getTxtProgressBar(pb) + 1)
                     }
                     # adjust a_adj itself by the step
                     # this a_adj will be used in the adjust function
                     a_adj = a_adj + a_step
                 }
             }
-            setTxtProgressBar(pb, length(staircase_steps))
+            utils::setTxtProgressBar(pb, length(staircase_steps))
             close(pb)
             # assign final local alphas
             a_locals_fin = locls_temp
@@ -823,11 +829,11 @@ pow = function(p_values,
                 iters_out0 = ps_sub0[look == lk &
                                          h0_stoP == TRUE]
                 # remove stopped iterations
-                ps_sub0 = ps_sub0[!iter %in% iters_out0$iter,]
+                ps_sub0 = ps_sub0[!iter %in% iters_out0$iter, ]
                 # (same for H1)
                 iters_out1 = ps_sub1[look == lk &
-                                         h1_stoP == TRUE, ]
-                ps_sub1 = ps_sub1[!iter %in% iters_out1$iter, ]
+                                         h1_stoP == TRUE,]
+                ps_sub1 = ps_sub1[!iter %in% iters_out1$iter,]
                 outs = c()
                 # get info per p value column
                 for (p_nam in p_names_extr) {
