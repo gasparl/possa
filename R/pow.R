@@ -75,7 +75,7 @@
 #'  direction changes and there are no more steps remaining, the procedure is
 #'  finished (regardless of the global error rate). By default (\code{NULL}),
 #'  the \code{staircase_steps} is either "\code{0.01 * (0.5 ^ (seq(0, 11, 1)))}"
-#'  (giving: \code{0.01, 0.005, 0.0025, ...}) or "0.5 * (0.5 ^ (seq(0, 11,
+#'  (giving: \code{0.01, 0.005, 0.0025, ...}) or "\code{0.5 * (0.5 ^ (seq(0, 11,
 #'  1)))}" (giving: \code{0.05, 0.025, 0.0125, ...}). The latter is chosen when
 #'  adjustment via multiplication is assumed, which is simply based on finding
 #'  any multiplication sign (\code{\*}) in a given custom \code{adjust}
@@ -86,7 +86,7 @@
 #'  (\code{alpha_precision}; default: \code{5}), the procedure stops and the
 #'  results are printed. (Otherwise, the procedures finishes only when all steps
 #'  given as \code{staircase_steps} have been used.)
-#'@param fut_locals (...) When \code{NULL} (default), sets no futility bounds.
+#'@param fut_locals TODO DESCR. When \code{NULL} (default), sets no futility bounds.
 #'@param multi_logic When multiple p values are evaluated for stopping rules,
 #'  \code{multi_logic} specifies the function used for how to evaluate the
 #'  multiple outcomes as a single \code{TRUE} or \code{FALSE} value that decides
@@ -96,7 +96,7 @@
 #'  collection stops when any of the p values pass the boundary for stopping.
 #'  Instead of these strings, the actual \code{\link{all}} and \code{\link{any}}
 #'  would lead to identical outcomes, respectively, but the processing would be
-#'  far slower (since the string \code{'all'}/\code{'any'} inputs specify a
+#'  far slower (since the string \code{'all'} or \code{'any'} inputs specify a
 #'  dedicated faster internal solution). For custom combinations, any custom
 #'  function can be given, which will take, as arguments, the p value columns in
 #'  their given order (either in the \code{p_values} data frame, or as specified
@@ -109,7 +109,7 @@
 #'  divided into parts by these factors and these parts will be analyzed
 #'  separately, with power and error information (and descriptives, if
 #'  specified) printed per each part. By default \code{NULL}, it identifies
-#'  factors, if any, given to the \code{sim} function (via \code{f_sample}) that
+#'  factors, if any, given to the \code{sim} function (via \code{fun_obs}) that
 #'  produced the given \code{p_values} data.
 #'@param alpha_locals_extra Optional extra and "non-stopper" alphas via which to
 #'  evaluate p values per look, but without stopping the data collection
@@ -125,7 +125,7 @@
 #'  factors for which descriptive data should be shown (by group, if
 #'  applicable). By default \code{TRUE}, it identifies (similar as
 #'  \code{group_by}) factors, if any, given to the \code{sim} function (via
-#'  \code{f_sample}) that produced the given \code{p_values} data.
+#'  \code{fun_obs}) that produced the given \code{p_values} data.
 #'@param descr_func Function used for printing descriptives (see
 #'  \code{descr_cols}). By default, it uses the \code{\link{summary}}
 #'  \code{\link{base}} function.
@@ -238,9 +238,9 @@ pow = function(p_values,
             multi_logic_fut = `&`
         }
     }
-    data.table::setDT(p_values)
-    data.table::setkey(p_values, look)
-    data.table::setindex(p_values, iter)
+    setDT(p_values)
+    setkey(p_values, look)
+    setindex(p_values, iter)
     looks = unique(p_values$look)
     mlook = max(p_values$look)
     # get columns with sample sizes (n), factors (fac), and p values (p_/_h0/1)
@@ -646,13 +646,14 @@ pow = function(p_values,
             type1 = 1
             while (length(stair_steps) > 0) {
                 ### TO REMOVE (just for testing)
-                cat('\ntype1',
-                    type1,
-                    'a_adj:',
-                    a_adj,
-                    'new step:',
-                    a_step,
-                    fill = T)
+                # cat('\ntype1',
+                #     type1,
+                #     'a_adj:',
+                #     a_adj,
+                #     'new step:',
+                #     a_step,
+                #     fill = T)
+
                 # calculate H0 significances (T/F) & stops (T/F) based on adjusted alphas
                 if (is.na(stair_steps[1])) {
                     # as a last step, add non-stopping columns, if any

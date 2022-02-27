@@ -43,7 +43,7 @@
 #'  the \code{fun_test} can return other miscellaneous outcomes too, such as
 #'  effect sizes or confidence interval limits; these will then be stored in
 #'  dedicated columns in the resulting \code{\link{data.frame}}.
-#'@param n_iter Number of iterations (default: 1000).
+#'@param n_iter Number of iterations (default: 5000).
 #'@param seed Number for \code{\link{set.seed}}; \code{8} by default. Set to
 #'  \code{NULL} for random seed.
 #'
@@ -100,9 +100,9 @@
 #' }
 #'
 #' df_ps_v1 = sim(
-#'     f_sample = custom_sample_v1,
+#'     fun_obs = custom_sample_v1,
 #'     n_obs = c(33, 65, 98),
-#'     f_test = custom_test_v1
+#'     fun_test = custom_test_v1
 #' )
 #'
 #' @export

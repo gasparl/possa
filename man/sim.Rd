@@ -4,36 +4,112 @@
 \alias{sim}
 \title{Simulation procedure}
 \usage{
-sim(f_sample, n_obs, f_test, n_iter = 1000, seed = 8)
+sim(fun_obs, n_obs, fun_test, n_iter = 5000, seed = 8)
 }
 \arguments{
-\item{f_sample}{Function. create any sample variables; use list for varying factors and indicate different parameters in the list elements (as number vectors)}
+\item{fun_obs}{A \code{\link{function}} that creates the observations (i.e.,
+the "sample"; all values for the dependent variable(s)). The arguments that
+specify the observation numbers in this function have to be provided via
+\code{n_obs}: the respective maximum observation number, given in
+\code{n_obs}, will be passed to the \code{fun_obs}, and, in case of
+sequential testing, the resulting observations will be reduced to the
+specified (smaller) number(s) of observations for each given interim "look"
+(as a simulation for what would happen if collection was stopped at that
+given look). Importantly, a special "\code{_h}" suffix (e.g.,
+"\code{var1_h}") is required to specify the variable(s) that differ(s)
+depending on whether or not the null hypothesis ("H0") or the alternative
+hypothesis ("H1") is true. This will be internally transformed into
+"\code{_h0}" and "\code{_h1}" endings (e.g., \code{var1_h0}, \code{var1_h1})
+for the arguments of the \code{fun_test} function.  Optionally, the
+\code{fun_obs} can be passed additional arguments (via a
+\code{\link{list}}); see Details.}
 
-\item{n_obs}{A number, a numeric vector, or a list of numeric vectors. (Any of the numbers can always be \code{NA} values as well.)
-Specifies samples sizes for any sample variable from f_sample that is to be used in f_test. H1 and H2 has to be specified with "_h" ending, then it's converted to "_h0" and "_h1".}
+\item{n_obs}{A numeric vector or a (named) list of numeric vectors. Specifies
+the numbers of observations (i.e., samples sizes) that are to be generated
+from \code{fun_obs}, to be then tested in \code{fun_test}. If a single
+vector is given, this will be used for all arguments in the \code{fun_obs}
+function. Otherwise, if a named list of numeric vectors is given, the names
+must correspond exactly to the argument names in \code{fun_obs}, so that the
+respective numeric vectors are used for each given variable.}
 
-\item{f_test}{Function. Uses as input the sample variables created in f_sample AND specified in n_obs. The obtained p values must be specified with "p_" start and "_h0" and "_h1" endings (e.g., p_h0, p_h1; p_ttest_h0, p_ttest_h1).}
+\item{fun_test}{The function for significance testing. The observation values
+created in \code{fun_obs} (with observation numbers specified in
+\code{n_obs}) will be passed into this \code{fun_test} function as arguments
+(with \code{_h} suffixes extended to \code{_h0} and \code{_h1}), to be used
+in the given statistical significance tests in this function. The test
+results must include a pair (or pairs) of p values for H0 and H1 outcomes,
+where each p value must be specified with a "\code{p_}" prefix and a
+"\code{_h0}" suffix for H0 outcome or a "\code{_h1}" suffix for H1 outcome
+(e.g., \code{p_h0}, \code{p_h1}; \code{p_ttest_h0}, \code{p_ttest_h1}). Each
+of these p values will be separately stored in a dedicated column of the
+\code{\link{data.frame}} returned by the \code{sim} function. Optionally,
+the \code{fun_test} can return other miscellaneous outcomes too, such as
+effect sizes or confidence interval limits; these will then be stored in
+dedicated columns in the resulting \code{\link{data.frame}}.}
 
-\item{n_iter}{Number of iterations.}
+\item{n_iter}{Number of iterations (default: 5000).}
+
+\item{seed}{Number for \code{\link{set.seed}}; \code{8} by default. Set to
+\code{NULL} for random seed.}
 }
 \value{
-Returns \code{\link{data.frame}}, etc.
+Returns a \code{\link{data.frame}} that includes the columns
+ \code{iter} (the iterations of the simulation procedure numbered from
+ \code{1} to \code{n_iter}), \code{look} (the interim "looks" numbered from
+ \code{1} to the maximum number of looks, including the final one), and the
+ information returned by the \code{fun_test} function for H0 and H1 outcomes
+ (mainly p values; but also other, optional information, if any) and the
+ corresponding observation numbers.
 }
 \description{
-This function performs the simulation procedure in order to get p
- values. The sample is simulated via the given \code{f_sample} function, and
- the significance test is performed via the given \code{f_test} function. The
- numbers of observations per look (for a sequential design) are specified in
- \code{n_obs}.
+This function performs the simulation procedure in order to get
+ the p values that will eventually serve for power calculations (via
+ \code{\link{pow}}). The "sample" values to be tested are simulated via the
+ given \code{fun_obs} function, and the significance testing is performed via
+ the given \code{fun_test} function. The numbers of observations per look
+ (for a sequential design) are specified in \code{n_obs}.
 }
 \details{
-
-}
-\note{
-Some notes.
+Optionally, \code{fun_obs} can be provided in \code{\link{list}} format for
+the convenience of exploring varying factors (e.g., different effect sizes,
+correlations) at once, without writing a dedicated \code{fun_obs} function for
+each combination, and each time separately running the simulation and the
+power calculation. In this case, the first element of the list must be the
+actual \code{\link{function}}, which contains certain parameters for
+specifying varying factors, while the rest of the elements should contain the
+various argument values for these parameters of the function as named elements
+of the list (e.g., \code{list(my_function, factor1, factor2)}), with the name
+corresponding to the parameter name in the function, and the varying values.
+When so specified, a separate simulation procedure will be run for each
+combination of the given factors (or, if only one factor is given, for each
+element of that factor). The \code{\link[POSSA:pow]{POSSA::pow}} function will
+be able to automatically detect (by default) the factors generated this way in
+the present \code{\link[POSSA:sim]{POSSA::sim}} function, in order to
+calculate power separately for each factor combination.
 }
 \examples{
-# some sim
+
+# user-defined function to specify sample(s)
+custom_sample_v1 = function(v1, v2_h) {
+    list(v1 = rnorm(v1, mean = 0, sd = 10),
+         v2_h0 = rnorm(v2_h, mean = 0, sd = 10),
+         v2_h1 = rnorm(v2_h, mean = 5, sd = 10))
+}
+
+
+# user-defined function to specify significance test(s)
+custom_test_v1 = function(sampl) {
+    c(
+        p_h0 = t.test(sampl$v2_h0, sampl$v1, var.equal = TRUE)$p.value,
+        p_h1 = t.test(sampl$v2_h1, sampl$v1, var.equal = TRUE)$p.value
+    )
+}
+
+df_ps_v1 = sim(
+    fun_obs = custom_sample_v1,
+    n_obs = c(33, 65, 98),
+    fun_test = custom_test_v1
+)
 
 }
 \references{

@@ -6,3 +6,4 @@
 ^example_images
 .RData
 .Rhistory
+^\.github$

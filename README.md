@@ -33,3 +33,5 @@ For details about each function, see [the manual](https://github.com/gasparl/pos
 ### Citation
 
 See `citation("POSSA")`.
+
+[![R-CMD-check](https://github.com/gasparl/possa/workflows/R-CMD-check/badge.svg)](https://github.com/gasparl/possa/actions)

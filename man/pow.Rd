@@ -8,9 +8,13 @@ pow(
   p_values,
   alpha_locals = NULL,
   alpha_global = 0.05,
-  fut_locals = NULL,
   adjust = NULL,
   adj_init = NULL,
+  staircase_steps = NULL,
+  alpha_precision = 5,
+  fut_locals = NULL,
+  multi_logic = "all",
+  multi_logic_fut = "all",
   group_by = NULL,
   alpha_locals_extra = NULL,
   design_fix = NULL,
@@ -18,35 +22,170 @@ pow(
   descr_cols = TRUE,
   descr_func = summary,
   round_to = 3,
-  multi_logic = "all",
-  multi_logic_fut = "all",
-  staircase_steps = NULL,
-  alpha_precision = 5,
-  seed = 8,
-  hush = FALSE
+  seed = 8
 )
 }
 \arguments{
-\item{p_values}{Data frame.}
+\item{p_values}{A \code{\link{data.frame}} containing the simulated
+iterations, looks, and corresponding H0 and H1 p value outcomes, as returned
+by the \code{\link[POSSA:sim]{POSSA::sim}} function. (Custom data frames are
+also accepted, but may not work as expected.)}
 
-\item{alpha_locals}{(...) When named, it must refer to p values skipping the _h0/_h1 suffix, so in a pattern of "p_" (default) or p_ttest.}
+\item{alpha_locals}{A number, a numeric vector, or a named \code{\link{list}}
+of numeric vectors, that specify the initial set of local alphas that may
+stop the experiment at the given interim looks and also decide on
+statistical significance; to be adjusted via the \code{adjust} function; see
+the \code{adjust} parameter below. Any of the numbers included can always be
+\code{NA} values as well (which indicates alphas to be calculated; again,
+see the related \code{adjust} parameter below). In case of a vector or a
+list of vectors, the length of each vector must correspond exactly to the
+maximum number of looks in the \code{p_values} data frame. When a
+\code{\link{list}} is given, the names of the list element(s) must
+correspond to the root of the related H0 and H1 p value column name pair(s)
+(in the \code{p_values} data frame), that is, without the "\code{_h0}" and
+"\code{_h1}" suffixes: for example, if the column name pairs is
+"\code{p_test4_h0}" and "\code{p_test4_h1}", the name of the corresponding
+list element should be "\code{p_test4}". If a single number or a single
+numeric vector is given, all potential p value column pairs are
+automatically detected as starting with "\code{p_}" prefix and ending with
+"\code{_h0}" and "\code{_h1}". In case of a single vector given, each such
+automatically detected p value pair receives this same vector. In case of a
+single number given, this all elements of all vectors will be this same
+number. The default \code{NULL} value specifies "fixed design" (no interim
+stopping alphas) with final alpha as specified as \code{alpha_global}. (This
+is useful for cases where only futility bounds are to be set for stopping.)}
+
+\item{alpha_global}{Global alpha (expected error rate in total); \code{0.05}
+by default.}
+
+\item{adjust}{The function via which the initial vector local alphas is
+modified with each step of the staircase procedure. Three arguments are
+passed to it: \code{adj}, \code{orig}, and \code{prev}. The \code{adj}
+parameter is mandatory; it passes the pivotal changing value that, starting
+from an initial value (see \code{adj_init}), should, via the staircase
+steps, decrease when the global error rate is too large, and increase when
+the global error rate is too small. The \code{orig} parameter always passes
+the same original vector of alphas as they were provided via
+\code{alpha_locals}. The \code{prev} parameter (optional) passes the
+"latest" vector of local alphas, which were obtained in the previous
+adjustment step (or, in the initial run, it is the original vector, i.e.,
+the same as \code{orig}). When \code{NULL} (default), function replaces
+\code{NA}s with the varying adjustment value (as \code{{ prev[is.na(orig)] =
+adj; return(prev) }}).}
+
+\item{adj_init}{The initial adjustment value that is used as the "\code{adj}"
+parameter in the "\code{adjust}" function and is continually adjusted via
+the staircase steps (see \code{staircase_steps} parameter). When \code{NULL}
+(default), it is calculated as the global alpha divided by the maximum
+number of looks (Bonferroni correction), as a rough initial approximation
+with the assumption that "\code{adj}" is used as a replacement for
+\code{NA}s.}
+
+\item{staircase_steps}{Numeric vector that specifies the (normally decreasing)
+sequence of step sizes for the staircase that narrows down on the specified
+global error error by decreasing or increasing the adjustment value
+(initially: \code{adj_init}): the step size (numeric value) is added for
+increase, and subtracted for decrease. Whenever the direction (decrease vs.
+increase) is changed, the staircase moves on to the next step size. When the
+direction changes and there are no more steps remaining, the procedure is
+finished (regardless of the global error rate). By default (\code{NULL}),
+the \code{staircase_steps} is either "\code{0.01 * (0.5 ^ (seq(0, 11, 1)))}"
+(giving: \code{0.01, 0.005, 0.0025, ...}) or "\code{0.5 * (0.5 ^ (seq(0, 11,
+1)))}" (giving: \code{0.05, 0.025, 0.0125, ...}). The latter is chosen when
+adjustment via multiplication is assumed, which is simply based on finding
+any multiplication sign (\code{\*}) in a given custom \code{adjust}
+function. The former is chosen in any other case.}
+
+\item{alpha_precision}{During the error rate staircase procedure, at any point
+when the simulated global error rate first matches the given
+\code{alpha_global} at least for the number of fractional digits given here
+(\code{alpha_precision}; default: \code{5}), the procedure stops and the
+results are printed. (Otherwise, the procedures finishes only when all steps
+given as \code{staircase_steps} have been used.)}
+
+\item{fut_locals}{TODO DESCR. When \code{NULL} (default), sets no futility bounds.}
+
+\item{multi_logic}{When multiple p values are evaluated for stopping rules,
+\code{multi_logic} specifies the function used for how to evaluate the
+multiple outcomes as a single \code{TRUE} or \code{FALSE} value that decides
+whether or not to stop at a given look. The default, \code{'all'}, specifies
+that all of the p values must pass the boundary for stopping. The other
+acceptable character input is \code{'any'}, which specifies that the
+collection stops when any of the p values pass the boundary for stopping.
+Instead of these strings, the actual \code{\link{all}} and \code{\link{any}}
+would lead to identical outcomes, respectively, but the processing would be
+far slower (since the string \code{'all'} or \code{'any'} inputs specify a
+dedicated faster internal solution). For custom combinations, any custom
+function can be given, which will take, as arguments, the p value columns in
+their given order (either in the \code{p_values} data frame, or as specified
+in \code{alpha_locals}), and should return a single \code{TRUE} or
+\code{FALSE} value.}
+
+\item{multi_logic_fut}{Same as \code{multi_logic}, but for futility bounds
+(for the columns specified in \code{fut_locals}).}
+
+\item{group_by}{When given as a character element or vector, specifies the
+factors by which to group the analysis: the \code{p_values} data will be
+divided into parts by these factors and these parts will be analyzed
+separately, with power and error information (and descriptives, if
+specified) printed per each part. By default \code{NULL}, it identifies
+factors, if any, given to the \code{sim} function (via \code{fun_obs}) that
+produced the given \code{p_values} data.}
+
+\item{alpha_locals_extra}{Optional extra and "non-stopper" alphas via which to
+evaluate p values per look, but without stopping the data collection
+regardless of statistical significance.}
+
+\item{design_fix}{Whether to calculate fixed design (as comparable
+alternative(s) to given "looks" of the sequential design). If \code{NULL}
+(default), (...) Altogether omitted when \code{FALSE}.}
+
+\item{design_seq}{Whether to calculate sequential design. (Although this R
+package is designed for sequential analysis, it can be used for just fixed
+designs too.) If \code{NULL} (default), (...) Altogether omitted when
+\code{FALSE}.}
+
+\item{descr_cols}{When given as a character element or vector, specifies the
+factors for which descriptive data should be shown (by group, if
+applicable). By default \code{TRUE}, it identifies (similar as
+\code{group_by}) factors, if any, given to the \code{sim} function (via
+\code{fun_obs}) that produced the given \code{p_values} data.}
+
+\item{descr_func}{Function used for printing descriptives (see
+\code{descr_cols}). By default, it uses the \code{\link{summary}}
+\code{\link{base}} function.}
 
 \item{round_to}{Number \code{\link[=ro]{to round}} to.}
 
-\item{hush}{Logical. If \code{TRUE}, prevents printing any details to console.}
+\item{seed}{Number for \code{\link{set.seed}}; \code{8} by default. Set to
+\code{NULL} for random seed}
 }
 \value{
 Returns \code{\link{data.frame}}, etc.
 }
 \description{
-Calculates power (and local alphas) based on given global alpha
- and simulated p values.
+Calculates power (and local alphas) based on simulated p values
+ (which should be provided as created by the
+ \code{\link[POSSA:sim]{POSSA::sim}} function). The calculation for
+ sequential testing involves a staircase procedure during which an initially
+ provided set of local alphas is continually adjusted until the (approximate)
+ specified global error rate (e.g., global alpha = .05) is reached: the value
+ of adjustment is decreasing while global error rate is larger than
+ specified, and increasing while global error rate is smaller than specified;
+ a smaller step is chosen whenever the direction (increase vs. decrease)
+ changes; the procedure stops when the global error rate is close enough to
+ the specified one (e.g., matches it up to 4 fractional digits) or when the
+ specified smallest step is passed. The adjustment works via a dedicated
+ ("\code{adjust}") function that either replaces missing (\code{NA}) values
+ with varying alternatives or (when there are no missing values) in some
+ manner varyingly modifies the initial values (e.g. by addition or
+ multiplication).
 }
 \details{
 
 }
 \note{
-Some notes.
+This function uses, internally, the \code{\link{data.table}} R package.
 }
 \examples{
 # some pow
