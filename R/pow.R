@@ -193,10 +193,6 @@ pow = function(p_values,
     h1_stoP = NULL
     h0_stoP_fa = NULL
     h1_stoP_fa = NULL
-    ..p_h0_sign_names = NULL
-    ..p_h0_sign_names_plus = NULL
-    ..p_h1_sign_names = NULL
-    ..p_h1_sign_names_plus = NULL
     min_look = NULL
     ._possa_fact_combs = NULL
     . = NULL
@@ -581,7 +577,6 @@ pow = function(p_values,
             cat('', fill = TRUE)
         }
         tot_samples = c()
-        print(n_cols)
         for (lk in looks) {
             tot_samples = c(tot_samples, sum(pvals_df[.(lk), .SD, .SDcols = n_cols, mult = 'first']))
         }
@@ -736,8 +731,8 @@ pow = function(p_values,
 
                 # now get all outcomes at stopping point
                 pvals_stp = pvals_df[look == mlook |
-                                         h0_stoP == TRUE,  ..p_h0_sign_names_plus]
-                type1 = mean(unlist(pvals_stp[, min_look := min(look), by = iter][look == min_look, ..p_h0_sign_names]))
+                                         h0_stoP == TRUE,  .SD, .SDcols = p_h0_sign_names_plus]
+                type1 = mean(unlist(pvals_stp[, min_look := min(look), by = iter][look == min_look, .SD, .SDcols = p_h0_sign_names]))
 
                 if (is.na(stair_steps[1])) {
                     # NA indicates no stairs; nothing left to be done
@@ -816,8 +811,8 @@ pow = function(p_values,
             if (multi_p) {
                 # if multi_p, get global power at stopping point
                 pvals_stp = pvals_df[look == mlook |
-                                         h1_stoP == TRUE,  ..p_h1_sign_names_plus]
-                seq_power = mean(unlist(pvals_stp[, min_look := min(look), by = iter][look == min_look, ..p_h1_sign_names]))
+                                         h1_stoP == TRUE,  .SD, .SDcols = p_h1_sign_names_plus]
+                seq_power = mean(unlist(pvals_stp[, min_look := min(look), by = iter][look == min_look, .SD, .SDcols = p_h1_sign_names]))
             }
 
             # calculate sample size information per look
@@ -832,11 +827,11 @@ pow = function(p_values,
                 iters_out0 = ps_sub0[look == lk &
                                          h0_stoP == TRUE]
                 # remove stopped iterations
-                ps_sub0 = ps_sub0[!iter %in% iters_out0$iter, ]
+                ps_sub0 = ps_sub0[!iter %in% iters_out0$iter,]
                 # (same for H1)
                 iters_out1 = ps_sub1[look == lk &
-                                         h1_stoP == TRUE,]
-                ps_sub1 = ps_sub1[!iter %in% iters_out1$iter,]
+                                         h1_stoP == TRUE, ]
+                ps_sub1 = ps_sub1[!iter %in% iters_out1$iter, ]
                 outs = c()
                 # get info per p value column
                 for (p_nam in p_names_extr) {
