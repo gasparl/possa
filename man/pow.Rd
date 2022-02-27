@@ -155,7 +155,7 @@ applicable). By default \code{TRUE}, it identifies (similar as
 \code{descr_cols}). By default, it uses the \code{\link{summary}}
 \code{\link{base}} function.}
 
-\item{round_to}{Number \code{\link[=ro]{to round}} to.}
+\item{round_to}{Number to round to.}
 
 \item{seed}{Number for \code{\link{set.seed}}; \code{8} by default. Set to
 \code{NULL} for random seed}
@@ -180,9 +180,6 @@ Calculates power (and local alphas) based on simulated p values
  with varying alternatives or (when there are no missing values) in some
  manner varyingly modifies the initial values (e.g. by addition or
  multiplication).
-}
-\details{
-
 }
 \note{
 This function uses, internally, the \code{\link{data.table}} R package.

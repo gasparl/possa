@@ -191,12 +191,15 @@ pow = function(p_values,
     iter = NULL
     h0_stoP = NULL
     h1_stoP = NULL
+    h0_stoP_fa = NULL
+    h1_stoP_fa = NULL
     ..p_h0_sign_names = NULL
     ..p_h0_sign_names_plus = NULL
     ..p_h1_sign_names = NULL
     ..p_h1_sign_names_plus = NULL
     min_look = NULL
     ._possa_fact_combs = NULL
+    . = NULL
 
     set.seed(seed)
     if (!'possa_df' %in% class(p_values)) {

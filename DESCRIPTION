@@ -7,7 +7,7 @@ Authors@R: c(person("Gáspár", "Lukács", email = "lkcsgaspar@gmail.com", role 
 Description: Power simulation for sequential analysis. Blah.
 URL: https://github.com/gasparl/possa
 Depends: R (>= 3.6.0)
-Imports: data.table
+Imports: data.table, methods
 License: BSD_2_clause + file LICENSE
 Encoding: UTF-8
 RoxygenNote: 7.1.2
