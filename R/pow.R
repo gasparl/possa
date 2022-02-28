@@ -1,6 +1,6 @@
 #'@title Power calculation
 #'
-#'@description Calculates power (and local alphas) based on simulated p values
+#'@description Calculates power and local alphas based on simulated p values
 #'  (which should be provided as created by the
 #'  \code{\link[POSSA:sim]{POSSA::sim}} function). The calculation for
 #'  sequential testing involves a staircase procedure during which an initially
@@ -21,28 +21,29 @@
 #'  by the \code{\link[POSSA:sim]{POSSA::sim}} function. (Custom data frames are
 #'  also accepted, but may not work as expected.)
 #'@param alpha_locals A number, a numeric vector, or a named \code{\link{list}}
-#'  of numeric vectors, that specify the initial set of local alphas that may
-#'  stop the experiment at the given interim looks and also decide on
-#'  statistical significance; to be adjusted via the \code{adjust} function; see
-#'  the \code{adjust} parameter below. Any of the numbers included can always be
-#'  \code{NA} values as well (which indicates alphas to be calculated; again,
-#'  see the related \code{adjust} parameter below). In case of a vector or a
-#'  list of vectors, the length of each vector must correspond exactly to the
-#'  maximum number of looks in the \code{p_values} data frame. When a
-#'  \code{\link{list}} is given, the names of the list element(s) must
-#'  correspond to the root of the related H0 and H1 p value column name pair(s)
-#'  (in the \code{p_values} data frame), that is, without the "\code{_h0}" and
-#'  "\code{_h1}" suffixes: for example, if the column name pairs is
-#'  "\code{p_test4_h0}" and "\code{p_test4_h1}", the name of the corresponding
-#'  list element should be "\code{p_test4}". If a single number or a single
-#'  numeric vector is given, all potential p value column pairs are
-#'  automatically detected as starting with "\code{p_}" prefix and ending with
-#'  "\code{_h0}" and "\code{_h1}". In case of a single vector given, each such
-#'  automatically detected p value pair receives this same vector. In case of a
-#'  single number given, this all elements of all vectors will be this same
-#'  number. The default \code{NULL} value specifies "fixed design" (no interim
-#'  stopping alphas) with final alpha as specified as \code{alpha_global}. (This
-#'  is useful for cases where only futility bounds are to be set for stopping.)
+#'  of numeric vectors, that specify the initial set of local alphas that decide
+#'  on statistical significance (for interim look as well as for the final
+#'  look), and, if significant, stop the experiment at the given interim looks;
+#'  to be adjusted via the \code{adjust} function; see the \code{adjust}
+#'  parameter below. Any of the numbers included can always be \code{NA} values
+#'  as well (which indicates alphas to be calculated; again, see the related
+#'  \code{adjust} parameter below). In case of a vector or a list of vectors,
+#'  the length of each vector must correspond exactly to the maximum number of
+#'  looks in the \code{p_values} data frame. When a \code{\link{list}} is given,
+#'  the names of the list element(s) must correspond to the root of the related
+#'  H0 and H1 p value column name pair(s) (in the \code{p_values} data frame),
+#'  that is, without the "\code{_h0}" and "\code{_h1}" suffixes: for example, if
+#'  the column name pairs is "\code{p_test4_h0}" and "\code{p_test4_h1}", the
+#'  name of the corresponding list element should be "\code{p_test4}". If a
+#'  single number or a single numeric vector is given, all potential p value
+#'  column pairs are automatically detected as starting with "\code{p_}" prefix
+#'  and ending with "\code{_h0}" and "\code{_h1}". In case of a single vector
+#'  given, each such automatically detected p value pair receives this same
+#'  vector. In case of a single number given, this all elements of all vectors
+#'  will be this same number. The default \code{NULL} value specifies "fixed
+#'  design" (no interim stopping alphas) with final alpha as specified as
+#'  \code{alpha_global}. (This is useful for cases where only futility bounds
+#'  are to be set for stopping.)
 #'@param alpha_global Global alpha (expected error rate in total); \code{0.05}
 #'  by default.
 #'@param adjust The function via which the initial vector local alphas is
@@ -86,7 +87,12 @@
 #'  (\code{alpha_precision}; default: \code{5}), the procedure stops and the
 #'  results are printed. (Otherwise, the procedures finishes only when all steps
 #'  given as \code{staircase_steps} have been used.)
-#'@param fut_locals TODO DESCR. When \code{NULL} (default), sets no futility bounds.
+#'@param fut_locals Specifies local futility bounds that may stop the experiment
+#'  at the given interim looks if the corresponding p value is above the given
+#'  futility bound value. When \code{NULL} (default), sets no futility bounds.
+#'  Otherwise, it follows the same logic as \code{alpha_locals} and has the same
+#'  input possibilities (number, numeric vector, or named list of numeric
+#'  vectors).
 #'@param multi_logic When multiple p values are evaluated for stopping rules,
 #'  \code{multi_logic} specifies the function used for how to evaluate the
 #'  multiple outcomes as a single \code{TRUE} or \code{FALSE} value that decides
@@ -116,10 +122,12 @@
 #'  regardless of statistical significance.
 #'@param design_fix Whether to calculate fixed design (as comparable
 #'  alternative(s) to given "looks" of the sequential design). If \code{NULL}
-#'  (default), (...) Altogether omitted when \code{FALSE}.
-#'@param design_seq Whether to calculate sequential design. (Although this R
-#'  package is designed for sequential analysis, it can be used for just fixed
-#'  designs too.) If \code{NULL} (default), (...) Altogether omitted when
+#'  (default), shows power for maximum sample (last "look") only. If set to
+#'  \code{TRUE}, shows power for each given "look" (interim and final)
+#'  Altogether omitted when set to \code{FALSE}.
+#'@param design_seq Whether to calculate sequential design (default:
+#'  \code{TRUE}). (Although this R package is designed for sequential analysis,
+#'  it can be used for fixed designs alone too.) Altogether omitted when set to
 #'  \code{FALSE}.
 #'@param descr_cols When given as a character element or vector, specifies the
 #'  factors for which descriptive data should be shown (by group, if
@@ -131,13 +139,13 @@
 #'  \code{\link{base}} function.
 #'@param round_to Number to round to.
 #'@param seed Number for \code{\link{set.seed}}; \code{8} by default. Set to
-#'  \code{NULL} for random seed
+#'  \code{NULL} for random seed.
 #'
 #'@return Returns \code{\link{data.frame}}, etc.
 #'
 #'@note
 #'
-#' This function uses, internally, the \code{\link{data.table}} R package.
+#'This function uses, internally, the \code{\link{data.table}} R package.
 #'
 #'@references
 #'
@@ -145,7 +153,7 @@
 #'analyses: Sequential analyses. European Journal of Social Psychology, 44(7),
 #'701–710. \doi{https://doi.org/10.1002/ejsp.2023}
 #'
-#' @seealso \code{\link{sim}}
+#'@seealso \code{\link{sim}}
 #' @examples
 #' # some pow
 #'

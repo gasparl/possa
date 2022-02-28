@@ -4,7 +4,14 @@ Version: 0.1.0
 Date: 2022-02-15
 Authors@R: c(person("Gáspár", "Lukács", email = "lkcsgaspar@gmail.com", role =
   c("aut", "cre")))
-Description: Power simulation for sequential analysis. Blah.
+Description: This R package serves to calculate, via simulation, power and
+  appropriate stopping alpha boundaries (and including, optionally, futility
+  bounds) for sequential analyses (i.e., group sequential design), given any
+  specified global error rate. This enables the sequential use of practically
+  any significance test, as long as the underlying data can be simulated in
+  advance to a reasonable approximation. Note: Since the specific functions are
+  rather complex, it is much easier to understand the procedure with the
+  examples given via https://github.com/gasparl/possa.
 URL: https://github.com/gasparl/possa
 Depends: R (>= 3.6.0)
 Imports: data.table, methods
