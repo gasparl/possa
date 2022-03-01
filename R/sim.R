@@ -2,10 +2,11 @@
 #'
 #'@description This function performs the simulation procedure in order to get
 #'  the p values that will eventually serve for power calculations (via
-#'  \code{\link{pow}}). The "sample" values to be tested are simulated via the
-#'  given \code{fun_obs} function, and the significance testing is performed via
-#'  the given \code{fun_test} function. The numbers of observations per look
-#'  (for a sequential design) are specified in \code{n_obs}.
+#'  \code{\link{pow}}). The observation values ("sample") to be tested are
+#'  simulated via the given \code{fun_obs} function, and the significance
+#'  testing is performed via the given \code{fun_test} function. The numbers of
+#'  observations per look (for a sequential design) are specified in
+#'  \code{n_obs}.
 #'@param fun_obs A \code{\link{function}} that creates the observations (i.e.,
 #'  the "sample"; all values for the dependent variable(s)). The arguments that
 #'  specify the observation numbers in this function have to be provided via
@@ -25,10 +26,11 @@
 #'@param n_obs A numeric vector or a (named) list of numeric vectors. Specifies
 #'  the numbers of observations (i.e., samples sizes) that are to be generated
 #'  from \code{fun_obs}, to be then tested in \code{fun_test}. If a single
-#'  vector is given, this will be used for all arguments in the \code{fun_obs}
-#'  function. Otherwise, if a named list of numeric vectors is given, the names
-#'  must correspond exactly to the argument names in \code{fun_obs}, so that the
-#'  respective numeric vectors are used for each given variable.
+#'  vector is given, this will be used for all (observation number) arguments in
+#'  the \code{fun_obs} function. Otherwise, if a named list of numeric vectors
+#'  is given, the names must correspond exactly to the argument names in
+#'  \code{fun_obs}, so that the respective numeric vectors are used for each
+#'  given variable.
 #'@param fun_test The function for significance testing. The observation values
 #'  created in \code{fun_obs} (with observation numbers specified in
 #'  \code{n_obs}) will be passed into this \code{fun_test} function as arguments
@@ -37,12 +39,13 @@
 #'  results must include a pair (or pairs) of p values for H0 and H1 outcomes,
 #'  where each p value must be specified with a "\code{p_}" prefix and a
 #'  "\code{_h0}" suffix for H0 outcome or a "\code{_h1}" suffix for H1 outcome
-#'  (e.g., \code{p_h0}, \code{p_h1}; \code{p_ttest_h0}, \code{p_ttest_h1}). Each
-#'  of these p values will be separately stored in a dedicated column of the
-#'  \code{\link{data.frame}} returned by the \code{sim} function. Optionally,
-#'  the \code{fun_test} can return other miscellaneous outcomes too, such as
-#'  effect sizes or confidence interval limits; these will then be stored in
-#'  dedicated columns in the resulting \code{\link{data.frame}}.
+#'  (e.g., \code{p_h0}, \code{p_h1}; \code{p_ttest_h0}, \code{p_ttest_h1}). The
+#'  simulated outcomes (per iteration) for each of these p values will be
+#'  separately stored in a dedicated column of the \code{\link{data.frame}}
+#'  returned by the \code{sim} function. Optionally, the \code{fun_test} can
+#'  return other miscellaneous outcomes too, such as effect sizes or confidence
+#'  interval limits; these will then be stored in dedicated columns in the
+#'  resulting \code{\link{data.frame}}.
 #'@param n_iter Number of iterations (default: 5000).
 #'@param seed Number for \code{\link{set.seed}}; \code{8} by default. Set to
 #'  \code{NULL} for random seed.
@@ -57,14 +60,15 @@
 #'actual \code{\link{function}}, which contains certain parameters for
 #'specifying varying factors, while the rest of the elements should contain the
 #'various argument values for these parameters of the function as named elements
-#'of the list (e.g., \code{list(my_function, factor1, factor2)}), with the name
-#'corresponding to the parameter name in the function, and the varying values.
-#'When so specified, a separate simulation procedure will be run for each
-#'combination of the given factors (or, if only one factor is given, for each
-#'element of that factor). The \code{\link[POSSA:pow]{POSSA::pow}} function will
-#'be able to automatically detect (by default) the factors generated this way in
-#'the present \code{\link[POSSA:sim]{POSSA::sim}} function, in order to
-#'calculate power separately for each factor combination.
+#'of the list (e.g., \code{list(my_function, factor1=c(1, 2, 3), factor2=c(0,
+#'5))}), with the name corresponding to the parameter name in the function, and
+#'the varying values. When so specified, a separate simulation procedure will be
+#'run for each combination of the given factors (or, if only one factor is
+#'given, for each element of that factor). The
+#'\code{\link[POSSA:pow]{POSSA::pow}} function will be able to automatically
+#'detect (by default) the factors generated this way in the present
+#'\code{\link[POSSA:sim]{POSSA::sim}} function, in order to calculate power
+#'separately for each factor combination.
 #'
 #'@return Returns a \code{\link{data.frame}} that includes the columns
 #'  \code{iter} (the iterations of the simulation procedure numbered from
@@ -74,11 +78,11 @@
 #'  (mainly p values; but also other, optional information, if any) and the
 #'  corresponding observation numbers.
 #'
-#'@references
+#'@note
 #'
-#'Lakens, D. (2014). Performing high-powered studies efficiently with sequential
-#'analyses: Sequential analyses. European Journal of Social Psychology, 44(7),
-#'701–710. \doi{https://doi.org/10.1002/ejsp.2023}
+#'For the replicability (despite the randomization), \code{\link{set.seed}} is
+#'executed in the beginning of this function, each time it is called; see the
+#'\code{seed} parameter.
 #'
 #' @seealso \code{\link{pow}}
 #' @examples
