@@ -134,7 +134,7 @@ sim = function(fun_obs,
                       val_arg(fun_obs, c('function', 'list')),
                       val_arg(fun_test, c('function')),
                       val_arg(n_iter, c('num'), 1),
-                      val_arg(seed, c('num', 'na'), 1),
+                      val_arg(seed, c('num'), 1),
                       val_arg(ignore_suffix, c('null', 'bool'), 1)
                   ))
 
@@ -160,6 +160,7 @@ sim = function(fun_obs,
         f_obs_args = c()
     }
     f_test_arg_names = methods::formalArgs(fun_test)
+    n_obs_max = list()
     if (is.atomic(n_obs)) {
         n_look = length(n_obs)
         # if just a vector given, all samples have this as samples sizes
@@ -221,15 +222,15 @@ sim = function(fun_obs,
             'the "fun_test" arguments. Please see ?sim."'
         )
     }
-    if (is.na(facts_list[1])) {
-        fun_test_out = do.call(fun_test, do.call(fun_obs, c(n_obs_max, facts), quote = TRUE), quote = TRUE)
+    if (!is.na(facts_list[1])) {
+        fun_test_out = do.call(fun_test, do.call(fun_obs, c(n_obs_max, facts_list[[1]]), quote = TRUE), quote = TRUE)
     } else {
         fun_test_out = do.call(fun_test, do.call(fun_obs, c(n_obs_max), quote = TRUE), quote = TRUE)
     }
     p_root_names = suffixes(names(fun_test_out)[startsWith(names(fun_test_out), 'p_')], feedf = feedf)
-    if (!(is.vector(p_root_names) &
-          !is.null(names(p_root_names)) &
-          !any(is.na(names(p_root_names))))) {
+    if (!(is.vector(fun_test_out) &
+          !is.null(names(fun_test_out)) &
+          !any(is.na(names(fun_test_out))))) {
         feedf('The "fun_test" function must return a named vector.',
               ' See ?sim for details."')
     }

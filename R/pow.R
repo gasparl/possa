@@ -210,7 +210,8 @@ pow = function(p_values,
             val_arg(multi_logic, c('char', 'num'), 1, c('all', 'any')),
             val_arg(multi_logic_fut, c('char', 'num'), 1, c('all', 'any')),
             val_arg(staircase_steps, c('null', 'num')),
-            val_arg(alpha_precision, c('num'), 1)
+            val_arg(alpha_precision, c('num'), 1),
+            val_arg(seed, c('num'), 1)
         )
     )
     .look = NULL

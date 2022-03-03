@@ -2,6 +2,7 @@
 
 
 
+
 # rounding numbers, for nicer output
 ro = function(num,
               round_to = 2,
@@ -71,16 +72,15 @@ suffixes = function(thenames,
                     feedf) {
     pairs = c()
     for (a_nam in thenames) {
-        if (endsWith(a_nam, '_h0') & startsWith(a_nam, prefix)) {
+        if (endsWith(a_nam, '_h0')) {
             n_nam = substr(a_nam, 1, nchar(a_nam) - 1)
             if (paste0(n_nam, '1') %in% thenames) {
-                pairs = c(p_names_auto, n_nam)
+                pairs = c(pairs, n_nam)
             } else {
                 feedf('Found "h0" suffix without matching "h1": ',
                       a_nam)
             }
-        } else if (endsWith(a_nam, '_h1') &
-                   startsWith(a_nam, prefix)) {
+        } else if (endsWith(a_nam, '_h1')) {
             n_nam = substr(a_nam, 1, nchar(a_nam) - 1)
             if (!paste0(n_nam, '0') %in% thenames) {
                 feedf('Found "h1" suffix without matching "h0": ',
