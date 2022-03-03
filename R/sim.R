@@ -152,7 +152,7 @@ sim = function(fun_obs,
         df_combs = sapply(expand.grid(f_obs_args), as.vector)
         facts_list = list()
         for (rownum in 1:nrow(df_combs)) {
-            facts_list[[rownum]] = as.list(df_combs[rownum,])
+            facts_list[[rownum]] = as.list(df_combs[rownum, ])
         }
     } else {
         # set to have no combinations; single sample test (hence 1 cycle below)
@@ -206,7 +206,7 @@ sim = function(fun_obs,
 
     if (is.null(ignore_suffix)) {
         feedf = warning
-    } else if isFALSE(ignore_suffix) {
+    } else if (isFALSE(ignore_suffix)) {
         feedf = stop
     } else {
         feedf = function(...) {
@@ -229,7 +229,7 @@ sim = function(fun_obs,
     p_root_names = suffixes(names(fun_test_out)[startsWith(names(fun_test_out), 'p_')], feedf = feedf)
     if (!(is.vector(p_root_names) &
           !is.null(names(p_root_names)) &
-          !any(is.na(names(p_root_names)))) {
+          !any(is.na(names(p_root_names))))) {
         feedf('The "fun_test" function must return a named vector.',
               ' See ?sim for details."')
     }
@@ -311,9 +311,9 @@ sim = function(fun_obs,
     # calculate .n_total (total observation number per each "look")
     df_pvals = data.frame(df_pvals[, 1:2],
                           .n_total = Reduce('+', df_pvals[, obs_names]),
-                          df_pvals[, -1:-2])
+                          df_pvals[,-1:-2])
     # order per iter and look
-    df_pvals = df_pvals[order(df_pvals$.iter, df_pvals$.look),]
+    df_pvals = df_pvals[order(df_pvals$.iter, df_pvals$.look), ]
     # add POSSA class names, to be recognized in POSSA::pow
     for (c_nam in obs_names) {
         # observation number (sample size) columns
