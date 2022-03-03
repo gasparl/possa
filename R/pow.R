@@ -5,17 +5,17 @@
 #'  \code{\link[POSSA:sim]{POSSA::sim}} function). The calculation for
 #'  sequential testing involves a staircase procedure during which an initially
 #'  provided set of local alphas is continually adjusted until the (approximate)
-#'  specified global error rate (e.g., global alpha = .05) is reached: the value
-#'  of adjustment is decreasing while global error rate is larger than
-#'  specified, and increasing while global error rate is smaller than specified;
-#'  a smaller step is chosen whenever the direction (increase vs. decrease)
-#'  changes; the procedure stops when the global error rate is close enough to
-#'  the specified one (e.g., matches it up to 4 fractional digits) or when the
-#'  specified smallest step is passed. The adjustment works via a dedicated
-#'  ("\code{adjust}") function that either replaces missing (\code{NA}) values
-#'  with varying alternatives or (when there are no missing values) in some
-#'  manner varyingly modifies the initial values (e.g. by addition or
-#'  multiplication).
+#'  specified global type 1 error rate (e.g., global alpha = .05) is reached:
+#'  the value of adjustment is decreasing while global type 1 error rate is
+#'  larger than specified, and increasing while global type 1 error rate is
+#'  smaller than specified; a smaller step is chosen whenever the direction
+#'  (increase vs. decrease) changes; the procedure stops when the global type 1
+#'  error rate is close enough to the specified one (e.g., matches it up to 4
+#'  fractional digits) or when the specified smallest step is passed. The
+#'  adjustment works via a dedicated ("\code{adjust}") function that either
+#'  replaces missing (\code{NA}) values with varying alternatives or (when there
+#'  are no missing values) in some manner varyingly modifies the initial values
+#'  (e.g. by addition or multiplication).
 #'@param p_values A \code{\link{data.frame}} containing the simulated
 #'  iterations, looks, and corresponding H0 and H1 p value outcomes, as returned
 #'  by the \code{\link[POSSA:sim]{POSSA::sim}} function. (Custom data frames are
@@ -44,29 +44,37 @@
 #'  design" (no interim stopping alphas) with final alpha as specified as
 #'  \code{alpha_global}. (This is useful for cases where only futility bounds
 #'  are to be set for stopping.)
-#'@param alpha_global Global alpha (expected error rate in total); \code{0.05}
-#'  by default.
+#'@param alpha_global Global alpha (expected type 1 error rate in total);
+#'  \code{0.05} by default.
 #'@param adjust The function via which the initial vector local alphas is
 #'  modified with each step of the staircase procedure. Three arguments are
 #'  passed to it: \code{adj}, \code{orig}, and \code{prev}. The \code{adj}
 #'  parameter is mandatory; it passes the pivotal changing value that, starting
 #'  from an initial value (see \code{adj_init}), should, via the staircase
-#'  steps, decrease when the global error rate is too large, and increase when
-#'  the global error rate is too small. The \code{orig} parameter (optional)
-#'  always passes the same original vector of alphas as they were provided via
-#'  \code{alpha_locals}. The \code{prev} parameter (optional) passes the
-#'  "latest" vector of local alphas, which were obtained in the previous
-#'  adjustment step (or, in the initial run, it is the original vector, i.e.,
-#'  the same as \code{orig}). When \code{NULL} (default), a function is given
-#'  internally that simply replaces \code{NA}s with the varying adjustment value
-#'  (as \code{{ prev[is.na(orig)] = adj; return(prev) }}).
+#'  steps, decrease when the global type 1 error rate is too large, and increase
+#'  when the global type 1 error rate is too small. The \code{orig} parameter
+#'  (optional) always passes the same original vector of alphas as they were
+#'  provided via \code{alpha_locals}. The \code{prev} parameter (optional)
+#'  passes the "latest" vector of local alphas, which were obtained in the
+#'  previous adjustment step (or, in the initial run, it is the original vector,
+#'  i.e., the same as \code{orig}). When \code{NULL} (default), if the given
+#'  \code{alpha_locals} contains any \code{NA}s, an \code{adjust} function is
+#'  given internally that simply replaces \code{NA}s with the varying adjustment
+#'  value (as \code{{ prev[is.na(orig)] = adj; return(prev) }}). If
+#'  \code{alpha_locals} contains no \code{NA}s, an \code{adjust} function is
+#'  given that multiplies each original local alpha with the varying adjustment
+#'  value (as \code{{ return(orig * adj) }}). When set to \code{FALSE}, there
+#'  will be no adjustment (staircase procedure omitted): this is useful to
+#'  calculate the global type 1 error rate for any given set of local alphas.
 #'@param adj_init The initial adjustment value that is used as the "\code{adj}"
 #'  parameter in the "\code{adjust}" function and is continually adjusted via
 #'  the staircase steps (see \code{staircase_steps} parameter). When \code{NULL}
-#'  (default), it is calculated as the global alpha divided by the maximum
-#'  number of looks (Bonferroni correction), as a rough initial approximation
-#'  with the assumption that "\code{adj}" is used as a replacement for
-#'  \code{NA}s.
+#'  (default), assuming that "\code{adj}" is used as a replacement for
+#'  \code{NA}s, \code{adj_init} is calculated as the global alpha divided by the
+#'  maximum number of looks (Bonferroni correction), as a rough initial
+#'  approximation. However, multiplication is assumed when finding any
+#'  multiplication sign (\code{*}) in a given custom \code{adjust} function: in
+#'  such a case, \code{adj_init} will be \code{1} by default.
 #'@param staircase_steps Numeric vector that specifies the (normally decreasing)
 #'  sequence of step sizes for the staircase that narrows down on the specified
 #'  global error error by decreasing or increasing the adjustment value
@@ -79,11 +87,11 @@
 #'  (giving: \code{0.01, 0.005, 0.0025, ...}) or "\code{0.5 * (0.5 ^ (seq(0, 11,
 #'  1)))}" (giving: \code{0.05, 0.025, 0.0125, ...}). The latter is chosen when
 #'  adjustment via multiplication is assumed, which is simply based on finding
-#'  any multiplication sign (\code{*}) in a given custom \code{adjust}
-#'  function. The former is chosen in any other case.
+#'  any multiplication sign (\code{*}) in a given custom \code{adjust} function.
+#'  The former is chosen in any other case.
 #'@param alpha_precision During the staircase procedure, at any point when the
-#'  simulated global error rate first matches the given \code{alpha_global} at
-#'  least for the number of fractional digits given here
+#'  simulated global type 1 error rate first matches the given
+#'  \code{alpha_global} at least for the number of fractional digits given here
 #'  (\code{alpha_precision}; default: \code{5}), the procedure stops and the
 #'  results are printed. (Otherwise, the procedures finishes only when all steps
 #'  given as \code{staircase_steps} have been used.)
@@ -137,9 +145,9 @@
 #'  \code{FALSE}, no descriptive data is shown.
 #'@param descr_func Function used for printing descriptives (see
 #'  \code{descr_cols}). By default, it uses the \code{\link{summary}}
-#'(\code{\link{base}}) function.
+#'  (\code{\link{base}}) function.
 #'@param round_to Number of fractional digits (default: \code{5}) to round to,
-#'  for the displayed power and error rate information.
+#'  for the displayed power and type 1 error rate information.
 #'@param seed Number for \code{\link{set.seed}}; \code{8} by default. Set to
 #'  \code{NULL} for random seed.
 #'
@@ -205,8 +213,8 @@ pow = function(p_values,
             val_arg(alpha_precision, c('num'), 1)
         )
     )
-    look = NULL
-    iter = NULL
+    .look = NULL
+    .iter = NULL
     h0_stoP = NULL
     h1_stoP = NULL
     h0_stoP_fa = NULL
@@ -262,10 +270,10 @@ pow = function(p_values,
         }
     }
     setDT(p_values)
-    setkey(p_values, look)
-    setindex(p_values, iter)
-    looks = unique(p_values$look)
-    mlook = max(p_values$look)
+    setkey(p_values, .look)
+    setindex(p_values, .iter)
+    looks = unique(p_values$.look)
+    mlook = max(p_values$.look)
     # get columns with sample sizes (n), factors (fac), and p values (p_/_h0/1)
     n_cols = c()
     fac_cols = c()
@@ -289,30 +297,24 @@ pow = function(p_values,
     # extract (if given) predetermined local alphas and/or specified p value columns
     if (!is.null(alpha_locals)) {
         if (is.atomic(alpha_locals)) {
-            # if vector given
-            if (is.character(alpha_locals)) {
-                # if character, simply give the names
-                loc_pnames = alpha_locals
-            } else {
-                # if numeric, assign to each p column
-                if (length(alpha_locals) == 1) {
-                    for (pnam in p_names) {
-                        a_locals[[pnam]] = rep(alpha_locals, mlook)
-                    }
-                } else if (!length(alpha_locals) == mlook) {
-                    stop(
-                        'Wrong argument for "alpha_locals". (If a numeric vector is given, ',
-                        'it must have same length as the maximum number of looks (in this case ',
-                        mlook,
-                        ').)'
-                    )
-                } else {
-                    for (pnam in p_names) {
-                        a_locals[[pnam]] = alpha_locals
-                    }
+            # if vector given, assign to each p column
+            if (length(alpha_locals) == 1) {
+                for (pnam in p_names) {
+                    a_locals[[pnam]] = rep(alpha_locals, mlook)
                 }
-                loc_pnames = p_names
+            } else if (!length(alpha_locals) == mlook) {
+                stop(
+                    'Wrong argument for "alpha_locals". (If a numeric vector is given, ',
+                    'it must have same length as the maximum number of looks (in this case ',
+                    mlook,
+                    ').)'
+                )
+            } else {
+                for (pnam in p_names) {
+                    a_locals[[pnam]] = alpha_locals
+                }
             }
+            loc_pnames = p_names
         } else {
             # if list, use as it is, and assign per name
             for (a_vec in alpha_locals) {
@@ -455,24 +457,36 @@ pow = function(p_values,
             fa_locals[[pnam]] = rep(1, (mlook - 1))
         }
     }
-
-
-    if (is.null(staircase_steps)) {
+    if (isFALSE(adjust)) {
+        # if adjust is FALSE, staircase is omitted
+        staircase_steps = NA
+    } else if (is.null(staircase_steps)) {
+        steps_add = 0.01 * (0.5 ** (seq(0, 11, 1)))
+        steps_multi = 0.5 * (0.5 ** (seq(0, 11, 1)))
         if (anyNA(unlist(a_locals))) {
             # default for NA replacement: 11 steps from 0.01, decreasing by halves
             # check: formatC(staircase_steps, digits = 12, format = "f")
-            staircase_steps = 0.01 * (0.5 ** (seq(0, 11, 1)))
-        } else if (!is.null(adjust)) {
-            staircase_steps = 0.01 * (0.5 ** (seq(0, 11, 1)))
+            staircase_steps = steps_add
+        } else if (is.null(adjust)) {
+            # given no NAs, assumes multiplication desired
+            staircase_steps = steps_multi
+            adjust = function(adj, prev, orig) {
+                return(orig * adj)
+            }
+            if (is.null(adj_init)) {
+                adj_init = 1 # assumes multiplication
+            }
+        } else if (is.function(adjust)) {
+            staircase_steps = steps_add
             if (any(grepl('*', deparse(body(adjust)), fixed = TRUE))) {
                 if (is.null(adj_init)) {
                     adj_init = 1 # assumes multiplication
                 }
                 # slightly larger steps, again assuming multiplications
-                staircase_steps = 0.5 * (0.5 ** (seq(0, 11, 1)))
+                staircase_steps = steps_multi
             }
         } else {
-            staircase_steps = NA
+            stop('Wrong argument for "staircase_steps"; please see ?pow.')
         }
     } else if (any(is.na(staircase_steps))) {
         stop('The staircase_steps vector must not contain NA values.')
@@ -484,16 +498,18 @@ pow = function(p_values,
         adj_init = alpha_global / mlook
     }
     if (is.null(adjust)) {
+        # NA-replacing function
         adjust = function(adj, prev, orig) {
             prev[is.na(orig)] = adj
             return(prev)
         }
     } else {
-        if (!'adj' %in% methods::formalArgs(adjust)) {
+        adjust_args = methods::formalArgs(adjust)
+        if (!'adj' %in% adjust_args) {
             stop('The "adjust" function must contain an "adj" parameter.')
         }
         for (a_arg in c('prev', 'orig')) {
-            if (!a_arg %in%  methods::formalArgs(adjust)) {
+            if (!a_arg %in% adjust_args) {
                 formals(adjust)[[a_arg]] = NA
             }
         }
@@ -535,7 +551,6 @@ pow = function(p_values,
         }
     }
 
-
     if (is.null(group_by)) {
         group_by = fac_cols
     } else if (!identical(sort(group_by), sort(fac_cols))) {
@@ -552,8 +567,9 @@ pow = function(p_values,
     if (descr_cols[1] == TRUE) {
         descr_cols = names(p_values)[!names(p_values) %in%
                                          c(
-                                             'iter',
-                                             'look',
+                                             '.iter',
+                                             '.look',
+                                             '.n_total',
                                              paste0(p_names_extr, '_h0'),
                                              paste0(p_names_extr, '_h1'),
                                              n_cols,
@@ -608,7 +624,7 @@ pow = function(p_values,
             fix_looks = NULL # show none
         }
         for (f_look in fix_looks) {
-            pvals_df_fix = pvals_df[look == f_look]
+            pvals_df_fix = pvals_df[.look == f_look]
             cat('-- FIXED DESIGN; N(total) =',
                 tot_samples[f_look],
                 '--',
@@ -645,10 +661,10 @@ pow = function(p_values,
             a_step = stair_steps[1] # initial a_adj-changing step
             p_h0_sign_names = paste0(p_names, '_h0_sign')
             multi_p = length(p_h0_sign_names) > 1
-            p_h0_sign_names_plus = c(p_h0_sign_names, 'look', 'iter')
+            p_h0_sign_names_plus = c(p_h0_sign_names, '.look', '.iter')
             p_h0_fut_names = paste0(p_names, '_h0_fut')
             p_h1_sign_names = paste0(p_names, '_h1_sign')
-            p_h1_sign_names_plus = c(p_h1_sign_names, 'look', 'iter')
+            p_h1_sign_names_plus = c(p_h1_sign_names, '.look', '.iter')
             p_h1_fut_names = paste0(p_names, '_h1_fut')
             pb = utils::txtProgressBar(
                 min = 0,
@@ -748,9 +764,9 @@ pow = function(p_values,
                 }
 
                 # now get all outcomes at stopping point
-                pvals_stp = pvals_df[look == mlook |
+                pvals_stp = pvals_df[.look == mlook |
                                          h0_stoP == TRUE,  .SD, .SDcols = p_h0_sign_names_plus]
-                type1 = mean(unlist(pvals_stp[, min_look := min(look), by = iter][look == min_look, .SD, .SDcols = p_h0_sign_names]))
+                type1 = mean(unlist(pvals_stp[, min_look := min(.look), by = .iter][.look == min_look, .SD, .SDcols = p_h0_sign_names]))
 
                 if (is.na(stair_steps[1])) {
                     # NA indicates no stairs; nothing left to be done
@@ -828,28 +844,28 @@ pow = function(p_values,
             }
             if (multi_p) {
                 # if multi_p, get global power at stopping point
-                pvals_stp = pvals_df[look == mlook |
+                pvals_stp = pvals_df[.look == mlook |
                                          h1_stoP == TRUE,  .SD, .SDcols = p_h1_sign_names_plus]
-                seq_power = mean(unlist(pvals_stp[, min_look := min(look), by = iter][look == min_look, .SD, .SDcols = p_h1_sign_names]))
+                seq_power = mean(unlist(pvals_stp[, min_look := min(.look), by = .iter][.look == min_look, .SD, .SDcols = p_h1_sign_names]))
             }
 
             # calculate sample size information per look
             ps_sub0 = data.table::copy(pvals_df)
             ps_sub1 = data.table::copy(pvals_df)
-            iters_tot = length(unique(pvals_df$iter))
+            iters_tot = length(unique(pvals_df$.iter))
             stops = list() # collect info per each stop
             previous_h0 = iters_tot # start with max for both
             previous_h1 = iters_tot
             for (lk in looks) {
                 # get iterations stopped at given look
-                iters_out0 = ps_sub0[look == lk &
+                iters_out0 = ps_sub0[.look == lk &
                                          h0_stoP == TRUE]
                 # remove stopped iterations
-                ps_sub0 = ps_sub0[!iter %in% iters_out0$iter,]
+                ps_sub0 = ps_sub0[!.iter %in% iters_out0$.iter, ]
                 # (same for H1)
-                iters_out1 = ps_sub1[look == lk &
-                                         h1_stoP == TRUE, ]
-                ps_sub1 = ps_sub1[!iter %in% iters_out1$iter, ]
+                iters_out1 = ps_sub1[.look == lk &
+                                         h1_stoP == TRUE,]
+                ps_sub1 = ps_sub1[!.iter %in% iters_out1$.iter,]
                 outs = c()
                 # get info per p value column
                 for (p_nam in p_names_extr) {
@@ -868,9 +884,9 @@ pow = function(p_values,
                 }
                 # whatever remained
                 outs['iters_remain_h0'] =
-                    length(unique(ps_sub0$iter))
+                    length(unique(ps_sub0$.iter))
                 outs['iters_remain_h1'] =
-                    length(unique(ps_sub1$iter))
+                    length(unique(ps_sub1$.iter))
                 if (lk == mlook) {
                     # at last look, all is stopped that previously remained
                     outs['iters_stopped_h0'] = previous_h0
@@ -881,7 +897,7 @@ pow = function(p_values,
                     outs['iters_stopped_h1'] = previous_h1 - outs['iters_remain_h1']
                 }
                 stops[[length(stops) + 1]] = c(look = lk,
-                                               sample = tot_samples[lk],
+                                               n = tot_samples[lk],
                                                outs)
                 # assign current remaining as the next "previous remaining"
                 previous_h0 = outs['iters_remain_h0']
@@ -912,8 +928,8 @@ pow = function(p_values,
             df_stops$ratio_remain_h0 = df_stops$iters_remain_h0 / iters_tot
             df_stops$ratio_remain_h1 = df_stops$iters_remain_h1 / iters_tot
             # the average sample proportion at the given look (mainly just to calculate average-total)
-            df_stops$samp_avg_prop_0 = df_stops$ratio_stopped_h0 * df_stops$sample
-            df_stops$samp_avg_prop_1 = df_stops$ratio_stopped_h1 * df_stops$sample
+            df_stops$n_avg_prop_0 = df_stops$ratio_stopped_h0 * df_stops$n
+            df_stops$n_avg_prop_1 = df_stops$ratio_stopped_h1 * df_stops$n
             # calculate sums per each column (with different meaning in each case)
             df_stops = rbind(df_stops, colSums(df_stops))
             df_nrow = nrow(df_stops)
@@ -922,9 +938,9 @@ pow = function(p_values,
             # print results for sequential design
             cat(
                 '-- SEQUENTIAL DESIGN; N(average-total) = ',
-                round(df_stops$samp_avg_prop_0[df_nrow], 2),
+                round(df_stops$n_avg_prop_0[df_nrow], 2),
                 ' (if H0 true) or ',
-                round(df_stops$samp_avg_prop_1[df_nrow], 2),
+                round(df_stops$n_avg_prop_1[df_nrow], 2),
                 ' (if H1 true) --',
                 sep = '',
                 fill = TRUE
