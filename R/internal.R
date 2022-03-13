@@ -1,12 +1,9 @@
-
-
-
-
+### Misc internal functions ###
 
 # rounding numbers, for nicer output
 ro = function(num,
               round_to = 2,
-              leading_zero = TRUE,
+              leading_zero = FALSE,
               signi = FALSE) {
     validate_args(match.call(),
                   list(val_arg(leading_zero, c('bool'), 1),
@@ -17,16 +14,20 @@ ro = function(num,
         value = as.numeric(as.character(num))
     }
     if (signi == TRUE) {
-        value = base::formatC(value, format = "fg", digits = round_to)
+        formtd = base::formatC(value, format = "fg", digits = round_to)
     } else {
-        value = format(round(value, round_to),
-                       nsmall = round_to,
-                       scientific = FALSE)
+        formtd = format(round(value, round_to),
+                        nsmall = round_to,
+                        scientific = FALSE)
     }
-    formtd = gsub(" ", "", value)
+    formtd = gsub(" ", "", formtd)
     if (leading_zero == FALSE) {
         formtd = sub("0.", ".", formtd, fixed = TRUE)
+        tinies = gsub("0", "", formtd, fixed = TRUE) == '.'
+        formtd[tinies] = sub('.$', '1',
+                             sub(".", "< .", formtd[tinies], fixed = TRUE))
     }
+    formtd[value == 0] = "0"
     return(formtd)
 }
 

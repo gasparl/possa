@@ -59,7 +59,7 @@
 #'  the \code{fun_test} can return other miscellaneous outcomes too, such as
 #'  effect sizes or confidence interval limits; these will then be stored in
 #'  dedicated columns in the resulting \code{\link{data.frame}}.
-#'@param n_iter Number of iterations (default: 5000).
+#'@param n_iter Number of iterations (default: 25000).
 #'@param seed Number for \code{\link{set.seed}}; \code{8} by default. Set to
 #'  \code{NULL} for random seed.
 #'@param ignore_suffix Set to \code{NULL} to give warnings instead of errors for
@@ -126,7 +126,7 @@
 sim = function(fun_obs,
                n_obs,
                fun_test,
-               n_iter = 5000,
+               n_iter = 15000,
                seed = 8,
                ignore_suffix = FALSE) {
     validate_args(match.call(),
@@ -134,10 +134,9 @@ sim = function(fun_obs,
                       val_arg(fun_obs, c('function', 'list')),
                       val_arg(fun_test, c('function')),
                       val_arg(n_iter, c('num'), 1),
-                      val_arg(seed, c('num'), 1),
+                      val_arg(seed, c('null', 'num'), 1),
                       val_arg(ignore_suffix, c('null', 'bool'), 1)
                   ))
-
     set.seed(seed)
     # sanity checks for given values
     if (!is.function(fun_obs)) {
@@ -172,15 +171,17 @@ sim = function(fun_obs,
         }
         # required sample size names guessed from fun_obs arguments
         for (n_name in methods::formalArgs(fun_obs)) {
-            n_obs_max[[n_name]] = n_obs_orig[n_look] # assign vector to each sample type
+            if (!n_name %in% names(f_obs_args)) {
+                n_obs_max[[n_name]] = n_obs_orig[n_look] # assign vector to each sample type
+            }
         }
     } else {
         n_look = length(n_obs[[1]])
         for (n_name in names(n_obs)) {
             n_obs_max[[n_name]] = n_obs[[n_name]][n_look]
             if (endsWith(n_name, '_h')) {
-                n_obs[[paste0(n_name, '_h0')]] = n_obs[[n_name]]
-                n_obs[[paste0(n_name, '_h1')]] = n_obs[[n_name]]
+                n_obs[[paste0(n_name, '0')]] = n_obs[[n_name]]
+                n_obs[[paste0(n_name, '1')]] = n_obs[[n_name]]
                 n_obs[[n_name]] = NULL
             }
         }
@@ -223,9 +224,9 @@ sim = function(fun_obs,
         )
     }
     if (!is.na(facts_list[1])) {
-        fun_test_out = do.call(fun_test, do.call(fun_obs, c(n_obs_max, facts_list[[1]]), quote = TRUE), quote = TRUE)
+        fun_test_out = do.call(fun_test, do.call(fun_obs, c(n_obs_max, facts_list[[1]])))
     } else {
-        fun_test_out = do.call(fun_test, do.call(fun_obs, c(n_obs_max), quote = TRUE), quote = TRUE)
+        fun_test_out = do.call(fun_test, do.call(fun_obs, c(n_obs_max)))
     }
     p_root_names = suffixes(names(fun_test_out)[startsWith(names(fun_test_out), 'p_')], feedf = feedf)
     if (!(is.vector(fun_test_out) &
@@ -262,19 +263,19 @@ sim = function(fun_obs,
         for (i in 1:n_iter) {
             pb_count = pb_count + 1
             utils::setTxtProgressBar(pb, pb_count)
-            samples = do.call(fun_obs, c(n_obs_max, facts), quote = TRUE)
+            samples = do.call(fun_obs, c(n_obs_max, facts))
             list_vals[[length(list_vals) + 1]] =
                 c(
                     .iter = i,
                     .look = n_look,
                     unlist(facts),
                     unlist(obs_per_it[[n_look]]),
-                    do.call(fun_test, samples, quote = TRUE)
+                    do.call(fun_test, samples)
                 )
             for (lk in (n_look - 1):1) {
-                seed = .Random.seed
+                seed = sample.int(n_iter, 1)
                 for (samp_n in obs_names) {
-                    .Random.seed = seed
+                    set.seed(seed)
                     samples[[samp_n]] = sample(samples[[samp_n]],
                                                obs_per_it[[lk]][[samp_n]])
                 }
@@ -284,7 +285,7 @@ sim = function(fun_obs,
                         .look = lk,
                         unlist(facts),
                         unlist(obs_per_it[[lk]]),
-                        do.call(fun_test, samples, quote = TRUE)
+                        do.call(fun_test, samples)
                     )
             }
         }
@@ -295,7 +296,7 @@ sim = function(fun_obs,
     # merge _h0/_h1 into single _h column
     for (obs_nam in obs_root_names) {
         obs_pair = c(paste0(obs_nam, '0'), paste0(obs_nam, '1'))
-        if (df_pvals[[obs_pair[1]]] != df_pvals[[obs_pair[2]]]) {
+        if (all(df_pvals[[obs_pair[1]]] != df_pvals[[obs_pair[2]]])) {
             warning(
                 'Observation numbers do not match for the ',
                 obs_nam,

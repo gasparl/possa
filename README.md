@@ -4,21 +4,25 @@ Power simulation for sequential analysis.
 
 ### Installation in R
 
-To install the stable version from [CRAN](https://cran.r-project.org/package=POSSA "The Comprehensive R Archive Network"), just run:
+[//]: # (To install the stable version from [CRAN](https://cran.r-project.org/package=POSSA "The Comprehensive R Archive Network"), just run:)
 
-```R
-install.packages("POSSA")
-```
+[//]: # (```R)
+[//]: # (install.packages("POSSA"))
+[//]: # (```)
 
-Then load with: `library("POSSA")`
+[//]: # (Then load with: `library("POSSA")`)
 
-Alternatively, if you want to install the latest (and potentially unstable) version from this repository:
+[//]: # (Alternatively, if you want to install the latest (and potentially unstable) version from this repository:)
+
+Currently, POSSA is only available via GitHub. It can be installed as follows.
 
 ```
 install.packages("devtools") # if "devtools" package is not yet installed
 library("devtools")
 install_github("gasparl/possa")
 ```
+
+It will be moved to CRAN soon.
 
 ### Usage
 

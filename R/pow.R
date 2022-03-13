@@ -42,8 +42,9 @@
 #'  vector. In case of a single number given, this all elements of all vectors
 #'  will be this same number. The default \code{NULL} value specifies "fixed
 #'  design" (no interim stopping alphas) with final alpha as specified as
-#'  \code{alpha_global}. (This is useful for cases where only futility bounds
-#'  are to be set for stopping.)
+#'  \code{alpha_global}, without adjustment procedure as long as the
+#'  \code{adjust} argument is also left as default \code{NULL}. (This is useful
+#'  for cases where only futility bounds are to be set for stopping.)
 #'@param alpha_global Global alpha (expected type 1 error rate in total);
 #'  \code{0.05} by default.
 #'@param adjust The function via which the initial vector local alphas is
@@ -66,6 +67,8 @@
 #'  value (as \code{{ return(orig * adj) }}). When set to \code{FALSE}, there
 #'  will be no adjustment (staircase procedure omitted): this is useful to
 #'  calculate the global type 1 error rate for any given set of local alphas.
+#'  Furthermore, if both \code{adjust} and \code{alpha_locals} are left as
+#'  default (\code{NULL}), the staircase procedure will be omitted.
 #'@param adj_init The initial adjustment value that is used as the "\code{adj}"
 #'  parameter in the "\code{adjust}" function and is continually adjusted via
 #'  the staircase steps (see \code{staircase_steps} parameter). When \code{NULL}
@@ -139,10 +142,10 @@
 #'  \code{FALSE}.
 #'@param descr_cols When given as a character element or vector, specifies the
 #'  factors for which descriptive data should be shown (by group, if
-#'  applicable). By default (\code{TRUE}), it identifies (similar as
+#'  applicable). If set to \code{TRUE}, it identifies (similar as
 #'  \code{group_by}) factors, if any, given to the \code{sim} function (via
-#'  \code{fun_obs}) that produced the given \code{p_values} data. If set to
-#'  \code{FALSE}, no descriptive data is shown.
+#'  \code{fun_obs}) that produced the given \code{p_values} data. By default
+#'  (\code{FALSE}), no descriptive data is shown.
 #'@param descr_func Function used for printing descriptives (see
 #'  \code{descr_cols}). By default, it uses the \code{\link{summary}}
 #'  (\code{\link{base}}) function.
@@ -190,7 +193,7 @@ pow = function(p_values,
                alpha_locals_extra = NULL,
                design_fix = NULL,
                design_seq = TRUE,
-               descr_cols = TRUE,
+               descr_cols = FALSE,
                descr_func = summary,
                round_to = 5,
                seed = 8) {
@@ -204,7 +207,7 @@ pow = function(p_values,
             val_arg(group_by, c('null', 'char')),
             val_arg(design_fix, c('null', 'bool'), 1),
             val_arg(design_seq, c('bool'), 1),
-            val_arg(descr_cols, c('bool'), 1),
+            val_arg(descr_cols, c('bool', 'char')),
             val_arg(descr_func, c('function'), 1),
             val_arg(round_to, c('num'), 1),
             val_arg(multi_logic, c('char', 'num'), 1, c('all', 'any')),
@@ -351,6 +354,9 @@ pow = function(p_values,
         # for the rest, local alpha will be 0
         for (pnam in p_names) {
             a_locals[[pnam]] = c(rep(0, (mlook - 1)), alpha_global)
+        }
+        if (is.null(adjust)) {
+            adjust = FALSE
         }
     } else {
         lapply(a_locals, function(vec) {
@@ -504,7 +510,7 @@ pow = function(p_values,
             prev[is.na(orig)] = adj
             return(prev)
         }
-    } else {
+    } else if (is.function(adjust)) {
         adjust_args = methods::formalArgs(adjust)
         if (!'adj' %in% adjust_args) {
             stop('The "adjust" function must contain an "adj" parameter.')
@@ -514,7 +520,7 @@ pow = function(p_values,
                 formals(adjust)[[a_arg]] = NA
             }
         }
-        a_example = a_locals[p_names[1]]
+        a_example = a_locals[[p_names[1]]]
         adjusted_check = adjust(adj = adj_init,
                                 prev = a_example,
                                 orig = a_example)
@@ -550,6 +556,10 @@ pow = function(p_values,
                 'decreases. The behavior of the given function seems different.'
             )
         }
+    } else {
+        adjust = function(adj, prev, orig) {
+            return(orig)
+        }
     }
 
     if (is.null(group_by)) {
@@ -571,6 +581,7 @@ pow = function(p_values,
                                              '.iter',
                                              '.look',
                                              '.n_total',
+                                             '._possa_fact_combs',
                                              paste0(p_names_extr, '_h0'),
                                              paste0(p_names_extr, '_h1'),
                                              n_cols,
@@ -584,7 +595,7 @@ pow = function(p_values,
     # calculate results separately for each factor combination
     for (possa_fact in possafacts) {
         # when none: possa_fact = NA
-        if (is.na(possafacts)) {
+        if (is.na(possafacts[1])) {
             pvals_df = p_values
         } else {
             # print descriptives of all included
@@ -598,7 +609,14 @@ pow = function(p_values,
             }
             # if applicable, take only given factor combination & print its "group" name
             pvals_df = p_values[._possa_fact_combs == possa_fact]
-            cat('GROUP: ', possa_fact, fill = TRUE)
+            cat(
+                '\nGROUP (',
+                paste(group_by, collapse = '; '),
+                '): ',
+                possa_fact,
+                fill = TRUE,
+                sep = ''
+            )
         }
         if (descr_cols[1] != FALSE) {
             cat('-- DESCRIPTIVES --', fill = TRUE)
@@ -635,11 +653,11 @@ pow = function(p_values,
                     '(',
                     p_nam,
                     ') Type I error: ',
-                    round(mean(
+                    ro(mean(
                         pvals_df_fix[[paste0(p_nam, '_h0')]] < alpha_global
                     ), round_to),
                     '; Power: ',
-                    round(mean(
+                    ro(mean(
                         pvals_df_fix[[paste0(p_nam, '_h1')]] < alpha_global
                     ), round_to),
                     '\n',
@@ -702,19 +720,20 @@ pow = function(p_values,
                 if (safe_count %% 100 == 0) {
                     cat(
                         paste0(
-                            'There have been ',
+                            '\nThere have been ',
                             safe_count,
-                            ' iterations. The arguments given may be problematic.',
+                            ' iterations. The arguments given may be problematic (and/or may never lead to the desired error rate).',
                             '\nNote: The current global type 1 error is ',
-                            as.numeric(round(type1, 4)),
+                            ro(type1, round_to),
                             ' (expected: ',
-                            round(alpha_global, 4),
+                            ro(alpha_global, round_to),
                             ').'
                         ),
                         fill = TRUE
                     )
-                    if (readline('Do you want to quit this function? (y/n) \n') == 'y') {
-                        return(cat("Exited safely."))
+                    if (readline('Do you want to quit the staircase procedure? (y/n) \n') == 'y') {
+                        message('Staircase interrupted.')
+                        break
                     }
                 }
                 for (p_nam in p_names_temp) {
@@ -800,6 +819,10 @@ pow = function(p_values,
             close(pb)
             # assign final local alphas
             a_locals_fin = locls_temp
+
+            for (a_name in names(a_locals_fin)) {
+                a_locals_fin[[a_name]][a_locals_fin[[a_name]] < 0] = 0
+            }
 
             # calculate H1 significances (T/F) & stops (T/F) based on final alphas
             # (analogue of the H0 significances above)
@@ -939,9 +962,9 @@ pow = function(p_values,
             # print results for sequential design
             cat(
                 '-- SEQUENTIAL DESIGN; N(average-total) = ',
-                round(df_stops$n_avg_prop_0[df_nrow], 2),
+                ro(df_stops$n_avg_prop_0[df_nrow], 2, leading_zero = TRUE),
                 ' (if H0 true) or ',
-                round(df_stops$n_avg_prop_1[df_nrow], 2),
+                ro(df_stops$n_avg_prop_1[df_nrow], 2, leading_zero = TRUE),
                 ' (if H1 true) --',
                 sep = '',
                 fill = TRUE
@@ -951,29 +974,27 @@ pow = function(p_values,
             for (p_nam in p_names_extr) {
                 if (!is.null(fut_locals)) {
                     fut_text = paste('\nFutility bounds:',
-                                     paste(
-                                         paste0(
-                                             '(',
-                                             looks[-mlook],
-                                             ') ',
-                                             round(fa_locals[[pnam]], round_to)
-                                         ),
-                                         collapse = '; '
-                                     ))
+                                     paste(paste0(
+                                         '(',
+                                         looks[-mlook],
+                                         ') ',
+                                         ro(fa_locals[[pnam]], round_to)
+                                     ),
+                                     collapse = '; '))
                 }
                 cat(
                     '(',
                     p_nam,
                     ') Type I error: ',
-                    round(df_stops[[paste0('ratio_sign_', p_nam, '_h0')]][df_nrow], round_to),
+                    ro(df_stops[[paste0('ratio_sign_', p_nam, '_h0')]][df_nrow], round_to),
                     '; Power: ',
-                    round(df_stops[[paste0('ratio_sign_', p_nam, '_h1')]][df_nrow], round_to),
+                    ro(df_stops[[paste0('ratio_sign_', p_nam, '_h1')]][df_nrow], round_to),
                     '\nAdjusted local alphas: ',
                     paste(paste0(
                         '(',
                         looks,
                         ') ',
-                        round(a_locals_fin[[pnam]], round_to)
+                        ro(a_locals_fin[[pnam]], round_to)
                     ), collapse = '; '),
                     fut_text,
                     sep = '',
@@ -983,21 +1004,21 @@ pow = function(p_values,
             if (multi_p) {
                 cat(
                     'Global (average) type I error: ',
-                    round(type1, round_to),
+                    ro(type1, round_to),
                     ' (included: ',
                     paste(p_names, collapse = ', '),
                     '; average power: ',
-                    round(seq_power, round_to),
+                    ro(seq_power, round_to),
                     ')',
                     sep = '',
                     fill = TRUE
                 )
             }
-            out_dfs[[length(out_dfs) + 1]] = df_stops
+            out_dfs[[paste0('df_', gsub('; ', '_', possa_fact))]] = df_stops
         }
     }
     if (design_seq == TRUE & mlook > 1) {
-        if (is.na(possafacts)) {
+        if (is.na(possafacts[1])) {
             out_dfs = out_dfs[[1]]
         }
         invisible(out_dfs)
