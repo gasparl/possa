@@ -59,7 +59,7 @@
 #'  the \code{fun_test} can return other miscellaneous outcomes too, such as
 #'  effect sizes or confidence interval limits; these will then be stored in
 #'  dedicated columns in the resulting \code{\link{data.frame}}.
-#'@param n_iter Number of iterations (default: 25000).
+#'@param n_iter Number of iterations (default: 15000).
 #'@param seed Number for \code{\link{set.seed}}; \code{8} by default. Set to
 #'  \code{NULL} for random seed.
 #'@param ignore_suffix Set to \code{NULL} to give warnings instead of errors for
