@@ -60,6 +60,14 @@
 #'  effect sizes or confidence interval limits; these will then be stored in
 #'  dedicated columns in the resulting \code{\link{data.frame}}.
 #'@param n_iter Number of iterations (default: 15000).
+#'@param pair Logical. Set to \code{TRUE} if the observations include paired
+#'  samples. Note that this works by using, within each look, the same vector
+#'  indexes to remove elements from the given observations. In general, this
+#'  should not substantially affect the outcomes of independent samples
+#'  (assuming that their order is truly independent), but this depends on how
+#'  the random samples are generated in the \code{fun_obs} function. To be safe
+#'  and avoid any potential bias, it is best to leave it as \code{FALSE}
+#'  (default) when no paired samples are included.
 #'@param seed Number for \code{\link{set.seed}}; \code{8} by default. Set to
 #'  \code{NULL} for random seed.
 #'@param ignore_suffix Set to \code{NULL} to give warnings instead of errors for
@@ -127,6 +135,7 @@ sim = function(fun_obs,
                n_obs,
                fun_test,
                n_iter = 15000,
+               pair = FALSE,
                seed = 8,
                ignore_suffix = FALSE) {
     validate_args(match.call(),
@@ -134,6 +143,7 @@ sim = function(fun_obs,
                       val_arg(fun_obs, c('function', 'list')),
                       val_arg(fun_test, c('function')),
                       val_arg(n_iter, c('num'), 1),
+                      val_arg(pair, c('bool'), 1),
                       val_arg(seed, c('null', 'num'), 1),
                       val_arg(ignore_suffix, c('null', 'bool'), 1)
                   ))
@@ -151,7 +161,7 @@ sim = function(fun_obs,
         df_combs = sapply(expand.grid(f_obs_args), as.vector)
         facts_list = list()
         for (rownum in 1:nrow(df_combs)) {
-            facts_list[[rownum]] = as.list(df_combs[rownum, ])
+            facts_list[[rownum]] = as.list(df_combs[rownum,])
         }
     } else {
         # set to have no combinations; single sample test (hence 1 cycle below)
@@ -204,8 +214,6 @@ sim = function(fun_obs,
             )
         }
     }
-
-
     if (is.null(ignore_suffix)) {
         feedf = warning
     } else if (isFALSE(ignore_suffix)) {
@@ -256,6 +264,7 @@ sim = function(fun_obs,
         style = 3
     )
     pb_count = 0
+    # start power calculation per each factor combination
     for (facts in facts_list) {
         if (is.na(facts[1])) {
             facts = NULL
@@ -273,9 +282,13 @@ sim = function(fun_obs,
                     do.call(fun_test, samples)
                 )
             for (lk in (n_look - 1):1) {
-                seed = sample.int(n_iter, 1)
+                if (pair == TRUE) {
+                    seed_r = .Random.seed
+                }
                 for (samp_n in obs_names) {
-                    set.seed(seed)
+                    if (pair == TRUE) {
+                        assign(".Random.seed", seed_r, envir = parent.frame())
+                    }
                     samples[[samp_n]] = sample(samples[[samp_n]],
                                                obs_per_it[[lk]][[samp_n]])
                 }
@@ -313,9 +326,9 @@ sim = function(fun_obs,
     # calculate .n_total (total observation number per each "look")
     df_pvals = data.frame(df_pvals[, 1:2],
                           .n_total = Reduce('+', df_pvals[, obs_names]),
-                          df_pvals[,-1:-2])
+                          df_pvals[, -1:-2])
     # order per iter and look
-    df_pvals = df_pvals[order(df_pvals$.iter, df_pvals$.look), ]
+    df_pvals = df_pvals[order(df_pvals$.iter, df_pvals$.look),]
     # add POSSA class names, to be recognized in POSSA::pow
     for (c_nam in obs_names) {
         # observation number (sample size) columns

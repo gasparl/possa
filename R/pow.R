@@ -43,7 +43,7 @@
 #'  will be this same number. The default \code{NULL} value specifies "fixed
 #'  design" (no interim stopping alphas) with final alpha as specified as
 #'  \code{alpha_global}, without adjustment procedure as long as the
-#'  \code{adjust} argument is also left as default \code{NULL}. (This is useful
+#'  \code{adjust} argument is also left as default \code{TRUE}. (This is useful
 #'  for cases where only futility bounds are to be set for stopping.)
 #'@param alpha_global Global alpha (expected type 1 error rate in total);
 #'  \code{0.05} by default.
@@ -58,7 +58,7 @@
 #'  provided via \code{alpha_locals}. The \code{prev} parameter (optional)
 #'  passes the "latest" vector of local alphas, which were obtained in the
 #'  previous adjustment step (or, in the initial run, it is the original vector,
-#'  i.e., the same as \code{orig}). When \code{NULL} (default), if the given
+#'  i.e., the same as \code{orig}). When \code{TRUE} (default), if the given
 #'  \code{alpha_locals} contains any \code{NA}s, an \code{adjust} function is
 #'  given internally that simply replaces \code{NA}s with the varying adjustment
 #'  value (as \code{{ prev[is.na(orig)] = adj; return(prev) }}). If
@@ -68,7 +68,8 @@
 #'  will be no adjustment (staircase procedure omitted): this is useful to
 #'  calculate the global type 1 error rate for any given set of local alphas.
 #'  Furthermore, if both \code{adjust} and \code{alpha_locals} are left as
-#'  default (\code{NULL}), the staircase procedure will be omitted.
+#'  default (\code{TRUE} and \code{NULL}), the staircase procedure will be
+#'  omitted.
 #'@param adj_init The initial adjustment value that is used as the "\code{adj}"
 #'  parameter in the "\code{adjust}" function and is continually adjusted via
 #'  the staircase steps (see \code{staircase_steps} parameter). When \code{NULL}
@@ -178,11 +179,11 @@
 #' @examples
 #' # some pow
 #'
-#' @export
+#'@export
 pow = function(p_values,
                alpha_locals = NULL,
                alpha_global = 0.05,
-               adjust = NULL,
+               adjust = TRUE,
                adj_init = NULL,
                staircase_steps = NULL,
                alpha_precision = 5,
@@ -202,7 +203,7 @@ pow = function(p_values,
         list(
             val_arg(p_values, c('df')),
             val_arg(alpha_global, c('num'), 1),
-            val_arg(adjust, c('null', 'function')),
+            val_arg(adjust, c('function', 'bool')),
             val_arg(adj_init, c('null', 'num'), 1),
             val_arg(group_by, c('null', 'char')),
             val_arg(design_fix, c('null', 'bool'), 1),
@@ -355,7 +356,7 @@ pow = function(p_values,
         for (pnam in p_names) {
             a_locals[[pnam]] = c(rep(0, (mlook - 1)), alpha_global)
         }
-        if (is.null(adjust)) {
+        if (isTRUE(adjust)) {
             adjust = FALSE
         }
     } else {
@@ -416,7 +417,7 @@ pow = function(p_values,
             # if vector given, assign to each p column
             if (length(fut_locals) == 1) {
                 for (pnam in p_names) {
-                    fa_locals[[pnam]] = rep(fut_locals, mlook)
+                    fa_locals[[pnam]] = rep(fut_locals, (mlook - 1))
                 }
             } else if (!length(fut_locals) == (mlook - 1)) {
                 stop(
@@ -464,8 +465,10 @@ pow = function(p_values,
             fa_locals[[pnam]] = rep(1, (mlook - 1))
         }
     }
+    no_adj = FALSE
     if (isFALSE(adjust)) {
         # if adjust is FALSE, staircase is omitted
+        no_adj = TRUE
         staircase_steps = NA
     } else if (is.null(staircase_steps)) {
         steps_add = 0.01 * (0.5 ** (seq(0, 11, 1)))
@@ -474,7 +477,7 @@ pow = function(p_values,
             # default for NA replacement: 11 steps from 0.01, decreasing by halves
             # check: formatC(staircase_steps, digits = 12, format = "f")
             staircase_steps = steps_add
-        } else if (is.null(adjust)) {
+        } else if (isTRUE(adjust)) {
             # given no NAs, assumes multiplication desired
             staircase_steps = steps_multi
             adjust = function(adj, prev, orig) {
@@ -504,7 +507,7 @@ pow = function(p_values,
         # (assuming it's going to be used as an alpha level, replacing NAs)
         adj_init = alpha_global / mlook
     }
-    if (is.null(adjust)) {
+    if (isTRUE(adjust)) {
         # NA-replacing function
         adjust = function(adj, prev, orig) {
             prev[is.na(orig)] = adj
@@ -644,9 +647,8 @@ pow = function(p_values,
         }
         for (f_look in fix_looks) {
             pvals_df_fix = pvals_df[.look == f_look]
-            cat('-- FIXED DESIGN; N(total) =',
+            cat('\033[0;32m### FIXED DESIGN;\033[0m N(total) =',
                 tot_samples[f_look],
-                '--',
                 fill = TRUE)
             for (p_nam in p_names_extr) {
                 cat(
@@ -660,7 +662,6 @@ pow = function(p_values,
                     ro(mean(
                         pvals_df_fix[[paste0(p_nam, '_h1')]] < alpha_global
                     ), round_to),
-                    '\n',
                     sep = '',
                     fill = TRUE
                 )
@@ -685,12 +686,14 @@ pow = function(p_values,
             p_h1_sign_names = paste0(p_names, '_h1_sign')
             p_h1_sign_names_plus = c(p_h1_sign_names, '.look', '.iter')
             p_h1_fut_names = paste0(p_names, '_h1_fut')
-            pb = utils::txtProgressBar(
-                min = 0,
-                max = length(staircase_steps),
-                initial = 0,
-                style = 3
-            )
+            if (no_adj == FALSE) {
+                p_bar = utils::txtProgressBar(
+                    min = 0,
+                    max = length(staircase_steps),
+                    initial = 0,
+                    style = 3
+                )
+            }
             p_names_temp = p_names
             for (p_nam in p_names_temp) {
                 pvals_df[, c(paste0(p_nam, '_h0_sign')) := NA] # create sign column for given p
@@ -702,7 +705,7 @@ pow = function(p_values,
             safe_count = 0
             type1 = 1
             while (length(stair_steps) > 0) {
-                ### TO REMOVE (just for testing)
+                ### (just for testing)
                 # cat('\ntype1',
                 #     type1,
                 #     'a_adj:',
@@ -808,15 +811,18 @@ pow = function(p_values,
                         # change staircase direction (and also decrease step) if needed
                         a_step = -stair_steps[1] * sign(a_step)
                         stair_steps = stair_steps[-1]
-                        utils::setTxtProgressBar(pb, utils::getTxtProgressBar(pb) + 1)
+                        utils::setTxtProgressBar(p_bar,
+                                                 utils::getTxtProgressBar(p_bar) + 1)
                     }
                     # adjust a_adj itself by the step
                     # this a_adj will be used in the adjust function
                     a_adj = a_adj + a_step
                 }
             }
-            utils::setTxtProgressBar(pb, length(staircase_steps))
-            close(pb)
+            if (no_adj == FALSE) {
+                utils::setTxtProgressBar(p_bar, length(staircase_steps))
+                close(p_bar)
+            }
             # assign final local alphas
             a_locals_fin = locls_temp
 
@@ -885,11 +891,11 @@ pow = function(p_values,
                 iters_out0 = ps_sub0[.look == lk &
                                          h0_stoP == TRUE]
                 # remove stopped iterations
-                ps_sub0 = ps_sub0[!.iter %in% iters_out0$.iter, ]
+                ps_sub0 = ps_sub0[!.iter %in% iters_out0$.iter,]
                 # (same for H1)
                 iters_out1 = ps_sub1[.look == lk &
-                                         h1_stoP == TRUE,]
-                ps_sub1 = ps_sub1[!.iter %in% iters_out1$.iter,]
+                                         h1_stoP == TRUE, ]
+                ps_sub1 = ps_sub1[!.iter %in% iters_out1$.iter, ]
                 outs = c()
                 # get info per p value column
                 for (p_nam in p_names_extr) {
@@ -961,27 +967,17 @@ pow = function(p_values,
 
             # print results for sequential design
             cat(
-                '-- SEQUENTIAL DESIGN; N(average-total) = ',
+                '\033[0;36m### SEQUENTIAL DESIGN;\033[0m N(average-total) = ',
                 ro(df_stops$n_avg_prop_0[df_nrow], 2, leading_zero = TRUE),
                 ' (if H0 true) or ',
                 ro(df_stops$n_avg_prop_1[df_nrow], 2, leading_zero = TRUE),
-                ' (if H1 true) --',
+                ' (if H1 true)',
                 sep = '',
                 fill = TRUE
             )
 
             fut_text = ''
             for (p_nam in p_names_extr) {
-                if (!is.null(fut_locals)) {
-                    fut_text = paste('\nFutility bounds:',
-                                     paste(paste0(
-                                         '(',
-                                         looks[-mlook],
-                                         ') ',
-                                         ro(fa_locals[[pnam]], round_to)
-                                     ),
-                                     collapse = '; '))
-                }
                 cat(
                     '(',
                     p_nam,
@@ -995,11 +991,24 @@ pow = function(p_values,
                         looks,
                         ') ',
                         ro(a_locals_fin[[pnam]], round_to)
-                    ), collapse = '; '),
-                    fut_text,
+                        ,
+                        collapse = '; '
+                    )),
                     sep = '',
                     fill = TRUE
                 )
+                if (!is.null(fut_locals)) {
+                    cat(paste(
+                        'Futility bounds:',
+                        paste(paste0(
+                            '(',
+                            looks[-mlook],
+                            ') ',
+                            ro(fa_locals[[pnam]], round_to)
+                        ),
+                        collapse = '; ')
+                    ), fill = TRUE)
+                }
             }
             if (multi_p) {
                 cat(
