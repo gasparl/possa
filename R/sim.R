@@ -264,6 +264,11 @@ sim = function(fun_obs,
         style = 3
     )
     pb_count = 0
+    if (n_look > 1) {
+        looks = (n_look - 1):1
+    } else {
+        looks = NULL
+    }
     # start power calculation per each factor combination
     for (facts in facts_list) {
         if (is.na(facts[1])) {
@@ -281,7 +286,7 @@ sim = function(fun_obs,
                     unlist(obs_per_it[[n_look]]),
                     do.call(fun_test, samples)
                 )
-            for (lk in (n_look - 1):1) {
+            for (lk in looks) {
                 if (pair == TRUE) {
                     seed_r = .Random.seed
                 }

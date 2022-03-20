@@ -8,7 +8,7 @@ pow(
   p_values,
   alpha_locals = NULL,
   alpha_global = 0.05,
-  adjust = NULL,
+  adjust = TRUE,
   adj_init = NULL,
   staircase_steps = NULL,
   alpha_precision = 5,
@@ -19,9 +19,9 @@ pow(
   alpha_locals_extra = NULL,
   design_fix = NULL,
   design_seq = TRUE,
-  descr_cols = TRUE,
+  descr_cols = FALSE,
   descr_func = summary,
-  round_to = 3,
+  round_to = 5,
   seed = 8
 )
 }
@@ -33,8 +33,8 @@ also accepted, but may not work as expected.)}
 
 \item{alpha_locals}{A number, a numeric vector, or a named \code{\link{list}}
 of numeric vectors, that specify the initial set of local alphas that decide
-on statistical significance (for interim look as well as for the final
-look), and, if significant, stop the experiment at the given interim looks;
+on statistical significance (for interim looks as well as for the final
+look), and, if significant, stop the experiment at the given interim look;
 to be adjusted via the \code{adjust} function; see the \code{adjust}
 parameter below. Any of the numbers included can always be \code{NA} values
 as well (which indicates alphas to be calculated; again, see the related
@@ -44,7 +44,7 @@ looks in the \code{p_values} data frame. When a \code{\link{list}} is given,
 the names of the list element(s) must correspond to the root of the related
 H0 and H1 p value column name pair(s) (in the \code{p_values} data frame),
 that is, without the "\code{_h0}" and "\code{_h1}" suffixes: for example, if
-the column name pairs is "\code{p_test4_h0}" and "\code{p_test4_h1}", the
+the column name pair is "\code{p_test4_h0}" and "\code{p_test4_h1}", the
 name of the corresponding list element should be "\code{p_test4}". If a
 single number or a single numeric vector is given, all potential p value
 column pairs are automatically detected as starting with "\code{p_}" prefix
@@ -53,34 +53,46 @@ given, each such automatically detected p value pair receives this same
 vector. In case of a single number given, this all elements of all vectors
 will be this same number. The default \code{NULL} value specifies "fixed
 design" (no interim stopping alphas) with final alpha as specified as
-\code{alpha_global}. (This is useful for cases where only futility bounds
-are to be set for stopping.)}
+\code{alpha_global}, without adjustment procedure as long as the
+\code{adjust} argument is also left as default \code{TRUE}. (This is useful
+for cases where only futility bounds are to be set for stopping.)}
 
-\item{alpha_global}{Global alpha (expected error rate in total); \code{0.05}
-by default.}
+\item{alpha_global}{Global alpha (expected type 1 error rate in total);
+\code{0.05} by default.}
 
 \item{adjust}{The function via which the initial vector local alphas is
 modified with each step of the staircase procedure. Three arguments are
 passed to it: \code{adj}, \code{orig}, and \code{prev}. The \code{adj}
 parameter is mandatory; it passes the pivotal changing value that, starting
 from an initial value (see \code{adj_init}), should, via the staircase
-steps, decrease when the global error rate is too large, and increase when
-the global error rate is too small. The \code{orig} parameter always passes
-the same original vector of alphas as they were provided via
-\code{alpha_locals}. The \code{prev} parameter (optional) passes the
-"latest" vector of local alphas, which were obtained in the previous
-adjustment step (or, in the initial run, it is the original vector, i.e.,
-the same as \code{orig}). When \code{NULL} (default), function replaces
-\code{NA}s with the varying adjustment value (as \code{{ prev[is.na(orig)] =
-adj; return(prev) }}).}
+steps, decrease when the global type 1 error rate is too large, and increase
+when the global type 1 error rate is too small. The \code{orig} parameter
+(optional) always passes the same original vector of alphas as they were
+provided via \code{alpha_locals}. The \code{prev} parameter (optional)
+passes the "latest" vector of local alphas, which were obtained in the
+previous adjustment step (or, in the initial run, it is the original vector,
+i.e., the same as \code{orig}). When \code{TRUE} (default), if the given
+\code{alpha_locals} contains any \code{NA}s, an \code{adjust} function is
+given internally that simply replaces \code{NA}s with the varying adjustment
+value (as \code{{ prev[is.na(orig)] = adj; return(prev) }}). If
+\code{alpha_locals} contains no \code{NA}s, an \code{adjust} function is
+given that multiplies each original local alpha with the varying adjustment
+value (as \code{{ return(orig * adj) }}). When set to \code{FALSE}, there
+will be no adjustment (staircase procedure omitted): this is useful to
+calculate the global type 1 error rate for any given set of local alphas.
+Furthermore, if both \code{adjust} and \code{alpha_locals} are left as
+default (\code{TRUE} and \code{NULL}), the staircase procedure will be
+omitted.}
 
 \item{adj_init}{The initial adjustment value that is used as the "\code{adj}"
 parameter in the "\code{adjust}" function and is continually adjusted via
 the staircase steps (see \code{staircase_steps} parameter). When \code{NULL}
-(default), it is calculated as the global alpha divided by the maximum
-number of looks (Bonferroni correction), as a rough initial approximation
-with the assumption that "\code{adj}" is used as a replacement for
-\code{NA}s.}
+(default), assuming that "\code{adj}" is used as a replacement for
+\code{NA}s, \code{adj_init} is calculated as the global alpha divided by the
+maximum number of looks (Bonferroni correction), as a rough initial
+approximation. However, multiplication is assumed when finding any
+multiplication sign (\code{*}) in a given custom \code{adjust} function: in
+such a case, \code{adj_init} will be \code{1} by default.}
 
 \item{staircase_steps}{Numeric vector that specifies the (normally decreasing)
 sequence of step sizes for the staircase that narrows down on the specified
@@ -94,11 +106,11 @@ the \code{staircase_steps} is either "\code{0.01 * (0.5 ^ (seq(0, 11, 1)))}"
 (giving: \code{0.01, 0.005, 0.0025, ...}) or "\code{0.5 * (0.5 ^ (seq(0, 11,
 1)))}" (giving: \code{0.05, 0.025, 0.0125, ...}). The latter is chosen when
 adjustment via multiplication is assumed, which is simply based on finding
-any multiplication sign (\code{\*}) in a given custom \code{adjust}
-function. The former is chosen in any other case.}
+any multiplication sign (\code{*}) in a given custom \code{adjust} function.
+The former is chosen in any other case.}
 
-\item{alpha_precision}{During the error rate staircase procedure, at any point
-when the simulated global error rate first matches the given
+\item{alpha_precision}{During the staircase procedure, at any point when the
+simulated global type 1 error rate first matches the given
 \code{alpha_global} at least for the number of fractional digits given here
 (\code{alpha_precision}; default: \code{5}), the procedure stops and the
 results are printed. (Otherwise, the procedures finishes only when all steps
@@ -134,9 +146,9 @@ in \code{alpha_locals}), and should return a single \code{TRUE} or
 factors by which to group the analysis: the \code{p_values} data will be
 divided into parts by these factors and these parts will be analyzed
 separately, with power and error information (and descriptives, if
-specified) printed per each part. By default \code{NULL}, it identifies
+specified) printed per each part. By default (\code{NULL}), it identifies
 factors, if any, given to the \code{sim} function (via \code{fun_obs}) that
-produced the given \code{p_values} data.}
+created the given \code{p_values} data.}
 
 \item{alpha_locals_extra}{Optional extra and "non-stopper" alphas via which to
 evaluate p values per look, but without stopping the data collection
@@ -145,7 +157,7 @@ regardless of statistical significance.}
 \item{design_fix}{Whether to calculate fixed design (as comparable
 alternative(s) to given "looks" of the sequential design). If \code{NULL}
 (default), shows power for maximum sample (last "look") only. If set to
-\code{TRUE}, shows power for each given "look" (interim and final)
+\code{TRUE}, shows power for each given "look" (interim and final).
 Altogether omitted when set to \code{FALSE}.}
 
 \item{design_seq}{Whether to calculate sequential design (default:
@@ -155,21 +167,25 @@ it can be used for fixed designs alone too.) Altogether omitted when set to
 
 \item{descr_cols}{When given as a character element or vector, specifies the
 factors for which descriptive data should be shown (by group, if
-applicable). By default \code{TRUE}, it identifies (similar as
+applicable). If set to \code{TRUE}, it identifies (similar as
 \code{group_by}) factors, if any, given to the \code{sim} function (via
-\code{fun_obs}) that produced the given \code{p_values} data.}
+\code{fun_obs}) that produced the given \code{p_values} data. By default
+(\code{FALSE}), no descriptive data is shown.}
 
 \item{descr_func}{Function used for printing descriptives (see
 \code{descr_cols}). By default, it uses the \code{\link{summary}}
-\code{\link{base}} function.}
+(\code{\link{base}}) function.}
 
-\item{round_to}{Number to round to.}
+\item{round_to}{Number of fractional digits (default: \code{5}) to round to,
+for the displayed power and type 1 error rate information.}
 
 \item{seed}{Number for \code{\link{set.seed}}; \code{8} by default. Set to
 \code{NULL} for random seed.}
 }
 \value{
-Returns \code{\link{data.frame}}, etc.
+Apart from printing the main power, error rate, and adjusted local
+ alpha outcomes, the function (invisibly) returns a \code{\link{data.frame}}
+ that includes all details of the calculated information.
 }
 \description{
 Calculates power and local alphas based on simulated p values
@@ -177,19 +193,25 @@ Calculates power and local alphas based on simulated p values
  \code{\link[POSSA:sim]{POSSA::sim}} function). The calculation for
  sequential testing involves a staircase procedure during which an initially
  provided set of local alphas is continually adjusted until the (approximate)
- specified global error rate (e.g., global alpha = .05) is reached: the value
- of adjustment is decreasing while global error rate is larger than
- specified, and increasing while global error rate is smaller than specified;
- a smaller step is chosen whenever the direction (increase vs. decrease)
- changes; the procedure stops when the global error rate is close enough to
- the specified one (e.g., matches it up to 4 fractional digits) or when the
- specified smallest step is passed. The adjustment works via a dedicated
- ("\code{adjust}") function that either replaces missing (\code{NA}) values
- with varying alternatives or (when there are no missing values) in some
- manner varyingly modifies the initial values (e.g. by addition or
- multiplication).
+ specified global type 1 error rate (e.g., global alpha = .05) is reached:
+ the value of adjustment is decreasing while global type 1 error rate is
+ larger than specified, and increasing while global type 1 error rate is
+ smaller than specified; a smaller step is chosen whenever the direction
+ (increase vs. decrease) changes; the procedure stops when the global type 1
+ error rate is close enough to the specified one (e.g., matches it up to 4
+ fractional digits) or when the specified smallest step is passed. The
+ adjustment works via a dedicated ("\code{adjust}") function that either
+ replaces missing (\code{NA}) values with varying alternatives or (when there
+ are no missing values) in some manner varyingly modifies the initial values
+ (e.g. by addition or multiplication).
 }
 \note{
+
+
+For the replicability, in case the \code{adjust} function uses any
+randomization, \code{\link{set.seed}} is executed in the beginning of this
+function, each time it is called; see the \code{seed} parameter.
+
 This function uses, internally, the \code{\link{data.table}} R package.
 }
 \examples{
