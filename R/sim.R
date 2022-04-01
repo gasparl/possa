@@ -178,29 +178,21 @@ sim = function(fun_obs,
         f_obs_args = c()
     }
     f_test_arg_names = methods::formalArgs(fun_test)
-    n_obs_max = list()
+    # get groups based on f_test arguments
     grp_samples = list()
-    if (is.atomic(n_obs)) {
-        n_look = length(n_obs)
-        # if just a vector given, all samples have this as samples sizes
-        n_obs_orig = n_obs
-        n_obs = list()
-        # required sample names guessed from fun_test arguments
-        for (n_name in f_test_arg_names) {
-            n_obs[[n_name]] = n_obs_orig # assign vector to each sample type
-        }
-        # required sample size names guessed from fun_obs arguments
-        for (n_name in methods::formalArgs(fun_obs)) {
-            if (!n_name %in% names(f_obs_args)) {
-                n_obs_max[[n_name]] = n_obs_orig[n_look] # assign vector to each sample type
-                # if any "grp" name is given, assign same numbers for each given group
-                if (startsWith(n_name, 'grp')) {
-                    if (n_name == 'grp') {
-                        grp_name = 'grp'
-                    } else {
-                        grp_name = paste0('grp_', strsplit(n_name, '_')[[1]][2])
-                    }
-                    # corresponding group sample names guessed from fun_test arguments
+    for (arg_name in f_test_arg_names) {
+        if (!arg_name %in% names(f_obs_args)) {
+            # if any "grp" name is given, assign same numbers for each given group
+            if (startsWith(arg_name, 'grp_') |
+                startsWith(arg_name, 'GRP')) {
+                if (startsWith(arg_name, 'grp_')) {
+                    grp_name = paste0('grp_', strsplit(arg_name, '_')[[1]][2])
+                } else {
+                    grp_name = 'GRP'
+                }
+                # if group not yet created, create now
+                if (!grp_name %in% names(grp_samples)) {
+                    # all corresponding group sample names guessed from all fun_test arguments
                     grp_arg_names = f_test_arg_names[startsWith(f_test_arg_names, grp_name)]
                     if (length(grp_arg_names) > 1) {
                         grp_samples[[grp_name]] = grp_arg_names
@@ -215,29 +207,38 @@ sim = function(fun_obs,
                 }
             }
         }
+    }
+    n_obs_max = list()
+    if (is.atomic(n_obs)) {
+        n_look = length(n_obs)
+        # if just a vector given, all samples have this as samples sizes
+        n_obs_orig = n_obs
+        n_obs = list()
+        # required sample names guessed from fun_test arguments
+        for (n_name in f_test_arg_names) {
+            n_obs[[n_name]] = n_obs_orig # assign vector to each sample type
+        }
+        # required sample size names guessed from fun_obs arguments
+        for (n_name in methods::formalArgs(fun_obs)) {
+            if (!n_name %in% names(f_obs_args)) {
+                n_obs_max[[n_name]] = n_obs_orig[n_look] # assign vector to each sample type
+            }
+        }
     } else {
         n_look = length(n_obs[[1]])
         for (n_name in names(n_obs)) {
             n_obs_max[[n_name]] = n_obs[[n_name]][n_look]
             # if any "grp" name is given, assign same numbers for each given group
-            if (startsWith(n_name, 'grp')) {
-                if (n_name == 'grp') {
-                    grp_name = 'grp'
-                } else {
+            if (startsWith(n_name, 'grp_') |
+                startsWith(n_name, 'GRP')) {
+                if (startsWith(n_name, 'grp_')) {
                     grp_name = paste0('grp_', strsplit(n_name, '_')[[1]][2])
+                } else {
+                    grp_name = 'GRP'
                 }
                 # corresponding group sample names guessed from fun_test arguments
                 grp_arg_names = f_test_arg_names[startsWith(f_test_arg_names, grp_name)]
-                if (length(grp_arg_names) > 1) {
-                    grp_samples[[grp_name]] = grp_arg_names
-                    message(
-                        'Note: Observation numbers provided as "',
-                        grp_name,
-                        '" assigned to: ',
-                        paste(grp_arg_names, collapse = ', '),
-                        '.'
-                    )
-                } else if (length(grp_arg_names) == 0) {
+                if (length(grp_arg_names) == 0) {
                     stop('No group with the provided group name "',
                          grp_name,
                          '" exists.')
@@ -415,8 +416,13 @@ sim = function(fun_obs,
         }
     }
     # calculate .n_total (total observation number per each "look")
+    if (length(obs_names) > 1) {
+        n_tots = Reduce('+', df_pvals[, obs_names])
+    } else {
+        n_tots =  df_pvals[, obs_names]
+    }
     df_pvals = data.frame(df_pvals[, 1:2],
-                          .n_total = adjust_n * Reduce('+', df_pvals[, obs_names]),
+                          .n_total = adjust_n * n_tots,
                           df_pvals[,-1:-2])
     # order per iter and look
     df_pvals = df_pvals[order(df_pvals$.iter, df_pvals$.look),]
