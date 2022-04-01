@@ -170,7 +170,7 @@ sim = function(fun_obs,
         df_combs = sapply(expand.grid(f_obs_args), as.vector)
         facts_list = list()
         for (rownum in 1:nrow(df_combs)) {
-            facts_list[[rownum]] = as.list(df_combs[rownum,])
+            facts_list[[rownum]] = as.list(df_combs[rownum, ])
         }
     } else {
         # set to have no combinations; single sample test (hence 1 cycle below)
@@ -179,38 +179,32 @@ sim = function(fun_obs,
     }
     f_test_Arg_names = methods::formalArgs(fun_test)
     f_obs_Arg_names = methods::formalArgs(fun_obs)
+    f_obs_Arg_names = f_obs_Arg_names[!f_obs_Arg_names %in% names(f_obs_args)]
     # get groups based on f_test and f_obs arguments
     grp_samples = list()
     grp_obs = list()
     for (arg_name in f_test_Arg_names) {
-        if (!arg_name %in% names(f_obs_args)) {
-            # if any "grp" name is given, assign same numbers for each given group
-            if (startsWith(arg_name, 'grp_') |
-                startsWith(arg_name, 'GRP')) {
-                if (startsWith(arg_name, 'grp_')) {
-                    grp_name = paste0('grp_', strsplit(arg_name, '_')[[1]][2])
-                } else {
-                    grp_name = 'GRP'
-                }
-                # if group not yet created, create now
-                if (!grp_name %in% names(grp_samples)) {
-                    # all corresponding group sample names guessed from all fun_test arguments
-                    grp_Arg_Test = f_test_Arg_names[startsWith(f_test_Arg_names, grp_name)]
-                    if (length(grp_Arg_Test) > 1) {
-                        grp_samples[[grp_name]] = grp_Arg_Test
-                        message(
-                            'Note: Observation numbers groupped as "',
-                            grp_name,
-                            '" for ',
-                            paste(grp_Arg_Test, collapse = ', '),
-                            '.'
-                        )
-                    }
-                    # same with fun_obs arguments
-                    grp_Arg_Obs = f_obs_Arg_names[startsWith(f_obs_Arg_names, grp_name)]
-                    if (length(grp_Arg_Test) > 0) {
-                        grp_obs[[grp_name]] = grp_Arg_Test
-                    }
+        # if any "grp" name is given, assign same numbers for each given group
+        if (startsWith(arg_name, 'grp_') |
+            startsWith(arg_name, 'GRP')) {
+            if (startsWith(arg_name, 'grp_')) {
+                grp_name = paste0('grp_', strsplit(arg_name, '_')[[1]][2])
+            } else {
+                grp_name = 'GRP'
+            }
+            # if group not yet created, create now
+            if (!grp_name %in% names(grp_samples)) {
+                # all corresponding group sample names guessed from all fun_test arguments
+                grp_Arg_Test = f_test_Arg_names[startsWith(f_test_Arg_names, grp_name)]
+                if (length(grp_Arg_Test) > 0) {
+                    grp_samples[[grp_name]] = grp_Arg_Test
+                    message(
+                        'Note: Observation numbers groupped as "',
+                        grp_name,
+                        '" for ',
+                        paste(grp_Arg_Test, collapse = ', '),
+                        '.'
+                    )
                 }
             }
         }
@@ -235,13 +229,17 @@ sim = function(fun_obs,
         n_look = length(n_obs[[1]])
         for (n_name in names(n_obs)) {
             n_obs_max[[n_name]] = n_obs[[n_name]][n_look]
+            if (n_name %in% names(grp_samples)) {
+                # if grouped, assign each subgroup for n_obs_max
+                for (subgrp in grp_samples[[n_name]]) {
+                    n_obs[[subgrp]] = n_obs[[n_name]]
+                }
+            }
             if (endsWith(n_name, '_h')) {
                 n_obs[[paste0(n_name, '0')]] = n_obs[[n_name]]
                 n_obs[[paste0(n_name, '1')]] = n_obs[[n_name]]
             }
         }
-        # remove unnecessary duplicates in n_obs_max, depending on what fun_obs needs
-        n_obs_max = n_obs_max[names(n_obs_max) %in% f_obs_Arg_names]
         if (!identical(sort(names(n_obs_max)), sort(f_obs_Arg_names))) {
             stop(
                 'The names provided via "n_obs" (',
@@ -252,7 +250,7 @@ sim = function(fun_obs,
             )
         }
         # remove unnecessary duplicates in n_obs, depending on what fun_test needs
-        n_obs_max = n_obs_max[names(n_obs) %in% f_test_Arg_names]
+        n_obs = n_obs[names(n_obs) %in% f_test_Arg_names]
         if (!identical(sort(names(n_obs)), sort(f_test_Arg_names))) {
             stop(
                 'The names provided via "n_obs" (',
@@ -377,7 +375,7 @@ sim = function(fun_obs,
             # renaming the first group member to represent all (since all are identical)
             names(df_pvals)[names(df_pvals) == obs_colnames[1]] = grp_nam
             # remove other group columns from dataframe
-            df_pvals = df_pvals[, !(names(df_pvals) %in% obs_colnames)]
+            df_pvals = df_pvals[,!(names(df_pvals) %in% obs_colnames)]
             # remove all group columns from obs names
             obs_names = obs_names[!obs_names %in% obs_colnames]
             # add group name to obs names, to represent all group columns
@@ -415,9 +413,9 @@ sim = function(fun_obs,
     }
     df_pvals = data.frame(df_pvals[, 1:2],
                           .n_total = adjust_n * n_tots,
-                          df_pvals[,-1:-2])
+                          df_pvals[, -1:-2])
     # order per iter and look
-    df_pvals = df_pvals[order(df_pvals$.iter, df_pvals$.look),]
+    df_pvals = df_pvals[order(df_pvals$.iter, df_pvals$.look), ]
     # add POSSA class names, to be recognized in POSSA::pow
     for (c_nam in obs_names) {
         # observation number (sample size) columns
