@@ -1,7 +1,7 @@
 Package: POSSA
-Title: Power Simulation for Sequential Analysis
-Version: 0.2.0
-Date: 2022-03-13
+Title: Power Simulation for Sequential Analysis and Multiple Hypotheses
+Version: 0.3.0
+Date: 2022-03-20
 Authors@R: c(person("Gáspár", "Lukács", email = "lkcsgaspar@gmail.com", role =
   c("aut", "cre")))
 Description: This R package serves to calculate, via simulation, power and

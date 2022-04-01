@@ -10,6 +10,7 @@ sim(
   fun_test,
   n_iter = 15000,
   pair = FALSE,
+  adjust_n = 1,
   seed = 8,
   ignore_suffix = FALSE
 )
@@ -79,6 +80,12 @@ should not substantially affect the outcomes of independent samples
 the random samples are generated in the \code{fun_obs} function. To be safe
 and avoid any potential bias, it is best to leave it as \code{FALSE}
 (default) when no paired samples are included.}
+
+\item{adjust_n}{Adjust total number of observations via multiplication. Useful
+when multiple p values are derived from the same sample, which would then
+lead to incorrect (too many, multiplied) totals; for example, in case of
+four observations obtained from the same sample, the value \code{1/4} could
+be given. (The default value is \code{1}.)}
 
 \item{seed}{Number for \code{\link{set.seed}}; \code{8} by default. Set to
 \code{NULL} for random seed.}

@@ -210,11 +210,11 @@ pow = function(p_values,
             val_arg(design_seq, c('bool'), 1),
             val_arg(descr_cols, c('bool', 'char')),
             val_arg(descr_func, c('function'), 1),
-            val_arg(round_to, c('num'), 1),
-            val_arg(multi_logic, c('char', 'num'), 1, c('all', 'any')),
-            val_arg(multi_logic_fut, c('char', 'num'), 1, c('all', 'any')),
+            val_arg(multi_logic, c('char', 'function'), 1, c('all', 'any')),
+            val_arg(multi_logic_fut, c('char', 'function'), 1, c('all', 'any')),
             val_arg(staircase_steps, c('null', 'num')),
             val_arg(alpha_precision, c('num'), 1),
+            val_arg(round_to, c('num'), 1),
             val_arg(seed, c('num'), 1)
         )
     )
@@ -236,6 +236,8 @@ pow = function(p_values,
             immediate. = TRUE
         )
     }
+    m_l_reduce = FALSE
+    m_l_fut_reduce = FALSE
     if (is.function(multi_logic)) {
         if (isTRUE(all.equal(multi_logic, any))) {
             message(
@@ -250,10 +252,11 @@ pow = function(p_values,
         }
     } else {
         if (multi_logic == 'all') {
-            multi_logic = `|`
-        } else if (multi_logic == 'any') {
             multi_logic = `&`
+        } else if (multi_logic == 'any') {
+            multi_logic = `|`
         }
+        m_l_reduce = TRUE
     }
     if (is.function(multi_logic_fut)) {
         if (isTRUE(all.equal(multi_logic_fut, any))) {
@@ -269,10 +272,11 @@ pow = function(p_values,
         }
     } else {
         if (multi_logic_fut == 'all') {
-            multi_logic_fut = `|`
-        } else if (multi_logic_fut == 'any') {
             multi_logic_fut = `&`
+        } else if (multi_logic_fut == 'any') {
+            multi_logic_fut = `|`
         }
+        m_l_fut_reduce = TRUE
     }
     setDT(p_values)
     setkey(p_values, .look)
@@ -291,9 +295,9 @@ pow = function(p_values,
             fac_cols = c(fac_cols, c_nam)
         } else if (startsWith(c_nam, 'p_') &&
                    endsWith(c_nam, '_h0')) {
-            pnam = substr(c_nam, 1, nchar(c_nam) - 3)
-            if (paste0(pnam, '_h1') %in% colnames(p_values)) {
-                p_names_auto = c(p_names_auto, pnam)
+            p_nam = substr(c_nam, 1, nchar(c_nam) - 3)
+            if (paste0(p_nam, '_h1') %in% colnames(p_values)) {
+                p_names_auto = c(p_names_auto, p_nam)
             }
         }
     }
@@ -304,8 +308,8 @@ pow = function(p_values,
         if (is.atomic(alpha_locals)) {
             # if vector given, assign to each p column
             if (length(alpha_locals) == 1) {
-                for (pnam in p_names) {
-                    a_locals[[pnam]] = rep(alpha_locals, mlook)
+                for (p_nam in p_names) {
+                    a_locals[[p_nam]] = rep(alpha_locals, mlook)
                 }
             } else if (!length(alpha_locals) == mlook) {
                 stop(
@@ -315,8 +319,8 @@ pow = function(p_values,
                     ').)'
                 )
             } else {
-                for (pnam in p_names) {
-                    a_locals[[pnam]] = alpha_locals
+                for (p_nam in p_names) {
+                    a_locals[[p_nam]] = alpha_locals
                 }
             }
             loc_pnames = p_names
@@ -353,8 +357,8 @@ pow = function(p_values,
     if (!length(a_locals) > 0) {
         # if not given, check only last look (with alpha_global)
         # for the rest, local alpha will be 0
-        for (pnam in p_names) {
-            a_locals[[pnam]] = c(rep(0, (mlook - 1)), alpha_global)
+        for (p_nam in p_names) {
+            a_locals[[p_nam]] = c(rep(0, (mlook - 1)), alpha_global)
         }
         if (isTRUE(adjust)) {
             adjust = FALSE
@@ -416,8 +420,8 @@ pow = function(p_values,
         if (is.atomic(fut_locals)) {
             # if vector given, assign to each p column
             if (length(fut_locals) == 1) {
-                for (pnam in p_names) {
-                    fa_locals[[pnam]] = rep(fut_locals, (mlook - 1))
+                for (p_nam in p_names) {
+                    fa_locals[[p_nam]] = rep(fut_locals, (mlook - 1))
                 }
             } else if (!length(fut_locals) == (mlook - 1)) {
                 stop(
@@ -427,8 +431,8 @@ pow = function(p_values,
                     ').)'
                 )
             } else {
-                for (pnam in p_names) {
-                    fa_locals[[pnam]] = fut_locals
+                for (p_nam in p_names) {
+                    fa_locals[[p_nam]] = fut_locals
                 }
             }
         } else {
@@ -461,14 +465,14 @@ pow = function(p_values,
     }
     # if not given, add 1 for all local futility bounds
     if (!length(fa_locals) > 0) {
-        for (pnam in p_names) {
-            fa_locals[[pnam]] = rep(1, (mlook - 1))
+        for (p_nam in p_names) {
+            fa_locals[[p_nam]] = rep(1, (mlook - 1))
         }
     }
-    no_adj = FALSE
+    prog_bar = FALSE
     if (isFALSE(adjust)) {
         # if adjust is FALSE, staircase is omitted
-        no_adj = TRUE
+        prog_bar = TRUE
         staircase_steps = NA
     } else if (is.null(staircase_steps)) {
         steps_add = 0.01 * (0.5 ** (seq(0, 11, 1)))
@@ -632,11 +636,7 @@ pow = function(p_values,
             }
             cat('', fill = TRUE)
         }
-        tot_samples = c()
-        for (lk in looks) {
-            tot_samples = c(tot_samples, sum(pvals_df[.(lk), .SD, .SDcols = n_cols, mult = 'first']))
-        }
-        look_ratios = tot_samples / tot_samples[mlook]
+        tot_samples = pvals_df[, median(.n_total), by = '.look']$V1
         ## Fixed design calculation below
         if (is.null(design_fix)) {
             fix_looks = mlook # (default) show at max look only
@@ -686,7 +686,7 @@ pow = function(p_values,
             p_h1_sign_names = paste0(p_names, '_h1_sign')
             p_h1_sign_names_plus = c(p_h1_sign_names, '.look', '.iter')
             p_h1_fut_names = paste0(p_names, '_h1_fut')
-            if (no_adj == FALSE) {
+            if (prog_bar == FALSE) {
                 p_bar = utils::txtProgressBar(
                     min = 0,
                     max = length(staircase_steps),
@@ -764,10 +764,10 @@ pow = function(p_values,
                 # use multi_logic to check where to stop
                 # otherwise it simply stops where the given p is sign
                 if (multi_p) {
-                    if (is.function(multi_logic)) {
-                        pvals_df[,  h0_stoP := apply(.SD, 1, multi_logic), .SDcols = p_h0_sign_names]
-                    } else {
+                    if (m_l_reduce) {
                         pvals_df[, h0_stoP := Reduce(multi_logic, .SD), .SDcols = p_h0_sign_names]
+                    } else {
+                        pvals_df[,  h0_stoP := apply(.SD, 1, multi_logic), .SDcols = p_h0_sign_names]
                     }
                 } else {
                     pvals_df[, h0_stoP := .SD, .SDcols = p_h0_sign_names]
@@ -775,10 +775,10 @@ pow = function(p_values,
                 if (!is.null(fut_locals)) {
                     # analogue with futility bounds
                     if (multi_p) {
-                        if (is.function(multi_logic_fut)) {
-                            pvals_df[,  h0_stoP_fa := apply(.SD, 1, multi_logic_fut), .SDcols = p_h0_fut_names]
-                        } else {
+                        if (m_l_fut_reduce) {
                             pvals_df[, h0_stoP_fa := Reduce(multi_logic_fut, .SD), .SDcols = p_h0_fut_names]
+                        } else {
+                            pvals_df[, h0_stoP_fa := apply(.SD, 1, multi_logic_fut), .SDcols = p_h0_fut_names]
                         }
                     } else {
                         pvals_df[, h0_stoP_fa := .SD, .SDcols = p_h0_fut_names]
@@ -819,7 +819,7 @@ pow = function(p_values,
                     a_adj = a_adj + a_step
                 }
             }
-            if (no_adj == FALSE) {
+            if (prog_bar == FALSE) {
                 utils::setTxtProgressBar(p_bar, length(staircase_steps))
                 close(p_bar)
             }
@@ -851,10 +851,10 @@ pow = function(p_values,
             # now check the global power
             # if multiple p columns, check at which look we stop
             if (multi_p) {
-                if (is.function(multi_logic)) {
-                    pvals_df[, h1_stoP := apply(.SD, 1, multi_logic), .SDcols = p_h1_sign_names]
-                } else {
+                if (m_l_reduce) {
                     pvals_df[, h1_stoP := Reduce(multi_logic, .SD), .SDcols = p_h1_sign_names]
+                } else {
+                    pvals_df[, h1_stoP := apply(.SD, 1, multi_logic), .SDcols = p_h1_sign_names]
                 }
             } else {
                 pvals_df[, h1_stoP := .SD, .SDcols = p_h1_sign_names]
@@ -862,10 +862,10 @@ pow = function(p_values,
 
             if (!is.null(fut_locals)) {
                 if (multi_p) {
-                    if (is.function(multi_logic_fut)) {
-                        pvals_df[,  h1_stoP_fa := apply(.SD, 1, multi_logic_fut), .SDcols = p_h1_fut_names]
-                    } else {
+                    if (m_l_fut_reduce) {
                         pvals_df[, h1_stoP_fa := Reduce(multi_logic_fut, .SD), .SDcols = p_h1_fut_names]
+                    } else {
+                        pvals_df[,  h1_stoP_fa := apply(.SD, 1, multi_logic_fut), .SDcols = p_h1_fut_names]
                     }
                 } else {
                     pvals_df[, h1_stoP_fa := .SD, .SDcols = p_h1_fut_names]
@@ -928,6 +928,7 @@ pow = function(p_values,
                 }
                 stops[[length(stops) + 1]] = c(look = lk,
                                                n = tot_samples[lk],
+                                               n_rate = tot_samples[lk] / tot_samples[mlook],
                                                outs)
                 # assign current remaining as the next "previous remaining"
                 previous_h0 = outs['iters_remain_h0']
@@ -935,12 +936,12 @@ pow = function(p_values,
             }
             df_stops = as.data.frame(do.call(rbind, stops))
             # derive end info (type 1, power, etc) from the iteration ratios
-            for (pnam in p_names_extr) {
+            for (p_nam in p_names_extr) {
                 # write out local alphas
-                df_stops[paste0('alpha_local_', p_nam)] = a_locals_fin[[pnam]]
+                df_stops[paste0('alpha_local_', p_nam)] = a_locals_fin[[p_nam]]
                 if (!is.null(fut_locals)) {
                     # write out local futility bounds (if any)
-                    df_stops[paste0('futil_local_', p_nam)] = c(fa_locals[[pnam]], NA)
+                    df_stops[paste0('futil_local_', p_nam)] = c(fa_locals[[p_nam]], NA)
                 }
                 for (h01 in c('_h0', '_h1')) {
                     # ratio of significant findings at any given stop
@@ -990,7 +991,7 @@ pow = function(p_values,
                         '(',
                         looks,
                         ') ',
-                        ro(a_locals_fin[[pnam]], round_to)
+                        ro(a_locals_fin[[p_nam]], round_to)
                         ,
                         collapse = '; '
                     )),
@@ -1004,7 +1005,7 @@ pow = function(p_values,
                             '(',
                             looks[-mlook],
                             ') ',
-                            ro(fa_locals[[pnam]], round_to)
+                            ro(fa_locals[[p_nam]], round_to)
                         ),
                         collapse = '; ')
                     ), fill = TRUE)
@@ -1012,11 +1013,11 @@ pow = function(p_values,
             }
             if (multi_p) {
                 cat(
-                    'Global (average) type I error: ',
+                    'Global ("combined significance") type I error: ',
                     ro(type1, round_to),
                     ' (included: ',
                     paste(p_names, collapse = ', '),
-                    '; average power: ',
+                    '; power for reaching the "combined significance": ',
                     ro(seq_power, round_to),
                     ')',
                     sep = '',

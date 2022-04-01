@@ -68,6 +68,11 @@
 #'  the random samples are generated in the \code{fun_obs} function. To be safe
 #'  and avoid any potential bias, it is best to leave it as \code{FALSE}
 #'  (default) when no paired samples are included.
+#'@param adjust_n Adjust total number of observations via multiplication. Useful
+#'  when multiple p values are derived from the same sample, which would then
+#'  lead to incorrect (too many, multiplied) totals; for example, in case of
+#'  four observations obtained from the same sample, the value \code{1/4} could
+#'  be given. (The default value is \code{1}.)
 #'@param seed Number for \code{\link{set.seed}}; \code{8} by default. Set to
 #'  \code{NULL} for random seed.
 #'@param ignore_suffix Set to \code{NULL} to give warnings instead of errors for
@@ -136,17 +141,21 @@ sim = function(fun_obs,
                fun_test,
                n_iter = 15000,
                pair = FALSE,
+               adjust_n = 1,
                seed = 8,
                ignore_suffix = FALSE) {
-    validate_args(match.call(),
-                  list(
-                      val_arg(fun_obs, c('function', 'list')),
-                      val_arg(fun_test, c('function')),
-                      val_arg(n_iter, c('num'), 1),
-                      val_arg(pair, c('bool'), 1),
-                      val_arg(seed, c('null', 'num'), 1),
-                      val_arg(ignore_suffix, c('null', 'bool'), 1)
-                  ))
+    validate_args(
+        match.call(),
+        list(
+            val_arg(fun_obs, c('function', 'list')),
+            val_arg(fun_test, c('function')),
+            val_arg(n_iter, c('num'), 1),
+            val_arg(pair, c('bool'), 1),
+            val_arg(adjust_n, c('num'), 1),
+            val_arg(seed, c('null', 'num'), 1),
+            val_arg(ignore_suffix, c('null', 'bool'), 1)
+        )
+    )
     set.seed(seed)
     # sanity checks for given values
     if (!is.function(fun_obs)) {
@@ -170,6 +179,7 @@ sim = function(fun_obs,
     }
     f_test_arg_names = methods::formalArgs(fun_test)
     n_obs_max = list()
+    grp_samples = list()
     if (is.atomic(n_obs)) {
         n_look = length(n_obs)
         # if just a vector given, all samples have this as samples sizes
@@ -183,13 +193,59 @@ sim = function(fun_obs,
         for (n_name in methods::formalArgs(fun_obs)) {
             if (!n_name %in% names(f_obs_args)) {
                 n_obs_max[[n_name]] = n_obs_orig[n_look] # assign vector to each sample type
+                # if any "grp" name is given, assign same numbers for each given group
+                if (startsWith(n_name, 'grp')) {
+                    if (n_name == 'grp') {
+                        grp_name = 'grp'
+                    } else {
+                        grp_name = paste0('grp_', strsplit(n_name, '_')[[1]][2])
+                    }
+                    # corresponding group sample names guessed from fun_test arguments
+                    grp_arg_names = f_test_arg_names[startsWith(f_test_arg_names, grp_name)]
+                    if (length(grp_arg_names) > 1) {
+                        grp_samples[[grp_name]] = grp_arg_names
+                        message(
+                            'Note: Observation numbers groupped as "',
+                            grp_name,
+                            '" for ',
+                            paste(grp_arg_names, collapse = ', '),
+                            '.'
+                        )
+                    }
+                }
             }
         }
     } else {
         n_look = length(n_obs[[1]])
         for (n_name in names(n_obs)) {
             n_obs_max[[n_name]] = n_obs[[n_name]][n_look]
-            if (endsWith(n_name, '_h')) {
+            # if any "grp" name is given, assign same numbers for each given group
+            if (startsWith(n_name, 'grp')) {
+                if (n_name == 'grp') {
+                    grp_name = 'grp'
+                } else {
+                    grp_name = paste0('grp_', strsplit(n_name, '_')[[1]][2])
+                }
+                # corresponding group sample names guessed from fun_test arguments
+                grp_arg_names = f_test_arg_names[startsWith(f_test_arg_names, grp_name)]
+                if (length(grp_arg_names) > 1) {
+                    grp_samples[[grp_name]] = grp_arg_names
+                    message(
+                        'Note: Observation numbers provided as "',
+                        grp_name,
+                        '" assigned to: ',
+                        paste(grp_arg_names, collapse = ', '),
+                        '.'
+                    )
+                } else if (length(grp_arg_names) == 0) {
+                    stop('No group with the provided group name "',
+                         grp_name,
+                         '" exists.')
+                }
+                for (arg_name in grp_arg_names) {
+                    n_obs[[arg_name]] = n_obs[[n_name]] # assign the group's obs numbers
+                }
+            } else if (endsWith(n_name, '_h')) {
                 n_obs[[paste0(n_name, '0')]] = n_obs[[n_name]]
                 n_obs[[paste0(n_name, '1')]] = n_obs[[n_name]]
                 n_obs[[n_name]] = NULL
@@ -197,7 +253,7 @@ sim = function(fun_obs,
         }
         if (!identical(sort(names(n_obs_max)), sort(methods::formalArgs(fun_obs)))) {
             stop(
-                'The names provided in "n_obs" (',
+                'The names provided via "n_obs" (',
                 paste(names(n_obs), collapse = ', '),
                 ') do not match the arguments in "fun_obs" (',
                 paste(methods::formalArgs(fun_obs), collapse = ', '),
@@ -206,7 +262,7 @@ sim = function(fun_obs,
         }
         if (!identical(sort(names(n_obs)), sort(f_test_arg_names))) {
             stop(
-                'The names provided in "n_obs" (',
+                'The names provided via "n_obs" (',
                 paste(names(n_obs), collapse = ', '),
                 ') do not match the arguments in "fun_test" (',
                 paste(f_test_arg_names, collapse = ', '),
@@ -311,27 +367,57 @@ sim = function(fun_obs,
     close(pb)
     df_pvals = as.data.frame(do.call(rbind, list_vals))
 
-    # merge _h0/_h1 into single _h column
-    for (obs_nam in obs_root_names) {
-        obs_pair = c(paste0(obs_nam, '0'), paste0(obs_nam, '1'))
-        if (all(df_pvals[[obs_pair[1]]] != df_pvals[[obs_pair[2]]])) {
+    # merge groups into single column (with given group name)
+    for (grp_nam in names(grp_samples)) {
+        obs_colnames = grp_samples[[grp_nam]] # get group columns
+        # check if all group columns have the same number of observations
+        if (!length(unique(as.list(df_pvals[obs_colnames]))) == 1) {
             warning(
-                'Observation numbers do not match for the ',
-                obs_nam,
-                ' h0/h1 column pair! Merging columns omitted;',
+                'Observation numbers do not match for the columns ',
+                paste(obs_colnames, collapse = ', '),
+                ' (group: "',
+                grp_nam,
+                '")! Merging columns omitted;',
                 ' total sample size may be incorrect.'
             )
         } else {
-            names(df_pvals)[names(df_pvals) == obs_pair[1]] = obs_nam
-            df_pvals[[obs_pair[2]]] = NULL
-            obs_names = obs_names[!obs_names %in% obs_pair]
-            obs_names = c(obs_names, obs_nam)
+            # renaming the first group member to represent all (since all are identical)
+            names(df_pvals)[names(df_pvals) == obs_colnames[1]] = grp_nam
+            # remove other group columns from dataframe
+            df_pvals = df_pvals[, !(names(df_pvals) %in% obs_colnames)]
+            # remove all group columns from obs names
+            obs_names = obs_names[!obs_names %in% obs_colnames]
+            # add group name to obs names, to represent all group columns
+            obs_names = c(obs_names, grp_nam)
+        }
+    }
+    # merge _h0/_h1 into single _h column
+    for (obs_nam in obs_root_names) {
+        obs_pair = c(paste0(obs_nam, '0'), paste0(obs_nam, '1'))
+        if (obs_pair[1] %in% names(df_pvals)) {
+            if (all(df_pvals[[obs_pair[1]]] != df_pvals[[obs_pair[2]]])) {
+                warning(
+                    'Observation numbers do not match for the ',
+                    obs_nam,
+                    ' h0/h1 column pair! Merging columns omitted;',
+                    ' total sample size may be incorrect.'
+                )
+            } else {
+                # renaming the first to represent both (since they are identical)
+                names(df_pvals)[names(df_pvals) == obs_pair[1]] = obs_nam
+                # removing the other
+                df_pvals[[obs_pair[2]]] = NULL
+                # removing the pair from obs names
+                obs_names = obs_names[!obs_names %in% obs_pair]
+                # adding pair root name to represent both
+                obs_names = c(obs_names, obs_nam)
+            }
         }
     }
     # calculate .n_total (total observation number per each "look")
     df_pvals = data.frame(df_pvals[, 1:2],
-                          .n_total = Reduce('+', df_pvals[, obs_names]),
-                          df_pvals[, -1:-2])
+                          .n_total = adjust_n * Reduce('+', df_pvals[, obs_names]),
+                          df_pvals[,-1:-2])
     # order per iter and look
     df_pvals = df_pvals[order(df_pvals$.iter, df_pvals$.look),]
     # add POSSA class names, to be recognized in POSSA::pow
@@ -345,5 +431,7 @@ sim = function(fun_obs,
     }
     # POSSA class for the whole data frame
     class(df_pvals) = c(class(df_pvals), "possa_df")
+    message('Simulation completed. Below is a sample of the resulting data.')
+    print(head(df_pvals, min(n_look, 6L)))
     return(df_pvals)
 }
