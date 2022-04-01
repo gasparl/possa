@@ -177,10 +177,12 @@ sim = function(fun_obs,
         facts_list = NA
         f_obs_args = c()
     }
-    f_test_arg_names = methods::formalArgs(fun_test)
-    # get groups based on f_test arguments
+    f_test_Arg_names = methods::formalArgs(fun_test)
+    f_obs_Arg_names = methods::formalArgs(fun_obs)
+    # get groups based on f_test and f_obs arguments
     grp_samples = list()
-    for (arg_name in f_test_arg_names) {
+    grp_obs = list()
+    for (arg_name in f_test_Arg_names) {
         if (!arg_name %in% names(f_obs_args)) {
             # if any "grp" name is given, assign same numbers for each given group
             if (startsWith(arg_name, 'grp_') |
@@ -193,16 +195,21 @@ sim = function(fun_obs,
                 # if group not yet created, create now
                 if (!grp_name %in% names(grp_samples)) {
                     # all corresponding group sample names guessed from all fun_test arguments
-                    grp_arg_names = f_test_arg_names[startsWith(f_test_arg_names, grp_name)]
-                    if (length(grp_arg_names) > 1) {
-                        grp_samples[[grp_name]] = grp_arg_names
+                    grp_Arg_Test = f_test_Arg_names[startsWith(f_test_Arg_names, grp_name)]
+                    if (length(grp_Arg_Test) > 1) {
+                        grp_samples[[grp_name]] = grp_Arg_Test
                         message(
                             'Note: Observation numbers groupped as "',
                             grp_name,
                             '" for ',
-                            paste(grp_arg_names, collapse = ', '),
+                            paste(grp_Arg_Test, collapse = ', '),
                             '.'
                         )
+                    }
+                    # same with fun_obs arguments
+                    grp_Arg_Obs = f_obs_Arg_names[startsWith(f_obs_Arg_names, grp_name)]
+                    if (length(grp_Arg_Test) > 0) {
+                        grp_obs[[grp_name]] = grp_Arg_Test
                     }
                 }
             }
@@ -215,11 +222,11 @@ sim = function(fun_obs,
         n_obs_orig = n_obs
         n_obs = list()
         # required sample names guessed from fun_test arguments
-        for (n_name in f_test_arg_names) {
+        for (n_name in f_test_Arg_names) {
             n_obs[[n_name]] = n_obs_orig # assign vector to each sample type
         }
         # required sample size names guessed from fun_obs arguments
-        for (n_name in methods::formalArgs(fun_obs)) {
+        for (n_name in f_obs_Arg_names) {
             if (!n_name %in% names(f_obs_args)) {
                 n_obs_max[[n_name]] = n_obs_orig[n_look] # assign vector to each sample type
             }
@@ -228,45 +235,30 @@ sim = function(fun_obs,
         n_look = length(n_obs[[1]])
         for (n_name in names(n_obs)) {
             n_obs_max[[n_name]] = n_obs[[n_name]][n_look]
-            # if any "grp" name is given, assign same numbers for each given group
-            if (startsWith(n_name, 'grp_') |
-                startsWith(n_name, 'GRP')) {
-                if (startsWith(n_name, 'grp_')) {
-                    grp_name = paste0('grp_', strsplit(n_name, '_')[[1]][2])
-                } else {
-                    grp_name = 'GRP'
-                }
-                # corresponding group sample names guessed from fun_test arguments
-                grp_arg_names = f_test_arg_names[startsWith(f_test_arg_names, grp_name)]
-                if (length(grp_arg_names) == 0) {
-                    stop('No group with the provided group name "',
-                         grp_name,
-                         '" exists.')
-                }
-                for (arg_name in grp_arg_names) {
-                    n_obs[[arg_name]] = n_obs[[n_name]] # assign the group's obs numbers
-                }
-            } else if (endsWith(n_name, '_h')) {
+            if (endsWith(n_name, '_h')) {
                 n_obs[[paste0(n_name, '0')]] = n_obs[[n_name]]
                 n_obs[[paste0(n_name, '1')]] = n_obs[[n_name]]
-                n_obs[[n_name]] = NULL
             }
         }
-        if (!identical(sort(names(n_obs_max)), sort(methods::formalArgs(fun_obs)))) {
+        # remove unnecessary duplicates in n_obs_max, depending on what fun_obs needs
+        n_obs_max = n_obs_max[names(n_obs_max) %in% f_obs_Arg_names]
+        if (!identical(sort(names(n_obs_max)), sort(f_obs_Arg_names))) {
             stop(
                 'The names provided via "n_obs" (',
-                paste(names(n_obs), collapse = ', '),
+                paste(names(n_obs_max), collapse = ', '),
                 ') do not match the arguments in "fun_obs" (',
-                paste(methods::formalArgs(fun_obs), collapse = ', '),
+                paste(f_obs_Arg_names, collapse = ', '),
                 ').'
             )
         }
-        if (!identical(sort(names(n_obs)), sort(f_test_arg_names))) {
+        # remove unnecessary duplicates in n_obs, depending on what fun_test needs
+        n_obs_max = n_obs_max[names(n_obs) %in% f_test_Arg_names]
+        if (!identical(sort(names(n_obs)), sort(f_test_Arg_names))) {
             stop(
                 'The names provided via "n_obs" (',
                 paste(names(n_obs), collapse = ', '),
                 ') do not match the arguments in "fun_test" (',
-                paste(f_test_arg_names, collapse = ', '),
+                paste(f_test_Arg_names, collapse = ', '),
                 ').'
             )
         }
@@ -280,7 +272,7 @@ sim = function(fun_obs,
             # nothing
         }
     }
-    obs_root_names = suffixes(f_test_arg_names,
+    obs_root_names = suffixes(f_test_Arg_names,
                               feedf = feedf)
     if (!length(obs_root_names) > 0) {
         feedf(
