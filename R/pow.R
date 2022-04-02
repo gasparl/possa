@@ -129,9 +129,9 @@
 #'  specified) printed per each part. By default (\code{NULL}), it identifies
 #'  factors, if any, given to the \code{sim} function (via \code{fun_obs}) that
 #'  created the given \code{p_values} data.
-#'@param alpha_locals_extra Optional extra and "non-stopper" alphas via which to
-#'  evaluate p values per look, but without stopping the data collection
-#'  regardless of statistical significance.
+#'@param alpha_loc_nonstop Optional "non-stopper" alphas via which to evaluate p
+#'  values per look, but without stopping the data collection regardless of
+#'  statistical significance.
 #'@param design_fix Whether to calculate fixed design (as comparable
 #'  alternative(s) to given "looks" of the sequential design). If \code{NULL}
 #'  (default), shows power for maximum sample (last "look") only. If set to
@@ -191,7 +191,7 @@ pow = function(p_values,
                multi_logic = 'all',
                multi_logic_fut = 'all',
                group_by = NULL,
-               alpha_locals_extra = NULL,
+               alpha_loc_nonstop = NULL,
                design_fix = NULL,
                design_seq = TRUE,
                descr_cols = FALSE,
@@ -346,9 +346,9 @@ pow = function(p_values,
                     'Wrong argument for "alpha_locals". ',
                     'There is no column name pair "',
                     pname,
-                    '0"/"',
+                    '_h0"/"',
                     pname,
-                    '1".'
+                    '_h1".'
                 )
             }
         }
@@ -375,22 +375,20 @@ pow = function(p_values,
         })
     }
     p_extr = NULL
-    if (!is.null(alpha_locals_extra)) {
-        lapply(alpha_locals_extra, function(vec) {
+    if (!is.null(alpha_loc_nonstop)) {
+        lapply(alpha_loc_nonstop, function(vec) {
             if (any(is.na(vec))) {
                 stop(
-                    'The alpha values given in alpha_locals_extra must ',
+                    'The alpha values given in alpha_loc_nonstop must ',
                     'not contain NA values.'
                 )
             } else if (any(vec > 1 | vec < 0)) {
-                stop(
-                    'All alpha values given in alpha_locals_extra must be',
-                    ' between 0 and 1.'
-                )
+                stop('All alpha values given in alpha_loc_nonstop must be',
+                     ' between 0 and 1.')
             } else if (!(is.atomic(a_vec) &&
                          length(a_vec) == mlook)) {
                 stop(
-                    'Wrong argument for "alpha_locals_extra". (If a list is given, ',
+                    'Wrong argument for "alpha_loc_nonstop". (If a list is given, ',
                     'it must consist of one or more vectors of numbers with the',
                     ' same length as the maximum number of looks (in this case ',
                     mlook,
@@ -398,11 +396,11 @@ pow = function(p_values,
                 )
             }
         })
-        p_extr = names(alpha_locals_extra)
+        p_extr = names(alpha_loc_nonstop)
         for (pname in p_extr) {
             if (!pname %in% p_names_auto) {
                 stop(
-                    'Wrong argument for "alpha_locals_extra". ',
+                    'Wrong argument for "alpha_loc_nonstop". ',
                     'There is no column name pair "',
                     pname,
                     '0"/"',
@@ -411,7 +409,7 @@ pow = function(p_values,
                 )
             }
         }
-        a_locals = append(a_locals, alpha_locals_extra)
+        a_locals = append(a_locals, alpha_loc_nonstop)
     }
     p_names_extr = c(p_names, p_extr)
     fa_locals = list()
@@ -652,9 +650,9 @@ pow = function(p_values,
                 fill = TRUE)
             for (p_nam in p_names_extr) {
                 cat(
-                    '(',
+                    '(\033[0;40m',
                     p_nam,
-                    ') Type I error: ',
+                    '\033[0m) Type I error: ',
                     ro(mean(
                         pvals_df_fix[[paste0(p_nam, '_h0')]] < alpha_global
                     ), round_to),
@@ -669,12 +667,12 @@ pow = function(p_values,
         }
 
         ## Sequential design calculation below (when applicable)
-        if (design_seq == TRUE & mlook > 1) {
+        if (design_seq == TRUE) {
             # "trial and error" straircase procedure below, to get the desired adjusted alpha
             locls_temp = a_locals
             a_adj = adj_init
             stair_steps = staircase_steps
-            if (!is.null(alpha_locals_extra) &
+            if (!is.null(alpha_loc_nonstop) &
                 !is.na(stair_steps[length(stair_steps)])) {
                 stair_steps = c(stair_steps, NA)
             }
@@ -682,10 +680,20 @@ pow = function(p_values,
             p_h0_sign_names = paste0(p_names, '_h0_sign')
             multi_p = length(p_h0_sign_names) > 1
             p_h0_sign_names_plus = c(p_h0_sign_names, '.look', '.iter')
-            p_h0_fut_names = paste0(p_names, '_h0_fut')
             p_h1_sign_names = paste0(p_names, '_h1_sign')
             p_h1_sign_names_plus = c(p_h1_sign_names, '.look', '.iter')
+            p_h0_fut_names = paste0(p_names, '_h0_fut')
             p_h1_fut_names = paste0(p_names, '_h1_fut')
+            # if p included for alpha but not for futility, add it as nonstopping
+            for (p_nam in p_names) {
+                if (!p_nam %in% names(fa_locals)) {
+                    message(
+                        'Caution!: "',
+                        p_nam,
+                        '" included as alpha but not as futility bound.'
+                    )
+                }
+            }
             if (prog_bar == FALSE) {
                 p_bar = utils::txtProgressBar(
                     min = 0,
@@ -798,7 +806,7 @@ pow = function(p_values,
                     # break if global alpha is correct
                     # otherwise continue the staircase
                     if (round(type1, alpha_precision) == round(alpha_global, alpha_precision)) {
-                        if (is.null(alpha_locals_extra)) {
+                        if (is.null(alpha_loc_nonstop)) {
                             break
                         } else {
                             stair_steps = NA
@@ -926,10 +934,12 @@ pow = function(p_values,
                     outs['iters_stopped_h0'] = previous_h0 - outs['iters_remain_h0']
                     outs['iters_stopped_h1'] = previous_h1 - outs['iters_remain_h1']
                 }
-                stops[[length(stops) + 1]] = c(look = lk,
-                                               n = tot_samples[lk],
-                                               n_rate = tot_samples[lk] / tot_samples[mlook],
-                                               outs)
+                stops[[length(stops) + 1]] = c(
+                    look = lk,
+                    n = tot_samples[lk],
+                    n_rate = tot_samples[lk] / tot_samples[mlook],
+                    outs
+                )
                 # assign current remaining as the next "previous remaining"
                 previous_h0 = outs['iters_remain_h0']
                 previous_h1 = outs['iters_remain_h1']
@@ -979,10 +989,17 @@ pow = function(p_values,
 
             fut_text = ''
             for (p_nam in p_names_extr) {
-                cat(
+                if (p_nam %in% p_names) {
+                    nonstp = ''
+                } else {
+                    nonstp = '\033[0;40;3mnon-stopper: \033[0;40;0m'
+                }
+                toprint = paste0(
                     '(',
+                    nonstp,
+                    '\033[0;40m',
                     p_nam,
-                    ') Type I error: ',
+                    '\033[0m) Type I error: ',
                     ro(df_stops[[paste0('ratio_sign_', p_nam, '_h0')]][df_nrow], round_to),
                     '; Power: ',
                     ro(df_stops[[paste0('ratio_sign_', p_nam, '_h1')]][df_nrow], round_to),
@@ -994,10 +1011,9 @@ pow = function(p_values,
                         ro(a_locals_fin[[p_nam]], round_to)
                         ,
                         collapse = '; '
-                    )),
-                    sep = '',
-                    fill = TRUE
+                    ))
                 )
+                cat(toprint, fill = TRUE)
                 if (!is.null(fut_locals)) {
                     cat(paste(
                         'Futility bounds:',
@@ -1012,17 +1028,16 @@ pow = function(p_values,
                 }
             }
             if (multi_p) {
-                cat(
+                toprint = paste0(
                     'Global ("combined significance") type I error: ',
                     ro(type1, round_to),
                     ' (included: ',
                     paste(p_names, collapse = ', '),
                     '; power for reaching the "combined significance": ',
                     ro(seq_power, round_to),
-                    ')',
-                    sep = '',
-                    fill = TRUE
+                    ')'
                 )
+                cat(toprint, fill = TRUE)
             }
             out_dfs[[paste0('df_', gsub('; ', '_', possa_fact))]] = df_stops
         }

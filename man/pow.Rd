@@ -16,7 +16,7 @@ pow(
   multi_logic = "all",
   multi_logic_fut = "all",
   group_by = NULL,
-  alpha_locals_extra = NULL,
+  alpha_loc_nonstop = NULL,
   design_fix = NULL,
   design_seq = TRUE,
   descr_cols = FALSE,
@@ -150,7 +150,7 @@ specified) printed per each part. By default (\code{NULL}), it identifies
 factors, if any, given to the \code{sim} function (via \code{fun_obs}) that
 created the given \code{p_values} data.}
 
-\item{alpha_locals_extra}{Optional extra and "non-stopper" alphas via which to
+\item{alpha_loc_nonstop}{Optional extra and "non-stopper" alphas via which to
 evaluate p values per look, but without stopping the data collection
 regardless of statistical significance.}
 
