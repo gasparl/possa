@@ -159,7 +159,7 @@ sim = function(fun_obs,
                n_iter = 15000,
                adjust_n = 1,
                seed = 8,
-               pair = FALSE,
+               pair = NULL,
                ignore_suffix = FALSE) {
     validate_args(
         match.call(),
@@ -169,7 +169,7 @@ sim = function(fun_obs,
             val_arg(n_iter, c('num'), 1),
             val_arg(adjust_n, c('num'), 1),
             val_arg(seed, c('null', 'num'), 1),
-            val_arg(pair, c('bool'), 1),
+            val_arg(pair, c('bool', 'null'), 1),
             val_arg(ignore_suffix, c('null', 'bool'), 1)
         )
     )
