@@ -68,14 +68,6 @@
 #'  then be stored in dedicated columns in the resulting
 #'  \code{\link{data.frame}}.
 #'@param n_iter Number of iterations (default: 15000).
-#'@param pair Logical. Set to \code{TRUE} if the observations include paired
-#'  samples. Note that this works by using, within each look, the same vector
-#'  indexes to remove elements from the given observations. In general, this
-#'  should not substantially affect the outcomes of independent samples
-#'  (assuming that their order is truly independent), but this depends on how
-#'  the random samples are generated in the \code{fun_obs} function. To be safe
-#'  and avoid any potential bias, it is best to leave it as \code{FALSE}
-#'  (default) when no paired samples are included.
 #'@param adjust_n Adjust total number of observations via simple multiplication.
 #'  Might be useful in some specific cases, e.g. if for some reason multiple p
 #'  values are derived from the same sample without specifying grouping
@@ -85,6 +77,21 @@
 #'  given. (The default value is \code{1}.)
 #'@param seed Number for \code{\link{set.seed}}; \code{8} by default. Set to
 #'  \code{NULL} for random seed.
+#'@param pair Logical or \code{NULL}. By default \code{NULL}, the algorithm
+#'  assumes paired samples included among the observations in case of any
+#'  grouping via the \code{fun_test} parameters ("\code{GRP}"/"\code{grp}"), and
+#'  no paired samples otherwise. In case of paired samples included, within each
+#'  look, the same vector indexes to remove elements from the given
+#'  observations. In general, this should not substantially affect the outcomes
+#'  of independent samples (assuming that their order is truly independent), but
+#'  this depends on how the random samples are generated in the \code{fun_obs}
+#'  function. To be safe and avoid any potential bias, it is best to avoid this
+#'  paired sampling mechanism when no paired samples are included. To override
+#'  the default, set to \code{TRUE} for paired samples scenario (paired
+#'  sampling), or to \code{FALSE} for no paired samples scenario (random
+#'  subsampling of each sample). (Might be useful for testing or some very
+#'  specific procedures, e.g. where grouping is not indicated despite paired
+#'  samples.)
 #'@param ignore_suffix Set to \code{NULL} to give warnings instead of errors for
 #'  internally detected consistency problems with the \code{_h0}/\code{_h1}
 #'  suffixes in the \code{fun_test} function arguments. Set to \code{TRUE} to
@@ -150,9 +157,9 @@ sim = function(fun_obs,
                n_obs,
                fun_test,
                n_iter = 15000,
-               pair = FALSE,
                adjust_n = 1,
                seed = 8,
+               pair = FALSE,
                ignore_suffix = FALSE) {
     validate_args(
         match.call(),
@@ -160,9 +167,9 @@ sim = function(fun_obs,
             val_arg(fun_obs, c('function', 'list')),
             val_arg(fun_test, c('function')),
             val_arg(n_iter, c('num'), 1),
-            val_arg(pair, c('bool'), 1),
             val_arg(adjust_n, c('num'), 1),
             val_arg(seed, c('null', 'num'), 1),
+            val_arg(pair, c('bool'), 1),
             val_arg(ignore_suffix, c('null', 'bool'), 1)
         )
     )
@@ -215,9 +222,15 @@ sim = function(fun_obs,
                         paste(grp_Arg_Test, collapse = ', '),
                         '.'
                     )
+                    if (is.null(pair)) {
+                        pair = TRUE
+                    }
                 }
             }
         }
+    }
+    if (is.null(pair)) {
+        pair = FALSE
     }
     n_obs_max = list()
     if (is.atomic(n_obs)) {
@@ -442,6 +455,6 @@ sim = function(fun_obs,
     # POSSA class for the whole data frame
     class(df_pvals) = c(class(df_pvals), "possa_df")
     message('Simulation completed. Below is a sample of the resulting data.')
-    print(head(df_pvals, min(n_look, 6L)))
+    print(utils::head(df_pvals, min(n_look, 6L)))
     return(df_pvals)
 }

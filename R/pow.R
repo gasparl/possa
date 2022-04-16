@@ -220,6 +220,7 @@ pow = function(p_values,
     )
     .look = NULL
     .iter = NULL
+    .n_total = NULL
     h0_stoP = NULL
     h1_stoP = NULL
     h0_stoP_fa = NULL
@@ -634,7 +635,7 @@ pow = function(p_values,
             }
             cat('', fill = TRUE)
         }
-        tot_samples = pvals_df[, median(.n_total), by = '.look']$V1
+        tot_samples = pvals_df[, stats::median(.n_total), by = '.look']$V1
         ## Fixed design calculation below
         if (is.null(design_fix)) {
             fix_looks = mlook # (default) show at max look only
@@ -684,7 +685,7 @@ pow = function(p_values,
             p_h1_sign_names_plus = c(p_h1_sign_names, '.look', '.iter')
             p_h0_fut_names = paste0(p_names, '_h0_fut')
             p_h1_fut_names = paste0(p_names, '_h1_fut')
-            # if p included for alpha but not for futility, add it as nonstopping
+            # if p included for alpha but not for futility, print warning
             for (p_nam in p_names) {
                 if (!p_nam %in% names(fa_locals)) {
                     message(
