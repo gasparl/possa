@@ -26,6 +26,7 @@ ro = function(num,
         tinies = gsub("0", "", formtd, fixed = TRUE) == '.'
         formtd[tinies] = sub('.$', '1',
                              sub(".", "< .", formtd[tinies], fixed = TRUE))
+        formtd[value == 1] = "1"
     }
     formtd[value == 0] = "0"
     return(formtd)

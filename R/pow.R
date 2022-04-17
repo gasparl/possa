@@ -455,7 +455,6 @@ pow = function(p_values,
                         ').)'
                     )
                 }
-                fa_locals = fut_locals
             }
             for (pname in names(fut_locals)) {
                 if (!pname %in% p_names) {
@@ -469,6 +468,12 @@ pow = function(p_values,
                     )
                 }
             }
+            for (p_nam in p_names) {
+                if (!p_nam %in% names(fut_locals)) {
+                    fut_locals[[p_nam]] = rep(1, (mlook - 1))
+                }
+            }
+            fa_locals = fut_locals
         }
     }
     # if not given, add 1 for all local futility bounds
@@ -922,11 +927,11 @@ pow = function(p_values,
                 iters_out0 = ps_sub0[.look == lk &
                                          h0_stoP == TRUE]
                 # remove stopped iterations
-                ps_sub0 = ps_sub0[!.iter %in% iters_out0$.iter, ]
+                ps_sub0 = ps_sub0[!.iter %in% iters_out0$.iter,]
                 # (same for H1)
                 iters_out1 = ps_sub1[.look == lk &
-                                         h1_stoP == TRUE,]
-                ps_sub1 = ps_sub1[!.iter %in% iters_out1$.iter,]
+                                         h1_stoP == TRUE, ]
+                ps_sub1 = ps_sub1[!.iter %in% iters_out1$.iter, ]
                 outs = c()
                 # get info per p value column
                 for (p_nam in p_names_extr) {
@@ -1019,6 +1024,10 @@ pow = function(p_values,
                     nonstp = '\033[0;40;3mnon-stopper: \033[0;40;0m'
                     l_a_descr = '\nLocal alphas (fixed): '
                 }
+                p_a_locals = ro(a_locals_fin[[p_nam]], round_to)
+                p_a_locals = ifelse(p_a_locals == '0',
+                                    'none',
+                                    paste0('\033[0;31m', p_a_locals, '\033[0m'))
                 toprint = paste0(
                     '(',
                     nonstp,
@@ -1029,27 +1038,39 @@ pow = function(p_values,
                     '; Power: ',
                     ro(df_stops[[paste0('ratio_sign_', p_nam, '_h1')]][df_nrow], round_to),
                     l_a_descr,
-                    paste(paste0(
-                        '(',
-                        looks,
-                        ') ',
-                        ro(a_locals_fin[[p_nam]], round_to)
-                        ,
-                        collapse = '; '
-                    ))
+                    paste(
+                        paste0(
+                            '(',
+                            looks,
+                            ') ',
+                            p_a_locals,
+                            collapse = '; '
+                        )
+                    )
                 )
                 cat(toprint, fill = TRUE)
                 if (!is.null(fut_locals)) {
-                    cat(paste(
-                        'Futility bounds:',
-                        paste(paste0(
-                            '(',
-                            looks[-mlook],
-                            ') ',
-                            ro(fa_locals[[p_nam]], round_to)
+                    if (all(fa_locals[[p_nam]] == 1)) {
+                        cat('Futility bounds: none', fill = TRUE)
+                    } else {
+                        p_fa_locals = ro(fa_locals[[p_nam]], round_to)
+                        p_fa_locals = ifelse(p_fa_locals == '0',
+                                            'none',
+                                            paste0('\033[0;31m', p_fa_locals, '\033[0m'))
+                        cat(paste(
+                            'Futility bounds:',
+                            paste(
+                                paste0(
+                                    '(',
+                                    looks[-mlook],
+                                    ') ',
+                                    p_fa_locals
+                                ),
+                                collapse = '; '
+                            )
                         ),
-                        collapse = '; ')
-                    ), fill = TRUE)
+                        fill = TRUE)
+                    }
                 }
             }
             if (multi_p) {
