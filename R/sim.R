@@ -156,7 +156,7 @@
 sim = function(fun_obs,
                n_obs,
                fun_test,
-               n_iter = 15000,
+               n_iter = 75000,
                adjust_n = 1,
                seed = 8,
                pair = NULL,

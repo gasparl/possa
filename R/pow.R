@@ -152,6 +152,13 @@
 #'  (\code{\link{base}}) function.
 #'@param round_to Number of fractional digits (default: \code{5}) to round to,
 #'  for the displayed power and type 1 error rate information.
+#'@param iter_limit In some specific cases of unideal/wrong input, the staircase
+#'  may get stuck at a given step's loop process. The \code{iter_limit}
+#'  parameter specifies the number (by default \code{100}) at which the script
+#'  pauses the loop and offers to the user that the procedure be ceased. If the
+#'  user chooses to continue, the offer will always be posed again after the
+#'  same number of iterations (e.g., by default, after \code{100}, at
+#'  \code{200}, then \code{300}, etc.).
 #'@param seed Number for \code{\link{set.seed}}; \code{8} by default. Set to
 #'  \code{NULL} for random seed.
 #'
@@ -197,6 +204,7 @@ pow = function(p_values,
                descr_cols = FALSE,
                descr_func = summary,
                round_to = 5,
+               iter_limit = 100,
                seed = 8) {
     validate_args(
         match.call(),
@@ -215,6 +223,7 @@ pow = function(p_values,
             val_arg(staircase_steps, c('null', 'num')),
             val_arg(alpha_precision, c('num'), 1),
             val_arg(round_to, c('num'), 1),
+            val_arg(iter_limit, c('num'), 1),
             val_arg(seed, c('num'), 1)
         )
     )
@@ -646,9 +655,14 @@ pow = function(p_values,
         }
         for (f_look in fix_looks) {
             pvals_df_fix = pvals_df[.look == f_look]
-            cat('\033[0;32m### FIXED DESIGN;\033[0m N(total) =',
+            cat(
+                '\033[0;32m### FIXED DESIGN;\033[0m N(total) =',
                 tot_samples[f_look],
-                fill = TRUE)
+                '(alpha =',
+                ro(alpha_global, round_to),
+                'for all)',
+                fill = TRUE
+            )
             for (p_nam in p_names_extr) {
                 cat(
                     '(\033[0;40m',
@@ -703,18 +717,18 @@ pow = function(p_values,
                     style = 3
                 )
             }
-            p_names_temp = p_names
-            for (p_nam in p_names_temp) {
+            for (p_nam in p_names) {
                 pvals_df[, c(paste0(p_nam, '_h0_sign')) := NA] # create sign column for given p
                 if (!is.null(fut_locals)) {
                     # if futility bounds are given
                     pvals_df[, c(paste0(p_nam, '_h0_fut')) := TRUE] # create fut column for given p
                 }
             }
+            p_names_temp = p_names
             safe_count = 0
             type1 = 1
             while (length(stair_steps) > 0) {
-                ### (just for testing)
+                ### (stepwise info just for testing)
                 # cat('\ntype1',
                 #     type1,
                 #     'a_adj:',
@@ -723,13 +737,9 @@ pow = function(p_values,
                 #     a_step,
                 #     fill = T)
 
-                # calculate H0 significances (T/F) & stops (T/F) based on adjusted alphas
-                if (is.na(stair_steps[1])) {
-                    # as a last step, add non-stopping columns, if any
-                    p_names_temp = p_names_extr
-                }
+                # in case of suspiciously many iterations, offer to stop
                 safe_count = safe_count + 1
-                if (safe_count %% 100 == 0) {
+                if (safe_count %% iter_limit == 0) {
                     cat(
                         paste0(
                             '\nThere have been ',
@@ -748,11 +758,23 @@ pow = function(p_values,
                         break
                     }
                 }
+
+                if (is.na(stair_steps[1])) {
+                    # as a last step, add non-stopping columns, if any
+                    p_names_temp = p_names_extr
+                } else {
+                    # adjust local alphas (for stopping alphas only)
+                    for (p_nam in p_names) {
+                        locls_temp[[p_nam]] = adjust(
+                            adj = a_adj,
+                            prev = locls_temp[[p_nam]],
+                            orig = a_locals[[p_nam]]
+                        )
+                    }
+                }
+
+                # calculate H0 significances (T/F) & stops (T/F) based on adjusted alphas
                 for (p_nam in p_names_temp) {
-                    # adjust alpha
-                    locls_temp[[p_nam]] = adjust(adj = a_adj,
-                                                 prev = locls_temp[[p_nam]],
-                                                 orig = a_locals[[p_nam]])
                     for (lk in 1:mlook) {
                         # decide significance at given look for given p
                         pvals_df[.(lk), c(paste0(p_nam, '_h0_sign')) :=
@@ -766,9 +788,8 @@ pow = function(p_values,
                     }
                 }
 
-                # now check the global type 1 error
 
-                # first check at which look we stop
+                # check at which look we stop
                 # if multiple p values are given as stoppers
                 # use multi_logic to check where to stop
                 # otherwise it simply stops where the given p is sign
@@ -798,12 +819,13 @@ pow = function(p_values,
                 # now get all outcomes at stopping point
                 pvals_stp = pvals_df[.look == mlook |
                                          h0_stoP == TRUE,  .SD, .SDcols = p_h0_sign_names_plus]
+                # the global type 1 error
                 type1 = mean(unlist(pvals_stp[, min_look := min(.look), by = .iter][.look == min_look, .SD, .SDcols = p_h0_sign_names]))
 
                 if (is.na(stair_steps[1])) {
                     # NA indicates no stairs; nothing left to be done
                     break
-                } else{
+                } else {
                     # break if global alpha is correct
                     # otherwise continue the staircase
                     if (round(type1, alpha_precision) == round(alpha_global, alpha_precision)) {
@@ -900,11 +922,11 @@ pow = function(p_values,
                 iters_out0 = ps_sub0[.look == lk &
                                          h0_stoP == TRUE]
                 # remove stopped iterations
-                ps_sub0 = ps_sub0[!.iter %in% iters_out0$.iter,]
+                ps_sub0 = ps_sub0[!.iter %in% iters_out0$.iter, ]
                 # (same for H1)
                 iters_out1 = ps_sub1[.look == lk &
-                                         h1_stoP == TRUE, ]
-                ps_sub1 = ps_sub1[!.iter %in% iters_out1$.iter, ]
+                                         h1_stoP == TRUE,]
+                ps_sub1 = ps_sub1[!.iter %in% iters_out1$.iter,]
                 outs = c()
                 # get info per p value column
                 for (p_nam in p_names_extr) {
@@ -992,8 +1014,10 @@ pow = function(p_values,
             for (p_nam in p_names_extr) {
                 if (p_nam %in% p_names) {
                     nonstp = ''
+                    l_a_descr = '\nAdjusted local alphas: '
                 } else {
                     nonstp = '\033[0;40;3mnon-stopper: \033[0;40;0m'
+                    l_a_descr = '\nLocal alphas (fixed): '
                 }
                 toprint = paste0(
                     '(',
@@ -1004,7 +1028,7 @@ pow = function(p_values,
                     ro(df_stops[[paste0('ratio_sign_', p_nam, '_h0')]][df_nrow], round_to),
                     '; Power: ',
                     ro(df_stops[[paste0('ratio_sign_', p_nam, '_h1')]][df_nrow], round_to),
-                    '\nAdjusted local alphas: ',
+                    l_a_descr,
                     paste(paste0(
                         '(',
                         looks,

@@ -22,6 +22,7 @@ pow(
   descr_cols = FALSE,
   descr_func = summary,
   round_to = 5,
+  iter_limit = 100,
   seed = 8
 )
 }
@@ -150,9 +151,9 @@ specified) printed per each part. By default (\code{NULL}), it identifies
 factors, if any, given to the \code{sim} function (via \code{fun_obs}) that
 created the given \code{p_values} data.}
 
-\item{alpha_loc_nonstop}{Optional extra and "non-stopper" alphas via which to
-evaluate p values per look, but without stopping the data collection
-regardless of statistical significance.}
+\item{alpha_loc_nonstop}{Optional "non-stopper" alphas via which to evaluate p
+values per look, but without stopping the data collection regardless of
+statistical significance.}
 
 \item{design_fix}{Whether to calculate fixed design (as comparable
 alternative(s) to given "looks" of the sequential design). If \code{NULL}
@@ -178,6 +179,14 @@ applicable). If set to \code{TRUE}, it identifies (similar as
 
 \item{round_to}{Number of fractional digits (default: \code{5}) to round to,
 for the displayed power and type 1 error rate information.}
+
+\item{iter_limit}{In some specific cases of unideal/wrong input, the staircase
+may get stuck at a given step's loop process. The \code{iter_limit}
+parameter specifies the number (by default \code{100}) at which the script
+pauses the loop and offers to the user that the procedure be ceased. If the
+user chooses to continue, the offer will always be posed again after the
+same number of iterations (e.g., by default, after \code{100}, at
+\code{200}, then \code{300}, etc.).}
 
 \item{seed}{Number for \code{\link{set.seed}}; \code{8} by default. Set to
 \code{NULL} for random seed.}

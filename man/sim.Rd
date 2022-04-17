@@ -8,10 +8,10 @@ sim(
   fun_obs,
   n_obs,
   fun_test,
-  n_iter = 15000,
-  pair = FALSE,
+  n_iter = 75000,
   adjust_n = 1,
   seed = 8,
+  pair = NULL,
   ignore_suffix = FALSE
 )
 }
@@ -57,38 +57,55 @@ into a single column with a trimmed "\code{_h}" suffix (e.g.,
 calculated toward the total expected sample in either case, which is of
 course incorrect. There are internal checks to prevent this, but the
 intended total sample size can also be double-checked in the returned
-\code{\link{data.frame}}'s \code{.n_total} column) To be recognized by the
-\code{\link[POSSA:pow]{POSSA::pow}} function, the \code{fun_test} must
-return a named vector including a pair (or pairs) of p values for H0 and H1
-outcomes, where each p value's name must be specified with a "\code{p_}"
-prefix and a "\code{_h0}" suffix for H0 outcome or a "\code{_h1}" suffix for
-H1 outcome (e.g., \code{p_h0}, \code{p_h1}; \code{p_ttest_h0},
-\code{p_ttest_h1}). The simulated outcomes (per iteration) for each of these
-p values will be separately stored in a dedicated column of the
-\code{\link{data.frame}} returned by the \code{sim} function. Optionally,
-the \code{fun_test} can return other miscellaneous outcomes too, such as
-effect sizes or confidence interval limits; these will then be stored in
-dedicated columns in the resulting \code{\link{data.frame}}.}
+\code{\link{data.frame}}'s \code{.n_total} column.) Within-subject
+observations, i.e., multiple observations per group, should be specified
+with "\code{GRP}" prefix for a single group (e.g., simply "\code{GRP}", or
+"\code{GRP_mytest}") and, for multiple groups, "\code{grp_}" prefix with a
+following group name (e.g., "\code{grp_1}" or "\code{grp_alpha}"); the
+numbers of multiple observations in each group can then be specified in
+\code{fun_obs} via their group name (since the respective numbers of
+observations should always be the same anyway); see Examples. To be
+recognized by the \code{\link[POSSA:pow]{POSSA::pow}} function, the
+\code{fun_test} must return a named vector including a pair (or pairs) of p
+values for H0 and H1 outcomes, where each p value's name must be specified
+with a "\code{p_}" prefix and a "\code{_h0}" suffix for H0 outcome or a
+"\code{_h1}" suffix for H1 outcome (e.g., \code{p_h0}, \code{p_h1};
+\code{p_ttest_h0}, \code{p_ttest_h1}). The simulated outcomes (per
+iteration) for each of these p values will be separately stored in a
+dedicated column of the \code{\link{data.frame}} returned by the \code{sim}
+function. Optionally, the \code{fun_test} can return other miscellaneous
+outcomes too, such as effect sizes or confidence interval limits; these will
+then be stored in dedicated columns in the resulting
+\code{\link{data.frame}}.}
 
 \item{n_iter}{Number of iterations (default: 15000).}
 
-\item{pair}{Logical. Set to \code{TRUE} if the observations include paired
-samples. Note that this works by using, within each look, the same vector
-indexes to remove elements from the given observations. In general, this
-should not substantially affect the outcomes of independent samples
-(assuming that their order is truly independent), but this depends on how
-the random samples are generated in the \code{fun_obs} function. To be safe
-and avoid any potential bias, it is best to leave it as \code{FALSE}
-(default) when no paired samples are included.}
-
-\item{adjust_n}{Adjust total number of observations via multiplication. Useful
-when multiple p values are derived from the same sample, which would then
-lead to incorrect (too many, multiplied) totals; for example, in case of
-four observations obtained from the same sample, the value \code{1/4} could
-be given. (The default value is \code{1}.)}
+\item{adjust_n}{Adjust total number of observations via simple multiplication.
+Might be useful in some specific cases, e.g. if for some reason multiple p
+values are derived from the same sample without specifying grouping
+(\code{GRP} or \code{grp_} in \code{fun_test}), which would then lead to
+incorrect (too many, multiplied) totals; for example, in case of four
+observations obtained from the same sample, the value \code{1/4} could be
+given. (The default value is \code{1}.)}
 
 \item{seed}{Number for \code{\link{set.seed}}; \code{8} by default. Set to
 \code{NULL} for random seed.}
+
+\item{pair}{Logical or \code{NULL}. By default \code{NULL}, the algorithm
+assumes paired samples included among the observations in case of any
+grouping via the \code{fun_test} parameters ("\code{GRP}"/"\code{grp}"), and
+no paired samples otherwise. In case of paired samples included, within each
+look, the same vector indexes to remove elements from the given
+observations. In general, this should not substantially affect the outcomes
+of independent samples (assuming that their order is truly independent), but
+this depends on how the random samples are generated in the \code{fun_obs}
+function. To be safe and avoid any potential bias, it is best to avoid this
+paired sampling mechanism when no paired samples are included. To override
+the default, set to \code{TRUE} for paired samples scenario (paired
+sampling), or to \code{FALSE} for no paired samples scenario (random
+subsampling of each sample). (Might be useful for testing or some very
+specific procedures, e.g. where grouping is not indicated despite paired
+samples.)}
 
 \item{ignore_suffix}{Set to \code{NULL} to give warnings instead of errors for
 internally detected consistency problems with the \code{_h0}/\code{_h1}
