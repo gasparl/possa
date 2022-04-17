@@ -423,6 +423,7 @@ pow = function(p_values,
     }
     p_names_extr = c(p_names, p_extr)
     fa_locals = list()
+    fa_p_names = c()
     # extract (if given) predetermined futility bounds
     if (!is.null(fut_locals)) {
         if (is.atomic(fut_locals)) {
@@ -443,6 +444,7 @@ pow = function(p_values,
                     fa_locals[[p_nam]] = fut_locals
                 }
             }
+            fa_p_names = p_names
         } else {
             # if list, assign per name
             for (a_vec in fut_locals) {
@@ -467,6 +469,7 @@ pow = function(p_values,
                         '1".'
                     )
                 }
+                fa_p_names = c(fa_p_names, pname)
             }
             for (p_nam in p_names) {
                 if (!p_nam %in% names(fut_locals)) {
@@ -474,12 +477,6 @@ pow = function(p_values,
                 }
             }
             fa_locals = fut_locals
-        }
-    }
-    # if not given, add 1 for all local futility bounds
-    if (!length(fa_locals) > 0) {
-        for (p_nam in p_names) {
-            fa_locals[[p_nam]] = rep(1, (mlook - 1))
         }
     }
     prog_bar = FALSE
@@ -661,22 +658,23 @@ pow = function(p_values,
         for (f_look in fix_looks) {
             pvals_df_fix = pvals_df[.look == f_look]
             cat(
-                '\033[0;32m### FIXED DESIGN;\033[0m N(total) =',
+                '\033[0;32m# FIXED DESIGN;\033[0m N(total) = \033[0;4m',
                 tot_samples[f_look],
-                '(alpha =',
+                '\033[0m (alpha = \033[0;1m',
                 ro(alpha_global, round_to),
-                'for all)',
+                '\033[0m for all)',
+                sep = '',
                 fill = TRUE
             )
             for (p_nam in p_names_extr) {
                 cat(
                     '(\033[0;40m',
                     p_nam,
-                    '\033[0m) Type I error: ',
+                    '\033[0m) Type I error: \033[0;31m',
                     ro(mean(
                         pvals_df_fix[[paste0(p_nam, '_h0')]] < alpha_global
                     ), round_to),
-                    '; Power: ',
+                    '\033[0m; Power: \033[0;32m',
                     ro(mean(
                         pvals_df_fix[[paste0(p_nam, '_h1')]] < alpha_global
                     ), round_to),
@@ -702,18 +700,8 @@ pow = function(p_values,
             p_h0_sign_names_plus = c(p_h0_sign_names, '.look', '.iter')
             p_h1_sign_names = paste0(p_names, '_h1_sign')
             p_h1_sign_names_plus = c(p_h1_sign_names, '.look', '.iter')
-            p_h0_fut_names = paste0(p_names, '_h0_fut')
-            p_h1_fut_names = paste0(p_names, '_h1_fut')
-            # if p included for alpha but not for futility, print warning
-            for (p_nam in p_names) {
-                if (!p_nam %in% names(fa_locals)) {
-                    message(
-                        'Caution!: "',
-                        p_nam,
-                        '" included as alpha but not as futility bound.'
-                    )
-                }
-            }
+            p_h0_fut_names = paste0(fa_p_names, '_h0_fut')
+            p_h1_fut_names = paste0(fa_p_names, '_h1_fut')
             if (prog_bar == FALSE) {
                 p_bar = utils::txtProgressBar(
                     min = 0,
@@ -724,10 +712,10 @@ pow = function(p_values,
             }
             for (p_nam in p_names) {
                 pvals_df[, c(paste0(p_nam, '_h0_sign')) := NA] # create sign column for given p
-                if (!is.null(fut_locals)) {
-                    # if futility bounds are given
-                    pvals_df[, c(paste0(p_nam, '_h0_fut')) := TRUE] # create fut column for given p
-                }
+            }
+            for (p_nam in fa_p_names) {
+                # if futility bounds are given
+                pvals_df[, c(paste0(p_nam, '_h0_fut')) := TRUE] # create fut column for given p
             }
             p_names_temp = p_names
             safe_count = 0
@@ -784,15 +772,17 @@ pow = function(p_values,
                         # decide significance at given look for given p
                         pvals_df[.(lk), c(paste0(p_nam, '_h0_sign')) :=
                                      .SD < locls_temp[[p_nam]][lk], .SDcol = paste0(p_nam, '_h0')]
-                        if (!is.null(fut_locals) &
-                            lk != mlook) {
-                            # (futility never matters at max look)
+                    }
+                }
+                if (!is.null(fut_locals)) {
+                    for (p_nam in fa_p_names) {
+                        # (mlook - 1 because futility never matters at max look)
+                        for (lk in 1:(mlook - 1)) {
                             pvals_df[.(lk), c(paste0(p_nam, '_h0_fut')) :=
                                          .SD > fa_locals[[p_nam]][lk], .SDcol = paste0(p_nam, '_h0')]
                         }
                     }
                 }
-
 
                 # check at which look we stop
                 # if multiple p values are given as stoppers
@@ -870,20 +860,23 @@ pow = function(p_values,
             # (analogue of the H0 significances above)
             for (p_nam in p_names_extr) {
                 pvals_df[, c(paste0(p_nam, '_h1_sign')) := NA]
-                if (!is.null(fut_locals)) {
-                    pvals_df[, c(paste0(p_nam, '_h1_fut')) := TRUE]
-                }
                 for (lk in 1:mlook) {
                     pvals_df[.(lk), c(paste0(p_nam, '_h1_sign')) :=
                                  .SD < locls_temp[[p_nam]][lk], .SDcol = paste0(p_nam, '_h1')]
-                    if (!is.null(fut_locals) &
-                        lk != mlook) {
-                        # (futility never matters at max look)
+                }
+            }
+            if (!is.null(fut_locals)) {
+                for (p_nam in fa_p_names) {
+                    pvals_df[, c(paste0(p_nam, '_h1_fut')) := TRUE]
+                    # (mlook - 1 because futility never matters at max look)
+                    for (lk in 1:(mlook - 1)) {
                         pvals_df[.(lk), c(paste0(p_nam, '_h1_fut')) :=
                                      .SD > fa_locals[[p_nam]][lk], .SDcol = paste0(p_nam, '_h1')]
                     }
                 }
             }
+
+
             # now check the global power
             # if multiple p columns, check at which look we stop
             if (multi_p) {
@@ -927,11 +920,11 @@ pow = function(p_values,
                 iters_out0 = ps_sub0[.look == lk &
                                          h0_stoP == TRUE]
                 # remove stopped iterations
-                ps_sub0 = ps_sub0[!.iter %in% iters_out0$.iter,]
+                ps_sub0 = ps_sub0[!.iter %in% iters_out0$.iter, ]
                 # (same for H1)
                 iters_out1 = ps_sub1[.look == lk &
-                                         h1_stoP == TRUE, ]
-                ps_sub1 = ps_sub1[!.iter %in% iters_out1$.iter, ]
+                                         h1_stoP == TRUE,]
+                ps_sub1 = ps_sub1[!.iter %in% iters_out1$.iter,]
                 outs = c()
                 # get info per p value column
                 for (p_nam in p_names_extr) {
@@ -1006,11 +999,11 @@ pow = function(p_values,
 
             # print results for sequential design
             cat(
-                '\033[0;36m### SEQUENTIAL DESIGN;\033[0m N(average-total) = ',
-                ro(df_stops$n_avg_prop_0[df_nrow], 2, leading_zero = TRUE),
-                ' (if H0 true) or ',
-                ro(df_stops$n_avg_prop_1[df_nrow], 2, leading_zero = TRUE),
-                ' (if H1 true)',
+                '\033[0;36m# SEQUENTIAL DESIGN;\033[0m N(average-total) = \033[0;4m',
+                ro(df_stops$n_avg_prop_0[df_nrow], 1, leading_zero = TRUE),
+                '\033[0m (if H0 true) or \033[0;4m',
+                ro(df_stops$n_avg_prop_1[df_nrow], 1, leading_zero = TRUE),
+                '\033[0m (if H1 true)',
                 sep = '',
                 fill = TRUE
             )
@@ -1019,33 +1012,38 @@ pow = function(p_values,
             for (p_nam in p_names_extr) {
                 if (p_nam %in% p_names) {
                     nonstp = ''
-                    l_a_descr = '\nAdjusted local alphas: '
+                    if (all(is.na(staircase_steps))) {
+                        l_a_descr = '\nLocal alphas (fixed): '
+                    } else {
+                        l_a_descr = '\nAdjusted local alphas: '
+                    }
                 } else {
                     nonstp = '\033[0;40;3mnon-stopper: \033[0;40;0m'
                     l_a_descr = '\nLocal alphas (fixed): '
                 }
                 p_a_locals = ro(a_locals_fin[[p_nam]], round_to)
-                p_a_locals = ifelse(p_a_locals == '0',
-                                    'none',
-                                    paste0('\033[0;31m', p_a_locals, '\033[0m'))
+                p_a_locals = ifelse(
+                    p_a_locals == '0',
+                    'none',
+                    paste0('\033[0;1m', p_a_locals, '\033[0m')
+                )
                 toprint = paste0(
                     '(',
                     nonstp,
                     '\033[0;40m',
                     p_nam,
-                    '\033[0m) Type I error: ',
+                    '\033[0m) Type I error: \033[0;31m',
                     ro(df_stops[[paste0('ratio_sign_', p_nam, '_h0')]][df_nrow], round_to),
-                    '; Power: ',
+                    '\033[0m; Power: \033[0;32m',
                     ro(df_stops[[paste0('ratio_sign_', p_nam, '_h1')]][df_nrow], round_to),
+                    '\033[0m',
                     l_a_descr,
                     paste(
-                        paste0(
-                            '(',
-                            looks,
-                            ') ',
-                            p_a_locals,
-                            collapse = '; '
-                        )
+                        paste0('(',
+                               looks,
+                               ') ',
+                               p_a_locals,
+                               collapse = '; ')
                     )
                 )
                 cat(toprint, fill = TRUE)
@@ -1054,18 +1052,18 @@ pow = function(p_values,
                         cat('Futility bounds: none', fill = TRUE)
                     } else {
                         p_fa_locals = ro(fa_locals[[p_nam]], round_to)
-                        p_fa_locals = ifelse(p_fa_locals == '0',
-                                            'none',
-                                            paste0('\033[0;31m', p_fa_locals, '\033[0m'))
+                        p_fa_locals = ifelse(
+                            p_fa_locals == '0',
+                            'none',
+                            paste0('\033[0;1m', p_fa_locals, '\033[0m')
+                        )
                         cat(paste(
                             'Futility bounds:',
                             paste(
-                                paste0(
-                                    '(',
-                                    looks[-mlook],
-                                    ') ',
-                                    p_fa_locals
-                                ),
+                                paste0('(',
+                                       looks[-mlook],
+                                       ') ',
+                                       p_fa_locals),
                                 collapse = '; '
                             )
                         ),
