@@ -241,7 +241,12 @@ pow = function(p_values,
             val_arg(descr_func, c('function'), 1),
             val_arg(multi_logic_a, c('char', 'function'), 1, c('all', 'any')),
             val_arg(multi_logic_fut, c('char', 'function'), 1, c('all', 'any')),
-            val_arg(multi_logic_global, c('char', 'function'), 1, c('all', 'any')),
+            val_arg(
+                multi_logic_global,
+                c('char', 'function'),
+                1,
+                c('all', 'any')
+            ),
             val_arg(staircase_steps, c('null', 'num')),
             val_arg(alpha_precision, c('num'), 1),
             val_arg(round_to, c('num'), 1),
@@ -1000,11 +1005,11 @@ pow = function(p_values,
                 iters_out0 = ps_sub0[.look == lk &
                                          h0_stoP == TRUE]
                 # remove stopped iterations
-                ps_sub0 = ps_sub0[!.iter %in% iters_out0$.iter,]
+                ps_sub0 = ps_sub0[!.iter %in% iters_out0$.iter, ]
                 # (same for H1)
                 iters_out1 = ps_sub1[.look == lk &
-                                         h1_stoP == TRUE, ]
-                ps_sub1 = ps_sub1[!.iter %in% iters_out1$.iter, ]
+                                         h1_stoP == TRUE,]
+                ps_sub1 = ps_sub1[!.iter %in% iters_out1$.iter,]
                 outs = c()
                 # get info per p value column
                 for (p_nam in p_names_extr) {

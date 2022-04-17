@@ -13,8 +13,9 @@ pow(
   staircase_steps = NULL,
   alpha_precision = 5,
   fut_locals = NULL,
-  multi_logic = "all",
+  multi_logic_a = "all",
   multi_logic_fut = "all",
+  multi_logic_global = "any",
   group_by = NULL,
   alpha_loc_nonstop = NULL,
   design_fix = NULL,
@@ -59,7 +60,8 @@ design" (no interim stopping alphas) with final alpha as specified as
 for cases where only futility bounds are to be set for stopping.)}
 
 \item{alpha_global}{Global alpha (expected type 1 error rate in total);
-\code{0.05} by default.}
+\code{0.05} by default. See also \code{multi_logic_global} for when multiple
+p values are being evaluated.}
 
 \item{adjust}{The function via which the initial vector local alphas is
 modified with each step of the staircase procedure. Three arguments are
@@ -124,24 +126,46 @@ Otherwise, it follows the same logic as \code{alpha_locals} and has the same
 input possibilities (number, numeric vector, or named list of numeric
 vectors).}
 
-\item{multi_logic}{When multiple p values are evaluated for stopping rules,
-\code{multi_logic} specifies the function used for how to evaluate the
-multiple outcomes as a single \code{TRUE} or \code{FALSE} value that decides
-whether or not to stop at a given look. The default, \code{'all'}, specifies
-that all of the p values must pass the boundary for stopping. The other
-acceptable character input is \code{'any'}, which specifies that the
-collection stops when any of the p values pass the boundary for stopping.
-Instead of these strings, the actual \code{\link{all}} and \code{\link{any}}
-would lead to identical outcomes, respectively, but the processing would be
-far slower (since the string \code{'all'} or \code{'any'} inputs specify a
-dedicated faster internal solution). For custom combinations, any custom
-function can be given, which will take, as arguments, the p value columns in
-their given order (either in the \code{p_values} data frame, or as specified
-in \code{alpha_locals}), and should return a single \code{TRUE} or
-\code{FALSE} value.}
+\item{multi_logic_a}{When multiple p values are evaluated for local alpha
+stopping rules, \code{multi_logic_a} specifies the function used for how to
+evaluate the multiple significance outcomes (p values being below or above
+the given local alphas) as a single \code{TRUE} or \code{FALSE} value that
+decides whether or not to stop at a given look. The default, \code{'all'},
+specifies that all of the p values must be below the local boundary for
+stopping. The other acceptable character input is \code{'any'}, which
+specifies that the collection stops when any of the p values pass the
+boundary for stopping. Instead of these strings, the actual
+\code{\link{all}} and \code{\link{any}} would lead to identical outcomes,
+respectively, but the processing would be far slower (since the string
+\code{'all'} or \code{'any'} inputs specify a dedicated faster internal
+solution). For custom combinations, any custom function can be given, which
+will take, as arguments, the p value columns in their given order (either in
+the \code{p_values} data frame, or as specified in \code{alpha_locals}), and
+should return a single \code{TRUE} or \code{FALSE} value.}
 
-\item{multi_logic_fut}{Same as \code{multi_logic}, but for futility bounds
-(for the columns specified in \code{fut_locals}).}
+\item{multi_logic_fut}{Same as \code{multi_logic_a} (again with \code{'all'}
+as default), but for futility bounds (for the columns specified in
+\code{fut_locals}).}
+
+\item{multi_logic_global}{Similar as \code{multi_logic_a}, but for the
+calculation of the global type 1 error rate (again: in case of multiple p
+values being evaluated; otherwise this parameter is not relevant), and with
+\code{'any'} by default. This default means that if any of the p values
+under evaluation (specified via \code{alpha_locals} or detected
+automatically) is significant (p value below the given local alpha at the
+stopping of the simulated "experiment" iteration) in case of the H0
+scenario, this is calculated as a type 1 error. If \code{'all'} were
+specified, only cases with all p evaluated values being significant are
+counted as type 1 errors. In either case, the ratio of outcomes with such
+type 1 errors (out of all iterations) gives the global type 1 error rate,
+which is intended to (approximately) match (via the adjustment procedure)
+the value specified as \code{alpha_global}. This global type 1 error is also
+what is printed to the console in the end as the "combined" global error
+rate. Furthermore, the logic given here is also used for the calculation of
+the "combined" global power printed to the console. In this case, the
+\code{'any'} logic, for example, would mean that, if any of the p values are
+significant at the end of the experiment, this is a positive finding. The
+global power is then the ratio of iterations with such positive findings.}
 
 \item{group_by}{When given as a character element or vector, specifies the
 factors by which to group the analysis: the \code{p_values} data will be
@@ -215,8 +239,6 @@ Calculates power and local alphas based on simulated p values
  (e.g. by addition or multiplication).
 }
 \note{
-
-
 For the replicability, in case the \code{adjust} function uses any
 randomization, \code{\link{set.seed}} is executed in the beginning of this
 function, each time it is called; see the \code{seed} parameter.
