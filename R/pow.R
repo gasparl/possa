@@ -46,7 +46,8 @@
 #'  \code{adjust} argument is also left as default \code{TRUE}. (This is useful
 #'  for cases where only futility bounds are to be set for stopping.)
 #'@param alpha_global Global alpha (expected type 1 error rate in total);
-#'  \code{0.05} by default.
+#'  \code{0.05} by default. See also \code{multi_logic_global} for when multiple
+#'  p values are being evaluated.
 #'@param adjust The function via which the initial vector local alphas is
 #'  modified with each step of the staircase procedure. Three arguments are
 #'  passed to it: \code{adj}, \code{orig}, and \code{prev}. The \code{adj}
@@ -105,23 +106,44 @@
 #'  Otherwise, it follows the same logic as \code{alpha_locals} and has the same
 #'  input possibilities (number, numeric vector, or named list of numeric
 #'  vectors).
-#'@param multi_logic When multiple p values are evaluated for stopping rules,
-#'  \code{multi_logic} specifies the function used for how to evaluate the
-#'  multiple outcomes as a single \code{TRUE} or \code{FALSE} value that decides
-#'  whether or not to stop at a given look. The default, \code{'all'}, specifies
-#'  that all of the p values must pass the boundary for stopping. The other
-#'  acceptable character input is \code{'any'}, which specifies that the
-#'  collection stops when any of the p values pass the boundary for stopping.
-#'  Instead of these strings, the actual \code{\link{all}} and \code{\link{any}}
-#'  would lead to identical outcomes, respectively, but the processing would be
-#'  far slower (since the string \code{'all'} or \code{'any'} inputs specify a
-#'  dedicated faster internal solution). For custom combinations, any custom
-#'  function can be given, which will take, as arguments, the p value columns in
-#'  their given order (either in the \code{p_values} data frame, or as specified
-#'  in \code{alpha_locals}), and should return a single \code{TRUE} or
-#'  \code{FALSE} value.
-#'@param multi_logic_fut Same as \code{multi_logic}, but for futility bounds
-#'  (for the columns specified in \code{fut_locals}).
+#'@param multi_logic_a When multiple p values are evaluated for local alpha
+#'  stopping rules, \code{multi_logic_a} specifies the function used for how to
+#'  evaluate the multiple significance outcomes (p values being below or above
+#'  the given local alphas) as a single \code{TRUE} or \code{FALSE} value that
+#'  decides whether or not to stop at a given look. The default, \code{'all'},
+#'  specifies that all of the p values must be below the local boundary for
+#'  stopping. The other acceptable character input is \code{'any'}, which
+#'  specifies that the collection stops when any of the p values pass the
+#'  boundary for stopping. Instead of these strings, the actual
+#'  \code{\link{all}} and \code{\link{any}} would lead to identical outcomes,
+#'  respectively, but the processing would be far slower (since the string
+#'  \code{'all'} or \code{'any'} inputs specify a dedicated faster internal
+#'  solution). For custom combinations, any custom function can be given, which
+#'  will take, as arguments, the p value columns in their given order (either in
+#'  the \code{p_values} data frame, or as specified in \code{alpha_locals}), and
+#'  should return a single \code{TRUE} or \code{FALSE} value.
+#'@param multi_logic_fut Same as \code{multi_logic_a} (again with \code{'all'}
+#'  as default), but for futility bounds (for the columns specified in
+#'  \code{fut_locals}).
+#'@param multi_logic_global Similar as \code{multi_logic_a}, but for the
+#'  calculation of the global type 1 error rate (again: in case of multiple p
+#'  values being evaluated; otherwise this parameter is not relevant), and with
+#'  \code{'any'} by default. This default means that if any of the p values
+#'  under evaluation (specified via \code{alpha_locals} or detected
+#'  automatically) is significant (p value below the given local alpha at the
+#'  stopping of the simulated "experiment" iteration) in case of the H0
+#'  scenario, this is calculated as a type 1 error. If \code{'all'} were
+#'  specified, only cases with all p evaluated values being significant are
+#'  counted as type 1 errors. In either case, the ratio of outcomes with such
+#'  type 1 errors (out of all iterations) gives the global type 1 error rate,
+#'  which is intended to (approximately) match (via the adjustment procedure)
+#'  the value specified as \code{alpha_global}. This global type 1 error is also
+#'  what is printed to the console in the end as the "combined" global error
+#'  rate. Furthermore, the logic given here is also used for the calculation of
+#'  the "combined" global power printed to the console. In this case, the
+#'  \code{'any'} logic, for example, would mean that, if any of the p values are
+#'  significant at the end of the experiment, this is a positive finding. The
+#'  global power is then the ratio of iterations with such positive findings.
 #'@param group_by When given as a character element or vector, specifies the
 #'  factors by which to group the analysis: the \code{p_values} data will be
 #'  divided into parts by these factors and these parts will be analyzed
@@ -168,8 +190,6 @@
 #'
 #'@note
 #'
-#'@note
-#'
 #'For the replicability, in case the \code{adjust} function uses any
 #'randomization, \code{\link{set.seed}} is executed in the beginning of this
 #'function, each time it is called; see the \code{seed} parameter.
@@ -195,8 +215,9 @@ pow = function(p_values,
                staircase_steps = NULL,
                alpha_precision = 5,
                fut_locals = NULL,
-               multi_logic = 'all',
+               multi_logic_a = 'all',
                multi_logic_fut = 'all',
+               multi_logic_global = 'any',
                group_by = NULL,
                alpha_loc_nonstop = NULL,
                design_fix = NULL,
@@ -218,8 +239,9 @@ pow = function(p_values,
             val_arg(design_seq, c('bool'), 1),
             val_arg(descr_cols, c('bool', 'char')),
             val_arg(descr_func, c('function'), 1),
-            val_arg(multi_logic, c('char', 'function'), 1, c('all', 'any')),
+            val_arg(multi_logic_a, c('char', 'function'), 1, c('all', 'any')),
             val_arg(multi_logic_fut, c('char', 'function'), 1, c('all', 'any')),
+            val_arg(multi_logic_global, c('char', 'function'), 1, c('all', 'any')),
             val_arg(staircase_steps, c('null', 'num')),
             val_arg(alpha_precision, c('num'), 1),
             val_arg(round_to, c('num'), 1),
@@ -232,6 +254,8 @@ pow = function(p_values,
     .n_total = NULL
     h0_stoP = NULL
     h1_stoP = NULL
+    h0_stoP_sign = NULL
+    h1_stoP_sign = NULL
     h0_stoP_fa = NULL
     h1_stoP_fa = NULL
     min_look = NULL
@@ -248,23 +272,23 @@ pow = function(p_values,
     }
     m_l_reduce = FALSE
     m_l_fut_reduce = FALSE
-    if (is.function(multi_logic)) {
-        if (isTRUE(all.equal(multi_logic, any))) {
+    if (is.function(multi_logic_a)) {
+        if (isTRUE(all.equal(multi_logic_a, any))) {
             message(
                 'Warning: Operation is hugely faster with ',
-                '"any" string argument for multi_logic.'
+                '"any" string argument for multi_logic_a.'
             )
-        } else if (isTRUE(all.equal(multi_logic, all))) {
+        } else if (isTRUE(all.equal(multi_logic_a, all))) {
             message(
                 'Warning: Operation is hugely faster with ',
-                '"all" string argument for multi_logic.'
+                '"all" string argument for multi_logic_a.'
             )
         }
     } else {
-        if (multi_logic == 'all') {
-            multi_logic = `&`
-        } else if (multi_logic == 'any') {
-            multi_logic = `|`
+        if (multi_logic_a == 'all') {
+            multi_logic_a = `&`
+        } else if (multi_logic_a == 'any') {
+            multi_logic_a = `|`
         }
         m_l_reduce = TRUE
     }
@@ -287,6 +311,32 @@ pow = function(p_values,
             multi_logic_fut = `|`
         }
         m_l_fut_reduce = TRUE
+    }
+    m_l_glob_reduce = FALSE
+    if (is.function(multi_logic_global)) {
+        if (isTRUE(all.equal(multi_logic_global, any))) {
+            message(
+                'Warning: Operation is hugely faster with ',
+                '"any" string argument for multi_logic_global'
+            )
+        } else if (isTRUE(all.equal(multi_logic_global, all))) {
+            message(
+                'Warning: Operation is hugely faster with ',
+                '"all" string argument for multi_logic_global'
+            )
+        }
+    } else {
+        if (multi_logic_global == 'all') {
+            multi_logic_global = `&`
+        } else if (multi_logic_global == 'any') {
+            multi_logic_global = `|`
+        }
+        m_l_glob_reduce = TRUE
+    }
+    if (isTRUE(all.equal(multi_logic_global, multi_logic_a))) {
+        multi_logic_same = TRUE
+    } else {
+        multi_logic_same = FALSE
     }
     setDT(p_values)
     setkey(p_values, .look)
@@ -670,7 +720,7 @@ pow = function(p_values,
                 cat(
                     '(\033[0;40m',
                     p_nam,
-                    '\033[0m) Type I error: \033[0;31m',
+                    '\033[0m) Type I error: \033[1;31m',
                     ro(mean(
                         pvals_df_fix[[paste0(p_nam, '_h0')]] < alpha_global
                     ), round_to),
@@ -697,9 +747,7 @@ pow = function(p_values,
             a_step = stair_steps[1] # initial a_adj-changing step
             p_h0_sign_names = paste0(p_names, '_h0_sign')
             multi_p = length(p_h0_sign_names) > 1
-            p_h0_sign_names_plus = c(p_h0_sign_names, '.look', '.iter')
             p_h1_sign_names = paste0(p_names, '_h1_sign')
-            p_h1_sign_names_plus = c(p_h1_sign_names, '.look', '.iter')
             p_h0_fut_names = paste0(fa_p_names, '_h0_fut')
             p_h1_fut_names = paste0(fa_p_names, '_h1_fut')
             if (prog_bar == FALSE) {
@@ -719,11 +767,11 @@ pow = function(p_values,
             }
             p_names_temp = p_names
             safe_count = 0
-            type1 = 1
+            global_type1 = 1
             while (length(stair_steps) > 0) {
                 ### (stepwise info just for testing)
-                # cat('\ntype1',
-                #     type1,
+                # cat('\nglobal_type1',
+                #     global_type1,
                 #     'a_adj:',
                 #     a_adj,
                 #     'new step:',
@@ -739,7 +787,7 @@ pow = function(p_values,
                             safe_count,
                             ' iterations. The arguments given may be problematic (and/or may never lead to the desired error rate).',
                             '\nNote: The current global type 1 error is ',
-                            ro(type1, round_to),
+                            ro(global_type1, round_to),
                             ' (expected: ',
                             ro(alpha_global, round_to),
                             ').'
@@ -786,17 +834,30 @@ pow = function(p_values,
 
                 # check at which look we stop
                 # if multiple p values are given as stoppers
-                # use multi_logic to check where to stop
+                # use multi_logic_a to check where to stop
                 # otherwise it simply stops where the given p is sign
                 if (multi_p) {
                     if (m_l_reduce) {
-                        pvals_df[, h0_stoP := Reduce(multi_logic, .SD), .SDcols = p_h0_sign_names]
+                        pvals_df[, h0_stoP := Reduce(multi_logic_a, .SD), .SDcols = p_h0_sign_names]
                     } else {
-                        pvals_df[,  h0_stoP := apply(.SD, 1, multi_logic), .SDcols = p_h0_sign_names]
+                        pvals_df[,  h0_stoP := apply(.SD, 1, multi_logic_a), .SDcols = p_h0_sign_names]
+                    }
+                    if (multi_logic_same) {
+                        pvals_df[, h0_stoP_sign := h0_stoP]
+                    } else {
+                        if (m_l_glob_reduce) {
+                            pvals_df[, h0_stoP_sign := Reduce(multi_logic_global, .SD),
+                                     .SDcols = p_h0_sign_names]
+                        } else {
+                            pvals_df[, h0_stoP_sign := apply(.SD, 1, multi_logic_global),
+                                     .SDcols = p_h0_sign_names]
+                        }
                     }
                 } else {
                     pvals_df[, h0_stoP := .SD, .SDcols = p_h0_sign_names]
+                    pvals_df[, h0_stoP_sign := h0_stoP]
                 }
+
                 if (!is.null(fut_locals)) {
                     # analogue with futility bounds
                     if (multi_p) {
@@ -813,9 +874,13 @@ pow = function(p_values,
 
                 # now get all outcomes at stopping point
                 pvals_stp = pvals_df[.look == mlook |
-                                         h0_stoP == TRUE,  .SD, .SDcols = p_h0_sign_names_plus]
+                                         h0_stoP == TRUE,  .SD,
+                                     .SDcols = c('h0_stoP_sign', '.look', '.iter')]
                 # the global type 1 error
-                type1 = mean(unlist(pvals_stp[, min_look := min(.look), by = .iter][.look == min_look, .SD, .SDcols = p_h0_sign_names]))
+                global_type1 = mean(pvals_stp[, min_look := min(.look), by = .iter][.look == min_look, h0_stoP_sign])
+
+                #mean(pvals_stp[, min_look := min(.look), by = .iter][.look == min_look, p_test2_h0_sign])
+                #mean(pvals_stp[, min_look := min(.look), by = .iter][.look == min_look, p_test1_h0_sign])
 
                 if (is.na(stair_steps[1])) {
                     # NA indicates no stairs; nothing left to be done
@@ -823,16 +888,16 @@ pow = function(p_values,
                 } else {
                     # break if global alpha is correct
                     # otherwise continue the staircase
-                    if (round(type1, alpha_precision) == round(alpha_global, alpha_precision)) {
+                    if (round(global_type1, alpha_precision) == round(alpha_global, alpha_precision)) {
                         if (is.null(alpha_loc_nonstop)) {
                             break
                         } else {
                             stair_steps = NA
                             a_step = 0
                         }
-                    } else if ((type1 < alpha_global &&
+                    } else if ((global_type1 < alpha_global &&
                                 a_step < 0) ||
-                               (type1 > alpha_global &&
+                               (global_type1 > alpha_global &&
                                 a_step > 0)) {
                         # change staircase direction (and also decrease step) if needed
                         a_step = -stair_steps[1] * sign(a_step)
@@ -881,12 +946,24 @@ pow = function(p_values,
             # if multiple p columns, check at which look we stop
             if (multi_p) {
                 if (m_l_reduce) {
-                    pvals_df[, h1_stoP := Reduce(multi_logic, .SD), .SDcols = p_h1_sign_names]
+                    pvals_df[, h1_stoP := Reduce(multi_logic_a, .SD), .SDcols = p_h1_sign_names]
                 } else {
-                    pvals_df[, h1_stoP := apply(.SD, 1, multi_logic), .SDcols = p_h1_sign_names]
+                    pvals_df[, h1_stoP := apply(.SD, 1, multi_logic_a), .SDcols = p_h1_sign_names]
+                }
+                if (multi_logic_same) {
+                    pvals_df[, h1_stoP_sign := h1_stoP]
+                } else {
+                    if (m_l_glob_reduce) {
+                        pvals_df[, h1_stoP_sign := Reduce(multi_logic_global, .SD),
+                                 .SDcols = p_h1_sign_names]
+                    } else {
+                        pvals_df[, h1_stoP_sign := apply(.SD, 1, multi_logic_global),
+                                 .SDcols = p_h1_sign_names]
+                    }
                 }
             } else {
                 pvals_df[, h1_stoP := .SD, .SDcols = p_h1_sign_names]
+                pvals_df[, h1_stoP_sign := h1_stoP]
             }
 
             if (!is.null(fut_locals)) {
@@ -903,9 +980,12 @@ pow = function(p_values,
             }
             if (multi_p) {
                 # if multi_p, get global power at stopping point
+
                 pvals_stp = pvals_df[.look == mlook |
-                                         h1_stoP == TRUE,  .SD, .SDcols = p_h1_sign_names_plus]
-                seq_power = mean(unlist(pvals_stp[, min_look := min(.look), by = .iter][.look == min_look, .SD, .SDcols = p_h1_sign_names]))
+                                         h1_stoP == TRUE,  .SD,
+                                     .SDcols = c('h1_stoP_sign', '.look', '.iter')]
+                # the global type 1 error
+                global_power = mean(pvals_stp[, min_look := min(.look), by = .iter][.look == min_look, h1_stoP_sign])
             }
 
             # calculate sample size information per look
@@ -920,11 +1000,11 @@ pow = function(p_values,
                 iters_out0 = ps_sub0[.look == lk &
                                          h0_stoP == TRUE]
                 # remove stopped iterations
-                ps_sub0 = ps_sub0[!.iter %in% iters_out0$.iter, ]
+                ps_sub0 = ps_sub0[!.iter %in% iters_out0$.iter,]
                 # (same for H1)
                 iters_out1 = ps_sub1[.look == lk &
-                                         h1_stoP == TRUE,]
-                ps_sub1 = ps_sub1[!.iter %in% iters_out1$.iter,]
+                                         h1_stoP == TRUE, ]
+                ps_sub1 = ps_sub1[!.iter %in% iters_out1$.iter, ]
                 outs = c()
                 # get info per p value column
                 for (p_nam in p_names_extr) {
@@ -1032,7 +1112,7 @@ pow = function(p_values,
                     nonstp,
                     '\033[0;40m',
                     p_nam,
-                    '\033[0m) Type I error: \033[0;31m',
+                    '\033[0m) Type I error: \033[1;31m',
                     ro(df_stops[[paste0('ratio_sign_', p_nam, '_h0')]][df_nrow], round_to),
                     '\033[0m; Power: \033[0;32m',
                     ro(df_stops[[paste0('ratio_sign_', p_nam, '_h1')]][df_nrow], round_to),
@@ -1074,11 +1154,11 @@ pow = function(p_values,
             if (multi_p) {
                 toprint = paste0(
                     'Global ("combined significance") type I error: ',
-                    ro(type1, round_to),
+                    ro(global_type1, round_to),
                     ' (included: ',
                     paste(p_names, collapse = ', '),
                     '; power for reaching the "combined significance": ',
-                    ro(seq_power, round_to),
+                    ro(global_power, round_to),
                     ')'
                 )
                 cat(toprint, fill = TRUE)
