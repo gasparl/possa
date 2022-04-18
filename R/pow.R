@@ -338,11 +338,6 @@ pow = function(p_values,
         }
         m_l_glob_reduce = TRUE
     }
-    if (isTRUE(all.equal(multi_logic_global, multi_logic_a))) {
-        multi_logic_same = TRUE
-    } else {
-        multi_logic_same = FALSE
-    }
     setDT(p_values)
     setkey(p_values, .look)
     setindex(p_values, .iter)
@@ -664,6 +659,10 @@ pow = function(p_values,
         }
     }
     out_dfs = list()
+    p_values[, h0_stoP := TRUE]
+    p_values[, h1_stoP := TRUE]
+    p_values[, h0_stoP_fa := TRUE]
+    p_values[, h1_stoP_fa := TRUE]
     # calculate results separately for each factor combination
     for (possa_fact in possafacts) {
         # when none: possa_fact = NA
@@ -844,43 +843,38 @@ pow = function(p_values,
                 # otherwise it simply stops where the given p is sign
                 if (multi_p) {
                     if (m_l_reduce) {
-                        pvals_df[, h0_stoP := Reduce(multi_logic_a, .SD), .SDcols = p_h0_sign_names]
+                        pvals_df[.look != mlook, h0_stoP := Reduce(multi_logic_a, .SD), .SDcols = p_h0_sign_names]
                     } else {
-                        pvals_df[,  h0_stoP := apply(.SD, 1, multi_logic_a), .SDcols = p_h0_sign_names]
+                        pvals_df[.look != mlook,  h0_stoP := apply(.SD, 1, multi_logic_a), .SDcols = p_h0_sign_names]
                     }
-                    if (multi_logic_same) {
-                        pvals_df[, h0_stoP_sign := h0_stoP]
+                    if (m_l_glob_reduce) {
+                        pvals_df[, h0_stoP_sign := Reduce(multi_logic_global, .SD),
+                                 .SDcols = p_h0_sign_names]
                     } else {
-                        if (m_l_glob_reduce) {
-                            pvals_df[, h0_stoP_sign := Reduce(multi_logic_global, .SD),
-                                     .SDcols = p_h0_sign_names]
-                        } else {
-                            pvals_df[, h0_stoP_sign := apply(.SD, 1, multi_logic_global),
-                                     .SDcols = p_h0_sign_names]
-                        }
+                        pvals_df[, h0_stoP_sign := apply(.SD, 1, multi_logic_global),
+                                 .SDcols = p_h0_sign_names]
                     }
                 } else {
-                    pvals_df[, h0_stoP := .SD, .SDcols = p_h0_sign_names]
-                    pvals_df[, h0_stoP_sign := h0_stoP]
+                    pvals_df[.look != mlook, h0_stoP := .SD, .SDcols = p_h0_sign_names]
+                    pvals_df[, h0_stoP_sign := .SD, .SDcols = p_h0_sign_names]
                 }
 
                 if (!is.null(fut_locals)) {
                     # analogue with futility bounds
                     if (multi_p) {
                         if (m_l_fut_reduce) {
-                            pvals_df[, h0_stoP_fa := Reduce(multi_logic_fut, .SD), .SDcols = p_h0_fut_names]
+                            pvals_df[.look != mlook, h0_stoP_fa := Reduce(multi_logic_fut, .SD), .SDcols = p_h0_fut_names]
                         } else {
-                            pvals_df[, h0_stoP_fa := apply(.SD, 1, multi_logic_fut), .SDcols = p_h0_fut_names]
+                            pvals_df[.look != mlook, h0_stoP_fa := apply(.SD, 1, multi_logic_fut), .SDcols = p_h0_fut_names]
                         }
                     } else {
-                        pvals_df[, h0_stoP_fa := .SD, .SDcols = p_h0_fut_names]
+                        pvals_df[.look != mlook, h0_stoP_fa := .SD, .SDcols = p_h0_fut_names]
                     }
-                    pvals_df[, h0_stoP := h0_stoP | h0_stoP_fa]
+                    pvals_df[.look != mlook, h0_stoP := h0_stoP | h0_stoP_fa]
                 }
 
                 # now get all outcomes at stopping point
-                pvals_stp = pvals_df[.look == mlook |
-                                         h0_stoP == TRUE,  .SD,
+                pvals_stp = pvals_df[h0_stoP == TRUE, .SD,
                                      .SDcols = c('h0_stoP_sign', '.look', '.iter')]
                 # the global type 1 error
                 global_type1 = mean(pvals_stp[, min_look := min(.look), by = .iter][.look == min_look, h0_stoP_sign])
@@ -952,43 +946,37 @@ pow = function(p_values,
             # if multiple p columns, check at which look we stop
             if (multi_p) {
                 if (m_l_reduce) {
-                    pvals_df[, h1_stoP := Reduce(multi_logic_a, .SD), .SDcols = p_h1_sign_names]
+                    pvals_df[.look != mlook, h1_stoP := Reduce(multi_logic_a, .SD), .SDcols = p_h1_sign_names]
                 } else {
-                    pvals_df[, h1_stoP := apply(.SD, 1, multi_logic_a), .SDcols = p_h1_sign_names]
+                    pvals_df[.look != mlook, h1_stoP := apply(.SD, 1, multi_logic_a), .SDcols = p_h1_sign_names]
                 }
-                if (multi_logic_same) {
-                    pvals_df[, h1_stoP_sign := h1_stoP]
+                if (m_l_glob_reduce) {
+                    pvals_df[, h1_stoP_sign := Reduce(multi_logic_global, .SD),
+                             .SDcols = p_h1_sign_names]
                 } else {
-                    if (m_l_glob_reduce) {
-                        pvals_df[, h1_stoP_sign := Reduce(multi_logic_global, .SD),
-                                 .SDcols = p_h1_sign_names]
-                    } else {
-                        pvals_df[, h1_stoP_sign := apply(.SD, 1, multi_logic_global),
-                                 .SDcols = p_h1_sign_names]
-                    }
+                    pvals_df[, h1_stoP_sign := apply(.SD, 1, multi_logic_global),
+                             .SDcols = p_h1_sign_names]
                 }
             } else {
-                pvals_df[, h1_stoP := .SD, .SDcols = p_h1_sign_names]
-                pvals_df[, h1_stoP_sign := h1_stoP]
+                pvals_df[.look != mlook, h1_stoP := .SD, .SDcols = p_h1_sign_names]
+                pvals_df[, h1_stoP_sign :=.SD, .SDcols = p_h1_sign_names]
             }
 
             if (!is.null(fut_locals)) {
                 if (multi_p) {
                     if (m_l_fut_reduce) {
-                        pvals_df[, h1_stoP_fa := Reduce(multi_logic_fut, .SD), .SDcols = p_h1_fut_names]
+                        pvals_df[.look != mlook, h1_stoP_fa := Reduce(multi_logic_fut, .SD), .SDcols = p_h1_fut_names]
                     } else {
-                        pvals_df[,  h1_stoP_fa := apply(.SD, 1, multi_logic_fut), .SDcols = p_h1_fut_names]
+                        pvals_df[.look != mlook,  h1_stoP_fa := apply(.SD, 1, multi_logic_fut), .SDcols = p_h1_fut_names]
                     }
                 } else {
-                    pvals_df[, h1_stoP_fa := .SD, .SDcols = p_h1_fut_names]
+                    pvals_df[.look != mlook, h1_stoP_fa := .SD, .SDcols = p_h1_fut_names]
                 }
-                pvals_df[, h1_stoP := h1_stoP | h1_stoP_fa]
+                pvals_df[.look != mlook, h1_stoP := h1_stoP | h1_stoP_fa]
             }
             if (multi_p) {
                 # if multi_p, get global power at stopping point
-
-                pvals_stp = pvals_df[.look == mlook |
-                                         h1_stoP == TRUE,  .SD,
+                pvals_stp = pvals_df[h1_stoP == TRUE, .SD,
                                      .SDcols = c('h1_stoP_sign', '.look', '.iter')]
                 # the global type 1 error
                 global_power = mean(pvals_stp[, min_look := min(.look), by = .iter][.look == min_look, h1_stoP_sign])
@@ -1006,11 +994,11 @@ pow = function(p_values,
                 iters_out0 = ps_sub0[.look == lk &
                                          h0_stoP == TRUE]
                 # remove stopped iterations
-                ps_sub0 = ps_sub0[!.iter %in% iters_out0$.iter, ]
+                ps_sub0 = ps_sub0[!.iter %in% iters_out0$.iter,]
                 # (same for H1)
                 iters_out1 = ps_sub1[.look == lk &
-                                         h1_stoP == TRUE,]
-                ps_sub1 = ps_sub1[!.iter %in% iters_out1$.iter,]
+                                         h1_stoP == TRUE, ]
+                ps_sub1 = ps_sub1[!.iter %in% iters_out1$.iter, ]
                 outs = c()
                 # get info per p value column
                 for (p_nam in p_names_extr) {
@@ -1172,7 +1160,7 @@ pow = function(p_values,
             out_dfs[[paste0('df_', gsub('; ', '_', possa_fact))]] = df_stops
         }
     }
-    if (design_seq == TRUE & mlook > 1) {
+    if (design_seq == TRUE) {
         if (is.na(possafacts[1])) {
             out_dfs = out_dfs[[1]]
         }
