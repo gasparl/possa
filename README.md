@@ -1,6 +1,6 @@
 ### POSSA
 
-Power simulation for sequential analysis.
+Power simulation for sequential analysis and multiple hypotheses.
 
 ### Installation in R
 
