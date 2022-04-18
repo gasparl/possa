@@ -8,7 +8,7 @@ sim(
   fun_obs,
   n_obs,
   fun_test,
-  n_iter = 75000,
+  n_iter = 45000,
   adjust_n = 1,
   seed = 8,
   pair = NULL,
@@ -78,7 +78,7 @@ outcomes too, such as effect sizes or confidence interval limits; these will
 then be stored in dedicated columns in the resulting
 \code{\link{data.frame}}.}
 
-\item{n_iter}{Number of iterations (default: 15000).}
+\item{n_iter}{Number of iterations (default: 45000).}
 
 \item{adjust_n}{Adjust total number of observations via simple multiplication.
 Might be useful in some specific cases, e.g. if for some reason multiple p
