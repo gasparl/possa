@@ -713,7 +713,7 @@ pow = function(p_values,
         for (f_look in fix_looks) {
             pvals_df_fix = pvals_df[.look == f_look]
             cat(
-                '\033[0;32m# FIXED DESIGN;\033[0m N(total) = \033[0;4m',
+                '\033[1;34m# FIXED DESIGN;\033[0m N(total) = \033[0;4m',
                 tot_samples[f_look],
                 '\033[0m (alpha = \033[0;1m',
                 ro(alpha_global, round_to),
@@ -733,6 +733,7 @@ pow = function(p_values,
                     ro(mean(
                         pvals_df_fix[[paste0(p_nam, '_h1')]] < alpha_global
                     ), round_to),
+                    '\033[0m',
                     sep = '',
                     fill = TRUE
                 )
