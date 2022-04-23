@@ -52,12 +52,15 @@ single number or a single numeric vector is given, all potential p value
 column pairs are automatically detected as starting with "\code{p_}" prefix
 and ending with "\code{_h0}" and "\code{_h1}". In case of a single vector
 given, each such automatically detected p value pair receives this same
-vector. In case of a single number given, this all elements of all vectors
-will be this same number. The default \code{NULL} value specifies "fixed
-design" (no interim stopping alphas) with final alpha as specified as
-\code{alpha_global}, without adjustment procedure as long as the
-\code{adjust} argument is also left as default \code{TRUE}. (This is useful
-for cases where only futility bounds are to be set for stopping.)}
+vector. In case of a single number given, all elements of all vectors will
+be assigned this same number (up to the maximum number of looks). If a list
+is given and any of the elements contain just one number, it will be
+extended into a vector (up to the maximum number of looks). The default
+\code{NULL} value specifies "fixed design" (no interim stopping alphas) with
+final alpha as specified as \code{alpha_global}, without adjustment
+procedure as long as the \code{adjust} argument is also left as default
+\code{TRUE}. (This is useful for cases where only futility bounds are to be
+set for stopping.)}
 
 \item{alpha_global}{Global alpha (expected type 1 error rate in total);
 \code{0.05} by default. See also \code{multi_logic_global} for when multiple
@@ -177,7 +180,9 @@ created the given \code{p_values} data.}
 
 \item{alpha_loc_nonstop}{Optional "non-stopper" alphas via which to evaluate p
 values per look, but without stopping the data collection regardless of
-statistical significance.}
+statistical significance. Must be a list with names indicating p value
+column name pairs, similarly as for the \code{alpha_locals} argument; see
+\code{alpha_locals} for details.}
 
 \item{design_fix}{Whether to calculate fixed design (as comparable
 alternative(s) to given "looks" of the sequential design). If \code{NULL}

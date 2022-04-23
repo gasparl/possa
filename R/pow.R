@@ -39,12 +39,15 @@
 #'  column pairs are automatically detected as starting with "\code{p_}" prefix
 #'  and ending with "\code{_h0}" and "\code{_h1}". In case of a single vector
 #'  given, each such automatically detected p value pair receives this same
-#'  vector. In case of a single number given, this all elements of all vectors
-#'  will be this same number. The default \code{NULL} value specifies "fixed
-#'  design" (no interim stopping alphas) with final alpha as specified as
-#'  \code{alpha_global}, without adjustment procedure as long as the
-#'  \code{adjust} argument is also left as default \code{TRUE}. (This is useful
-#'  for cases where only futility bounds are to be set for stopping.)
+#'  vector. In case of a single number given, all elements of all vectors will
+#'  be assigned this same number (up to the maximum number of looks). If a list
+#'  is given and any of the elements contain just one number, it will be
+#'  extended into a vector (up to the maximum number of looks). The default
+#'  \code{NULL} value specifies "fixed design" (no interim stopping alphas) with
+#'  final alpha as specified as \code{alpha_global}, without adjustment
+#'  procedure as long as the \code{adjust} argument is also left as default
+#'  \code{TRUE}. (This is useful for cases where only futility bounds are to be
+#'  set for stopping.)
 #'@param alpha_global Global alpha (expected type 1 error rate in total);
 #'  \code{0.05} by default. See also \code{multi_logic_global} for when multiple
 #'  p values are being evaluated.
@@ -153,7 +156,9 @@
 #'  created the given \code{p_values} data.
 #'@param alpha_loc_nonstop Optional "non-stopper" alphas via which to evaluate p
 #'  values per look, but without stopping the data collection regardless of
-#'  statistical significance.
+#'  statistical significance. Must be a list with names indicating p value
+#'  column name pairs, similarly as for the \code{alpha_locals} argument; see
+#'  \code{alpha_locals} for details.
 #'@param design_fix Whether to calculate fixed design (as comparable
 #'  alternative(s) to given "looks" of the sequential design). If \code{NULL}
 #'  (default), shows power for maximum sample (last "look") only. If set to
@@ -386,19 +391,28 @@ pow = function(p_values,
             }
             loc_pnames = p_names
         } else {
-            # if list, use as it is, and assign per name
-            for (a_vec in alpha_locals) {
-                if (!(is.atomic(a_vec) && length(a_vec) == mlook)) {
-                    stop(
-                        'Wrong argument for "alpha_locals". (If a list is given, ',
-                        'it must consist of one or more vectors of numbers with the',
-                        ' same length as the maximum number of looks (in this case ',
-                        mlook,
-                        ').)'
-                    )
+            # if list, check each vector
+            for (a_vec_name in names(alpha_locals)) {
+                wrongmes = paste0(
+                    'Wrong argument for "alpha_locals". (If a list is given, ',
+                    'it must consist of one or more vectors of numbers with the',
+                    ' either one value or the same length as the maximum number ',
+                    'of looks (in this case ',
+                    mlook,
+                    ').)'
+                )
+                if (!(is.atomic(alpha_locals[[a_vec_name]]))) {
+                    stop(wrongmes)
+                } else if (length(alpha_locals[[a_vec_name]]) == 1) {
+                    # if just one value, extend to all looks
+                    a_locals[[a_vec_name]] = rep(alpha_locals[[a_vec_name]], mlook)
+                } else if (length(alpha_locals[[a_vec_name]]) == mlook) {
+                    # if all values, simply assign
+                    a_locals[[a_vec_name]] = alpha_locals[[a_vec_name]]
+                } else {
+                    stop(wrongmes)
                 }
             }
-            a_locals = alpha_locals
             loc_pnames = names(alpha_locals)
         }
         for (pname in loc_pnames) {
@@ -437,7 +451,7 @@ pow = function(p_values,
     }
     p_extr = NULL
     if (!is.null(alpha_loc_nonstop)) {
-        lapply(alpha_loc_nonstop, function(vec) {
+        for (vec in alpha_loc_nonstop) {
             if (any(is.na(vec))) {
                 stop(
                     'The alpha values given in alpha_loc_nonstop must ',
@@ -446,17 +460,25 @@ pow = function(p_values,
             } else if (any(vec > 1 | vec < 0)) {
                 stop('All alpha values given in alpha_loc_nonstop must be',
                      ' between 0 and 1.')
-            } else if (!(is.atomic(a_vec) &&
-                         length(a_vec) == mlook)) {
+            } else if (!(is.atomic(vec) &&
+                         (length(vec) == mlook ||
+                          length(vec) == 1))) {
                 stop(
                     'Wrong argument for "alpha_loc_nonstop". (If a list is given, ',
-                    'it must consist of one or more vectors of numbers with the',
-                    ' same length as the maximum number of looks (in this case ',
+                    'it must consist of one or more vectors of numbers with ',
+                    'either one value or the same length as the maximum number ',
+                    'of looks (in this case ',
                     mlook,
                     ').)'
                 )
             }
-        })
+            # if only one value is given, extend this value for all looks
+            for (ns_vec_name in names(alpha_loc_nonstop)) {
+                if (length(alpha_loc_nonstop[[ns_vec_name]]) == 1) {
+                    alpha_loc_nonstop[[ns_vec_name]] = rep(alpha_loc_nonstop[[ns_vec_name]], mlook)
+                }
+            }
+        }
         p_extr = names(alpha_loc_nonstop)
         for (pname in p_extr) {
             if (!pname %in% p_names_auto) {
@@ -871,7 +893,8 @@ pow = function(p_values,
                     } else {
                         pvals_df[.look != mlook, h0_stoP_fa := .SD, .SDcols = p_h0_fut_names]
                     }
-                    pvals_df[.look != mlook, h0_stoP := h0_stoP | h0_stoP_fa]
+                    pvals_df[.look != mlook, h0_stoP := h0_stoP |
+                                 h0_stoP_fa]
                 }
 
                 # now get all outcomes at stopping point
@@ -960,7 +983,7 @@ pow = function(p_values,
                 }
             } else {
                 pvals_df[.look != mlook, h1_stoP := .SD, .SDcols = p_h1_sign_names]
-                pvals_df[, h1_stoP_sign :=.SD, .SDcols = p_h1_sign_names]
+                pvals_df[, h1_stoP_sign := .SD, .SDcols = p_h1_sign_names]
             }
 
             if (!is.null(fut_locals)) {
@@ -973,7 +996,8 @@ pow = function(p_values,
                 } else {
                     pvals_df[.look != mlook, h1_stoP_fa := .SD, .SDcols = p_h1_fut_names]
                 }
-                pvals_df[.look != mlook, h1_stoP := h1_stoP | h1_stoP_fa]
+                pvals_df[.look != mlook, h1_stoP := h1_stoP |
+                             h1_stoP_fa]
             }
             if (multi_p) {
                 # if multi_p, get global power at stopping point
@@ -995,11 +1019,11 @@ pow = function(p_values,
                 iters_out0 = ps_sub0[.look == lk &
                                          h0_stoP == TRUE]
                 # remove stopped iterations
-                ps_sub0 = ps_sub0[!.iter %in% iters_out0$.iter,]
+                ps_sub0 = ps_sub0[!.iter %in% iters_out0$.iter, ]
                 # (same for H1)
                 iters_out1 = ps_sub1[.look == lk &
-                                         h1_stoP == TRUE, ]
-                ps_sub1 = ps_sub1[!.iter %in% iters_out1$.iter, ]
+                                         h1_stoP == TRUE,]
+                ps_sub1 = ps_sub1[!.iter %in% iters_out1$.iter,]
                 outs = c()
                 # get info per p value column
                 for (p_nam in p_names_extr) {
