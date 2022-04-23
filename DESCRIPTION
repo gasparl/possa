@@ -12,8 +12,7 @@ Description: This R package serves to calculate, via simulation, power and
   of practically any significance test(s), as long as the underlying data can be
   simulated in advance to a reasonable approximation. Note: Since the specific
   functions' details are rather complex, it is much easier to understand the
-  procedure with the examples given via https://github.com/gasparl/possa. URL:
-  https://github.com/gasparl/possa
+  procedure with the examples given via https://github.com/gasparl/possa.
 URL: https://github.com/gasparl/possa
 Depends: R (>= 3.6.0)
 Imports: data.table, methods
@@ -21,5 +20,5 @@ License: BSD_2_clause + file LICENSE
 Encoding: UTF-8
 RoxygenNote: 7.1.2
 Suggests: 
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0), faux
 Config/testthat/edition: 3

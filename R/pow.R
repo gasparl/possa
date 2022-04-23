@@ -275,6 +275,7 @@ pow = function(p_values,
             immediate. = TRUE
         )
     }
+    p_values = data.table::copy(p_values)
     m_l_reduce = FALSE
     m_l_fut_reduce = FALSE
     if (is.function(multi_logic_a)) {
