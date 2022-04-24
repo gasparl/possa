@@ -97,6 +97,7 @@
 #'  suffixes in the \code{fun_test} function arguments. Set to \code{TRUE} to
 #'  completely ignore these (neither error nor warning). (Might be useful for
 #'  testing or some very specific procedures.)
+#'@param hush Logical. If \code{TRUE}, prevents printing any details to console.
 #'
 #'@details
 #'
@@ -160,7 +161,8 @@ sim = function(fun_obs,
                adjust_n = 1,
                seed = 8,
                pair = NULL,
-               ignore_suffix = FALSE) {
+               ignore_suffix = FALSE,
+               hush = FALSE) {
     validate_args(
         match.call(),
         list(
@@ -170,7 +172,8 @@ sim = function(fun_obs,
             val_arg(adjust_n, c('num'), 1),
             val_arg(seed, c('null', 'num'), 1),
             val_arg(pair, c('bool', 'null'), 1),
-            val_arg(ignore_suffix, c('null', 'bool'), 1)
+            val_arg(ignore_suffix, c('null', 'bool'), 1),
+            val_arg(hush, c('bool'), 1)
         )
     )
     set.seed(seed)
@@ -187,7 +190,7 @@ sim = function(fun_obs,
         df_combs = sapply(expand.grid(f_obs_args), as.vector)
         facts_list = list()
         for (rownum in 1:nrow(df_combs)) {
-            facts_list[[rownum]] = as.list(df_combs[rownum,])
+            facts_list[[rownum]] = as.list(df_combs[rownum, ])
         }
     } else {
         # set to have no combinations; single sample test (hence 1 cycle below)
@@ -327,18 +330,26 @@ sim = function(fun_obs,
     obs_names = names(obs_per_it[[1]]) # the names of all sample columns
     list_vals = list() # all end results will be collected in this list
     # set progress bar
-    pb = utils::txtProgressBar(
-        min = 0,
-        max = n_iter * length(facts_list),
-        initial = 0,
-        style = 3
-    )
+    if (hush == FALSE) {
+        pb = utils::txtProgressBar(
+            min = 0,
+            max = n_iter * length(facts_list),
+            initial = 0,
+            style = 3
+        )
+    }
     pb_count = 0
     if (n_look > 1) {
         looks = (n_look - 1):1
     } else {
         looks = NULL
     }
+
+    # pre-compile main functions
+    # (doesn't seem to actually make any difference, but can't hurt)
+    fun_obs = compiler::cmpfun(fun_obs)
+    fun_test = compiler::cmpfun(fun_test)
+
     # start power calculation per each factor combination
     for (facts in facts_list) {
         if (is.na(facts[1])) {
@@ -346,8 +357,12 @@ sim = function(fun_obs,
         }
         for (i in 1:n_iter) {
             pb_count = pb_count + 1
-            utils::setTxtProgressBar(pb, pb_count)
+            if (hush == FALSE) {
+                utils::setTxtProgressBar(pb, pb_count)
+            }
+            # call the full (max) samples
             samples = do.call(fun_obs, c(n_obs_max, facts))
+            # test the full samples
             list_vals[[length(list_vals) + 1]] =
                 c(
                     .iter = i,
@@ -356,6 +371,7 @@ sim = function(fun_obs,
                     unlist(obs_per_it[[n_look]]),
                     do.call(fun_test, samples)
                 )
+            # now, subsample each full sample, per each look
             for (lk in looks) {
                 if (pair == TRUE) {
                     seed_r = .GlobalEnv$.Random.seed # .Random.seed
@@ -364,9 +380,11 @@ sim = function(fun_obs,
                     if (pair == TRUE) {
                         .GlobalEnv$.Random.seed = seed_r # assign(".Random.seed", seed_r, envir = parent.frame())
                     }
+                    # take subsample for the given look with the given size
                     samples[[samp_n]] = sample(samples[[samp_n]],
                                                obs_per_it[[lk]][[samp_n]])
                 }
+                # repeat the test with reduced samples
                 list_vals[[length(list_vals) + 1]] =
                     c(
                         .iter = i,
@@ -378,7 +396,9 @@ sim = function(fun_obs,
             }
         }
     }
-    close(pb)
+    if (hush == FALSE) {
+        close(pb)
+    }
     df_pvals = as.data.frame(do.call(rbind, list_vals))
 
     # merge groups into single column (with given group name)
@@ -398,7 +418,7 @@ sim = function(fun_obs,
             # renaming the first group member to represent all (since all are identical)
             names(df_pvals)[names(df_pvals) == obs_colnames[1]] = grp_nam
             # remove other group columns from dataframe
-            df_pvals = df_pvals[, !(names(df_pvals) %in% obs_colnames)]
+            df_pvals = df_pvals[,!(names(df_pvals) %in% obs_colnames)]
             # remove all group columns from obs names
             obs_names = obs_names[!obs_names %in% obs_colnames]
             # add group name to obs names, to represent all group columns
@@ -436,11 +456,11 @@ sim = function(fun_obs,
     }
     df_pvals = data.frame(df_pvals[, 1:2],
                           .n_total = adjust_n * n_tots,
-                          df_pvals[,-1:-2])
+                          df_pvals[, -1:-2])
     # order per iter and look
-    df_pvals = df_pvals[order(df_pvals$.iter, df_pvals$.look),]
+    df_pvals = df_pvals[order(df_pvals$.iter, df_pvals$.look), ]
     if (length(f_obs_args) > 0) {
-        df_pvals = df_pvals[do.call("order", df_pvals[names(f_obs_args)]), ]
+        df_pvals = df_pvals[do.call("order", df_pvals[names(f_obs_args)]),]
     }
 
     # add POSSA class names, to be recognized in POSSA::pow
@@ -455,6 +475,8 @@ sim = function(fun_obs,
     # POSSA class for the whole data frame
     class(df_pvals) = c(class(df_pvals), "possa_df")
     message('Simulation completed. Below is a sample of the resulting data.')
-    print(utils::head(df_pvals, min(n_look, 6L)))
+    if (hush == FALSE) {
+        print(utils::head(df_pvals, min(n_look, 6L)))
+    }
     return(df_pvals)
 }

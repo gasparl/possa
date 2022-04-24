@@ -188,6 +188,7 @@
 #'  \code{200}, then \code{300}, etc.).
 #'@param seed Number for \code{\link{set.seed}}; \code{8} by default. Set to
 #'  \code{NULL} for random seed.
+#'@param hush Logical. If \code{TRUE}, prevents printing any details to console.
 #'
 #'@return Apart from printing the main power, error rate, and adjusted local
 #'  alpha outcomes, the function (invisibly) returns a \code{\link{data.frame}}
@@ -231,7 +232,8 @@ pow = function(p_values,
                descr_func = summary,
                round_to = 5,
                iter_limit = 100,
-               seed = 8) {
+               seed = 8,
+               hush = FALSE) {
     validate_args(
         match.call(),
         list(
@@ -256,7 +258,8 @@ pow = function(p_values,
             val_arg(alpha_precision, c('num'), 1),
             val_arg(round_to, c('num'), 1),
             val_arg(iter_limit, c('num'), 1),
-            val_arg(seed, c('num'), 1)
+            val_arg(seed, c('num'), 1),
+            val_arg(hush, c('bool'), 1)
         )
     )
     .look = NULL
@@ -552,10 +555,14 @@ pow = function(p_values,
             fa_locals = fut_locals
         }
     }
-    prog_bar = FALSE
+    if (hush == FALSE) {
+        prog_bar = TRUE
+    } else {
+        prog_bar = FALSE
+    }
     if (isFALSE(adjust)) {
         # if adjust is FALSE, staircase is omitted
-        prog_bar = TRUE
+        prog_bar = FALSE
         staircase_steps = NA
     } else if (is.null(staircase_steps)) {
         steps_add = 0.01 * (0.5 ** (seq(0, 11, 1)))
@@ -694,7 +701,7 @@ pow = function(p_values,
         } else {
             # print descriptives of all included
             if (descr_cols[1] != FALSE &&
-                possa_fact == possafacts[1]) {
+                possa_fact == possafacts[1] && hush == FALSE) {
                 cat('-- DESCRIPTIVES (total) --', fill = TRUE)
                 for (desc_col in descr_cols) {
                     cat(desc_col, ': ', sep = '')
@@ -703,16 +710,18 @@ pow = function(p_values,
             }
             # if applicable, take only given factor combination & print its "group" name
             pvals_df = p_values[._possa_fact_combs == possa_fact]
-            cat(
-                '\nGROUP (',
-                paste(group_by, collapse = '; '),
-                '): ',
-                possa_fact,
-                fill = TRUE,
-                sep = ''
-            )
+            if (hush == FALSE) {
+                cat(
+                    '\nGROUP (',
+                    paste(group_by, collapse = '; '),
+                    '): ',
+                    possa_fact,
+                    fill = TRUE,
+                    sep = ''
+                )
+            }
         }
-        if (descr_cols[1] != FALSE) {
+        if (descr_cols[1] != FALSE && hush == FALSE) {
             cat('-- DESCRIPTIVES --', fill = TRUE)
             for (desc_col in descr_cols) {
                 cat(desc_col,
@@ -732,33 +741,37 @@ pow = function(p_values,
         } else if (design_fix == FALSE) {
             fix_looks = NULL # show none
         }
-        for (f_look in fix_looks) {
-            pvals_df_fix = pvals_df[.look == f_look]
-            cat(
-                '\033[1;34m# FIXED DESIGN;\033[0m N(total) = \033[0;4m',
-                tot_samples[f_look],
-                '\033[0m (alpha = \033[0;1m',
-                ro(alpha_global, round_to),
-                '\033[0m for all)',
-                sep = '',
-                fill = TRUE
-            )
-            for (p_nam in p_names_extr) {
+        if (hush == FALSE) {
+            for (f_look in fix_looks) {
+                pvals_df_fix = pvals_df[.look == f_look]
                 cat(
-                    '(\033[0;40m',
-                    p_nam,
-                    '\033[0m) Type I error: \033[1;31m',
-                    ro(mean(
-                        pvals_df_fix[[paste0(p_nam, '_h0')]] < alpha_global
-                    ), round_to),
-                    '\033[0m; Power: \033[0;32m',
-                    ro(mean(
-                        pvals_df_fix[[paste0(p_nam, '_h1')]] < alpha_global
-                    ), round_to),
-                    '\033[0m',
+                    '\033[1;34m# FIXED DESIGN;\033[0m N(total) = \033[0;4m',
+                    tot_samples[f_look],
+                    '\033[0m (alpha = \033[0;1m',
+                    ro(alpha_global, round_to),
+                    '\033[0m for all)',
                     sep = '',
                     fill = TRUE
                 )
+                for (p_nam in p_names_extr) {
+                    cat(
+                        '(\033[0;40m',
+                        p_nam,
+                        '\033[0m) Type I error: \033[1;31m',
+                        ro(
+                            mean(pvals_df_fix[[paste0(p_nam, '_h0')]] < alpha_global),
+                            round_to
+                        ),
+                        '\033[0m; Power: \033[0;32m',
+                        ro(
+                            mean(pvals_df_fix[[paste0(p_nam, '_h1')]] < alpha_global),
+                            round_to
+                        ),
+                        '\033[0m',
+                        sep = '',
+                        fill = TRUE
+                    )
+                }
             }
         }
 
@@ -778,7 +791,7 @@ pow = function(p_values,
             p_h1_sign_names = paste0(p_names, '_h1_sign')
             p_h0_fut_names = paste0(fa_p_names, '_h0_fut')
             p_h1_fut_names = paste0(fa_p_names, '_h1_fut')
-            if (prog_bar == FALSE) {
+            if (prog_bar == TRUE) {
                 p_bar = utils::txtProgressBar(
                     min = 0,
                     max = length(staircase_steps),
@@ -934,7 +947,7 @@ pow = function(p_values,
                     a_adj = a_adj + a_step
                 }
             }
-            if (prog_bar == FALSE) {
+            if (prog_bar == TRUE) {
                 utils::setTxtProgressBar(p_bar, length(staircase_steps))
                 close(p_bar)
             }
@@ -1096,91 +1109,96 @@ pow = function(p_values,
             df_nrow = nrow(df_stops)
             df_stops$look[df_nrow] = 'totals'
 
-            # print results for sequential design
-            cat(
-                '\033[0;36m# SEQUENTIAL DESIGN;\033[0m N(average-total) = \033[0;4m',
-                ro(df_stops$n_avg_prop_0[df_nrow], 1, leading_zero = TRUE),
-                '\033[0m (if H0 true) or \033[0;4m',
-                ro(df_stops$n_avg_prop_1[df_nrow], 1, leading_zero = TRUE),
-                '\033[0m (if H1 true)',
-                sep = '',
-                fill = TRUE
-            )
-
-            fut_text = ''
-            for (p_nam in p_names_extr) {
-                if (p_nam %in% p_names) {
-                    nonstp = ''
-                    if (all(is.na(staircase_steps))) {
+            if (hush == FALSE) {
+                # print results for sequential design
+                cat(
+                    '\033[0;36m# SEQUENTIAL DESIGN;\033[0m N(average-total) = \033[0;4m',
+                    ro(df_stops$n_avg_prop_0[df_nrow], 1, leading_zero = TRUE),
+                    '\033[0m (if H0 true) or \033[0;4m',
+                    ro(df_stops$n_avg_prop_1[df_nrow], 1, leading_zero = TRUE),
+                    '\033[0m (if H1 true)',
+                    sep = '',
+                    fill = TRUE
+                )
+                fut_text = ''
+                for (p_nam in p_names_extr) {
+                    if (p_nam %in% p_names) {
+                        nonstp = ''
+                        if (all(is.na(staircase_steps))) {
+                            l_a_descr = '\nLocal alphas (fixed): '
+                        } else {
+                            l_a_descr = '\nAdjusted local alphas: '
+                        }
+                    } else {
+                        nonstp = '\033[0;40;3mnon-stopper: \033[0;40;0m'
                         l_a_descr = '\nLocal alphas (fixed): '
-                    } else {
-                        l_a_descr = '\nAdjusted local alphas: '
                     }
-                } else {
-                    nonstp = '\033[0;40;3mnon-stopper: \033[0;40;0m'
-                    l_a_descr = '\nLocal alphas (fixed): '
-                }
-                p_a_locals = ro(a_locals_fin[[p_nam]], round_to)
-                p_a_locals = ifelse(
-                    p_a_locals == '0',
-                    'none',
-                    paste0('\033[0;1m', p_a_locals, '\033[0m')
-                )
-                toprint = paste0(
-                    '(',
-                    nonstp,
-                    '\033[0;40m',
-                    p_nam,
-                    '\033[0m) Type I error: \033[1;31m',
-                    ro(df_stops[[paste0('ratio_sign_', p_nam, '_h0')]][df_nrow], round_to),
-                    '\033[0m; Power: \033[0;32m',
-                    ro(df_stops[[paste0('ratio_sign_', p_nam, '_h1')]][df_nrow], round_to),
-                    '\033[0m',
-                    l_a_descr,
-                    paste(
-                        paste0('(',
-                               looks,
-                               ') ',
-                               p_a_locals,
-                               collapse = '; ')
+                    p_a_locals = ro(a_locals_fin[[p_nam]], round_to)
+                    p_a_locals = ifelse(
+                        p_a_locals == '0',
+                        'none',
+                        paste0('\033[0;1m', p_a_locals, '\033[0m')
                     )
-                )
-                cat(toprint, fill = TRUE)
-                if (!is.null(fut_locals)) {
-                    if (all(fa_locals[[p_nam]] == 1)) {
-                        cat('Futility bounds: none', fill = TRUE)
-                    } else {
-                        p_fa_locals = ro(fa_locals[[p_nam]], round_to)
-                        p_fa_locals = ifelse(
-                            p_fa_locals == '0',
-                            'none',
-                            paste0('\033[0;1m', p_fa_locals, '\033[0m')
+                    toprint = paste0(
+                        '(',
+                        nonstp,
+                        '\033[0;40m',
+                        p_nam,
+                        '\033[0m) Type I error: \033[1;31m',
+                        ro(df_stops[[paste0('ratio_sign_', p_nam, '_h0')]][df_nrow], round_to),
+                        '\033[0m; Power: \033[0;32m',
+                        ro(df_stops[[paste0('ratio_sign_', p_nam, '_h1')]][df_nrow], round_to),
+                        '\033[0m',
+                        l_a_descr,
+                        paste(
+                            paste0('(',
+                                   looks,
+                                   ') ',
+                                   p_a_locals,
+                                   collapse = '; ')
                         )
-                        cat(paste(
-                            'Futility bounds:',
-                            paste(
-                                paste0('(',
-                                       looks[-mlook],
-                                       ') ',
-                                       p_fa_locals),
-                                collapse = '; '
+                    )
+                    cat(toprint, fill = TRUE)
+                    if (!is.null(fut_locals)) {
+                        if (all(fa_locals[[p_nam]] == 1)) {
+                            cat('Futility bounds: none', fill = TRUE)
+                        } else {
+                            p_fa_locals = ro(fa_locals[[p_nam]], round_to)
+                            p_fa_locals = ifelse(
+                                p_fa_locals == '0',
+                                'none',
+                                paste0(
+                                    '\033[0;1m',
+                                    p_fa_locals,
+                                    '\033[0m'
+                                )
                             )
-                        ),
-                        fill = TRUE)
+                            cat(paste(
+                                'Futility bounds:',
+                                paste(
+                                    paste0('(',
+                                           looks[-mlook],
+                                           ') ',
+                                           p_fa_locals),
+                                    collapse = '; '
+                                )
+                            ),
+                            fill = TRUE)
+                        }
                     }
                 }
-            }
-            if (multi_p) {
-                toprint = paste0(
-                    'Global ("combined significance") type I error: ',
-                    ro(global_type1, round_to),
-                    ' (included: ',
-                    paste(p_names, collapse = ', '),
-                    '; power for reaching the "combined significance": ',
-                    ro(global_power, round_to),
-                    ')'
-                )
-                cat(toprint, fill = TRUE)
+                if (multi_p) {
+                    toprint = paste0(
+                        'Global ("combined significance") type I error: ',
+                        ro(global_type1, round_to),
+                        ' (included: ',
+                        paste(p_names, collapse = ', '),
+                        '; power for reaching the "combined significance": ',
+                        ro(global_power, round_to),
+                        ')'
+                    )
+                    cat(toprint, fill = TRUE)
+                }
             }
             out_dfs[[paste0('df_', gsub('; ', '_', possa_fact))]] = df_stops
         }

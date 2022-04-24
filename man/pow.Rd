@@ -24,7 +24,8 @@ pow(
   descr_func = summary,
   round_to = 5,
   iter_limit = 100,
-  seed = 8
+  seed = 8,
+  hush = FALSE
 )
 }
 \arguments{
@@ -219,6 +220,8 @@ same number of iterations (e.g., by default, after \code{100}, at
 
 \item{seed}{Number for \code{\link{set.seed}}; \code{8} by default. Set to
 \code{NULL} for random seed.}
+
+\item{hush}{Logical. If \code{TRUE}, prevents printing any details to console.}
 }
 \value{
 Apart from printing the main power, error rate, and adjusted local

@@ -12,7 +12,8 @@ sim(
   adjust_n = 1,
   seed = 8,
   pair = NULL,
-  ignore_suffix = FALSE
+  ignore_suffix = FALSE,
+  hush = FALSE
 )
 }
 \arguments{
@@ -112,6 +113,8 @@ internally detected consistency problems with the \code{_h0}/\code{_h1}
 suffixes in the \code{fun_test} function arguments. Set to \code{TRUE} to
 completely ignore these (neither error nor warning). (Might be useful for
 testing or some very specific procedures.)}
+
+\item{hush}{Logical. If \code{TRUE}, prevents printing any details to console.}
 }
 \value{
 Returns a \code{\link{data.frame}} that includes the columns
