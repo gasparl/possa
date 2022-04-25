@@ -190,7 +190,7 @@ sim = function(fun_obs,
         df_combs = sapply(expand.grid(f_obs_args), as.vector)
         facts_list = list()
         for (rownum in 1:nrow(df_combs)) {
-            facts_list[[rownum]] = as.list(df_combs[rownum, ])
+            facts_list[[rownum]] = as.list(df_combs[rownum,])
         }
     } else {
         # set to have no combinations; single sample test (hence 1 cycle below)
@@ -218,13 +218,15 @@ sim = function(fun_obs,
                 grp_Arg_Test = f_test_Arg_names[startsWith(f_test_Arg_names, grp_name)]
                 if (length(grp_Arg_Test) > 0) {
                     grp_samples[[grp_name]] = grp_Arg_Test
-                    message(
-                        'Note: Observation numbers groupped as "',
-                        grp_name,
-                        '" for ',
-                        paste(grp_Arg_Test, collapse = ', '),
-                        '.'
-                    )
+                    if (hush == FALSE) {
+                        message(
+                            'Note: Observation numbers groupped as "',
+                            grp_name,
+                            '" for ',
+                            paste(grp_Arg_Test, collapse = ', '),
+                            '.'
+                        )
+                    }
                     if (is.null(pair)) {
                         pair = TRUE
                     }
@@ -418,7 +420,7 @@ sim = function(fun_obs,
             # renaming the first group member to represent all (since all are identical)
             names(df_pvals)[names(df_pvals) == obs_colnames[1]] = grp_nam
             # remove other group columns from dataframe
-            df_pvals = df_pvals[,!(names(df_pvals) %in% obs_colnames)]
+            df_pvals = df_pvals[, !(names(df_pvals) %in% obs_colnames)]
             # remove all group columns from obs names
             obs_names = obs_names[!obs_names %in% obs_colnames]
             # add group name to obs names, to represent all group columns
@@ -456,11 +458,11 @@ sim = function(fun_obs,
     }
     df_pvals = data.frame(df_pvals[, 1:2],
                           .n_total = adjust_n * n_tots,
-                          df_pvals[, -1:-2])
+                          df_pvals[,-1:-2])
     # order per iter and look
-    df_pvals = df_pvals[order(df_pvals$.iter, df_pvals$.look), ]
+    df_pvals = df_pvals[order(df_pvals$.iter, df_pvals$.look),]
     if (length(f_obs_args) > 0) {
-        df_pvals = df_pvals[do.call("order", df_pvals[names(f_obs_args)]),]
+        df_pvals = df_pvals[do.call("order", df_pvals[names(f_obs_args)]), ]
     }
 
     # add POSSA class names, to be recognized in POSSA::pow
@@ -474,8 +476,8 @@ sim = function(fun_obs,
     }
     # POSSA class for the whole data frame
     class(df_pvals) = c(class(df_pvals), "possa_df")
-    message('Simulation completed. Below is a sample of the resulting data.')
     if (hush == FALSE) {
+        message('Simulation completed. Below is a sample of the resulting data.')
         print(utils::head(df_pvals, min(n_look, 6L)))
     }
     return(df_pvals)

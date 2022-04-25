@@ -287,16 +287,18 @@ pow = function(p_values,
     m_l_reduce = FALSE
     m_l_fut_reduce = FALSE
     if (is.function(multi_logic_a)) {
-        if (isTRUE(all.equal(multi_logic_a, any))) {
-            message(
-                'Warning: Operation is hugely faster with ',
-                '"any" string argument for multi_logic_a.'
-            )
-        } else if (isTRUE(all.equal(multi_logic_a, all))) {
-            message(
-                'Warning: Operation is hugely faster with ',
-                '"all" string argument for multi_logic_a.'
-            )
+        if (hush == FALSE) {
+            if (isTRUE(all.equal(multi_logic_a, any))) {
+                message(
+                    'Warning: Operation is hugely faster with ',
+                    '"any" string argument for multi_logic_a.'
+                )
+            } else if (isTRUE(all.equal(multi_logic_a, all))) {
+                message(
+                    'Warning: Operation is hugely faster with ',
+                    '"all" string argument for multi_logic_a.'
+                )
+            }
         }
     } else {
         if (multi_logic_a == 'all') {
@@ -307,16 +309,18 @@ pow = function(p_values,
         m_l_reduce = TRUE
     }
     if (is.function(multi_logic_fut)) {
-        if (isTRUE(all.equal(multi_logic_fut, any))) {
-            message(
-                'Warning: Operation is hugely faster with ',
-                '"any" string argument for multi_logic_fut.'
-            )
-        } else if (isTRUE(all.equal(multi_logic_fut, all))) {
-            message(
-                'Warning: Operation is hugely faster with ',
-                '"all" string argument for multi_logic_fut.'
-            )
+        if (hush == FALSE) {
+            if (isTRUE(all.equal(multi_logic_fut, any))) {
+                message(
+                    'Warning: Operation is hugely faster with ',
+                    '"any" string argument for multi_logic_fut.'
+                )
+            } else if (isTRUE(all.equal(multi_logic_fut, all))) {
+                message(
+                    'Warning: Operation is hugely faster with ',
+                    '"all" string argument for multi_logic_fut.'
+                )
+            }
         }
     } else {
         if (multi_logic_fut == 'all') {
@@ -328,16 +332,18 @@ pow = function(p_values,
     }
     m_l_glob_reduce = FALSE
     if (is.function(multi_logic_global)) {
-        if (isTRUE(all.equal(multi_logic_global, any))) {
-            message(
-                'Warning: Operation is hugely faster with ',
-                '"any" string argument for multi_logic_global'
-            )
-        } else if (isTRUE(all.equal(multi_logic_global, all))) {
-            message(
-                'Warning: Operation is hugely faster with ',
-                '"all" string argument for multi_logic_global'
-            )
+        if (hush == FALSE) {
+            if (isTRUE(all.equal(multi_logic_global, any))) {
+                message(
+                    'Warning: Operation is hugely faster with ',
+                    '"any" string argument for multi_logic_global'
+                )
+            } else if (isTRUE(all.equal(multi_logic_global, all))) {
+                message(
+                    'Warning: Operation is hugely faster with ',
+                    '"all" string argument for multi_logic_global'
+                )
+            }
         }
     } else {
         if (multi_logic_global == 'all') {
@@ -661,7 +667,7 @@ pow = function(p_values,
 
     if (is.null(group_by)) {
         group_by = fac_cols
-    } else if (!identical(sort(group_by), sort(fac_cols))) {
+    } else if (!identical(sort(group_by), sort(fac_cols)) && hush == FALSE) {
         message('Custom "group_by" argument given. Be cautious.')
     }
     if (length(group_by) > 0) {
@@ -939,8 +945,10 @@ pow = function(p_values,
                         # change staircase direction (and also decrease step) if needed
                         a_step = -stair_steps[1] * sign(a_step)
                         stair_steps = stair_steps[-1]
-                        utils::setTxtProgressBar(p_bar,
-                                                 utils::getTxtProgressBar(p_bar) + 1)
+                        if (hush == FALSE) {
+                            utils::setTxtProgressBar(p_bar,
+                                                     utils::getTxtProgressBar(p_bar) + 1)
+                        }
                     }
                     # adjust a_adj itself by the step
                     # this a_adj will be used in the adjust function
@@ -1016,8 +1024,8 @@ pow = function(p_values,
                 # if multi_p, get global power at stopping point
                 pvals_stp = pvals_df[h1_stoP == TRUE, .SD,
                                      .SDcols = c('h1_stoP_sign', '.look', '.iter')]
-                # the global type 1 error
-                global_power = mean(pvals_stp[, min_look := min(.look), by = .iter][.look == min_look, h1_stoP_sign])
+                # the global type 1 error (not necessary to calculate; will be in totals)
+                # global_power = mean(pvals_stp[, min_look := min(.look), by = .iter][.look == min_look, h1_stoP_sign])
             }
 
             # calculate sample size information per look
@@ -1038,6 +1046,9 @@ pow = function(p_values,
                                          h1_stoP == TRUE,]
                 ps_sub1 = ps_sub1[!.iter %in% iters_out1$.iter,]
                 outs = c()
+                # get combined significants
+                outs['iters_sign_h0'] = nrow(iters_out0[h0_stoP_sign == TRUE])
+                outs['iters_sign_h1'] = nrow(iters_out1[h1_stoP_sign == TRUE])
                 # get info per p value column
                 for (p_nam in p_names_extr) {
                     # number of significant findings
@@ -1095,9 +1106,13 @@ pow = function(p_values,
                     }
                 }
             }
+
             # count ratios of stops per each look
             df_stops$ratio_stopped_h0 = df_stops$iters_stopped_h0 / iters_tot
             df_stops$ratio_stopped_h1 = df_stops$iters_stopped_h1 / iters_tot
+            # count ratios of combined significances per each look
+            df_stops$ratio_combined_sign_h0 = df_stops$iters_sign_h0 / iters_tot
+            df_stops$ratio_combined_sign_h1 = df_stops$iters_sign_h1 / iters_tot
             # count cumulative ratios of remainings
             df_stops$ratio_remain_h0 = df_stops$iters_remain_h0 / iters_tot
             df_stops$ratio_remain_h1 = df_stops$iters_remain_h1 / iters_tot
@@ -1190,22 +1205,31 @@ pow = function(p_values,
                 if (multi_p) {
                     toprint = paste0(
                         'Global ("combined significance") type I error: ',
-                        ro(global_type1, round_to),
+                        ro(
+                            df_stops$ratio_combined_sign_h0[df_nrow], # same as global_type1
+                            round_to
+                        ),
                         ' (included: ',
                         paste(p_names, collapse = ', '),
                         '; power for reaching the "combined significance": ',
-                        ro(global_power, round_to),
+                        ro(
+                            df_stops$ratio_combined_sign_h1[df_nrow], # same as global_power
+                            round_to
+                        ),
                         ')'
                     )
                     cat(toprint, fill = TRUE)
                 }
             }
+            class(df_stops) = c(class(df_stops), "possa_pow_df")
             out_dfs[[paste0('df_', gsub('; ', '_', possa_fact))]] = df_stops
         }
     }
     if (design_seq == TRUE) {
         if (is.na(possafacts[1])) {
             out_dfs = out_dfs[[1]]
+        } else {
+            class(out_dfs) = c(class(out_dfs), "possa_pow_list")
         }
         invisible(out_dfs)
     } else {
