@@ -17,3 +17,198 @@ knitr::opts_chunk$set(
 ```{r setup}
 library('POSSA')
 ```
+
+Below, the essence of `POSSA`'s power (and type 1 error rate, T1ER) calculation for sequential designs is explained using the simple example of a t-test. Of course, for t-tests specifically, you could use other and potentially easier software – however, the point here is to understand how the `POSSA` works, and, subsequently, it should be possible for you to extend this example to virtually any statistical null hypothesis test. (Cases of correlated samples and multiple hypotheses are explained on separate pages, but these too are straightforward extensions of the present example.)
+
+All parameters mentioned below are described in detail in full the documentation (see `?sim` and `?pow`).
+
+So let's say you want to compare the means of two independent continuous variables with a simple t-test. Your smallest effect size of interest (SESOI) is `5` units (arbitrary units that could represent anything – e.g., the height of a plant in cm, or the time of performing a task in seconds, etc.).
+
+### User functions for sample simulation and testing
+
+First, write a function that simulates the samples (i.e., observed values) for a single instance of the hypothetical experiment in case the null hypothesis is true (no actual difference between the two population means) as well as in case the alternative hypothesis is true (there is in fact difference). 
+
+If the null hypothesis "H0" is true, the two samples have the same mean, let's say `0` units; and let's assume normally distributed values an SD of `10` units for each sample. For this, two samples can each be simulated via the function `rnorm(sampleSize, mean = 0, sd = 10)` (where `sampleSize` is a variable to be provided via another function, as explained later). You can assign this to `sample1`, which represents a baseline variable (e.g., "group A"), and, separately, to `sample2_h0`, which represents a sample that does not differ from the baseline ("H0" true). If the null hypothesis "H1" is true, the baseline sample may again have a mean of `0`, but the other sample should have the SESOI, `5` units (again assuming an SD of `10`) – which can be simulated as `rnorm(sampleSize, mean = 0, sd = 10)`. This can be assigned to `sample2_h1`, which represents a sample that does differ from the baseline ("H1" true). (The baseline sample has identical properties in case of H0 and H1, so for it's enough to simulate one.)
+
+All this is to be put into a function, which takes a `sampleSize` argument and returns the simulated samples as a named list, as follows.
+
+```{r}
+customSample = function(sampleSize) {
+  list(
+    sample1 = rnorm(sampleSize, mean = 0, sd = 10),
+    sample2_h0 = rnorm(sampleSize, mean = 0, sd = 10),
+    sample2_h1 = rnorm(sampleSize, mean = 5, sd = 10)
+  )
+}
+```
+
+Note that the `customSample` and `sampleSize` variables were written with camel case (likeThis), while the `_h0` and `_h1` endings used underscores (like_this). This alternate notation is used in the present tutorial to help distinguish what names can be freely chosen, and what is necessarily named so for the `POSSA` package: custom names are all camel case, while underscores indicate notation necessary for `POSSA`. Here specifically, the list names for the sample that varies depending on whether the null (H0) and alternative (H1) hypothesis is true must be indicated with `_h0` and `_h1` endings, respectively, with a common root (here: `sample2`). The root name or the other variable names (`customSample` and `sampleSize`) could be named differently, and everything would work just as well.
+
+Now, write a function that performs the test; here, a one-sided t-test (with equal variances assumed – this is just for the example's outcome's comparability for other software, normally Welch's test should be preferred).
+
+The function's parameters must be identical to the names of the list elements returned by the sample function (here: `sample1`, `sample2_h0`, and `sample2_h1`). The returned value must be a named vector that contains the derived p values. The name of each p value must start with `p_`, and end with `_h0` for the "H0" outcome and with `_h1` for the "H1" outcome. (Below, it's simply `p_h0`/`p_h1`, but it could just as well be, e.g., `p_my_t.test_h0`/`p_my_t.test_h1`).
+
+```{r}
+customTest = function(sample1, sample2_h0, sample2_h1) {
+  c(
+    p_h0 = t.test(sample1, sample2_h0, 'less', var.equal = TRUE)$p.value,
+    p_h1 = t.test(sample1, sample2_h1, 'less', var.equal = TRUE)$p.value
+  )
+}
+```
+
+To make sure the two functions are working correctly, as a quick test you can run the following line (with any applicable number argument).
+
+```{r}
+do.call(customTest, customSample(55))
+```
+
+This passes `55` as (arbitrary) sample size to `customSample`, which passes the created samples to `customTest`, which finally returns the named vector with the `p_h0` and `p_h1` p values. (Given the randomization, if you run this line repeatedly, the outcome should differ each time – however, with large enough numbers, `p_h1` is likely to be noticeably smaller then `p_h0`.)
+
+### POSSA's *sim* and *pow*
+
+Now, the `POSSA::sim` function can be used with `customSample` for `fun_obs` (function for observation values) and `customTest` for `fun_test` (function for statistical testing), and any desired numbers of observation. (This runs the simulation `45000` times by default, so it takes a while. For quick testing, set the number to a lower value via the `n_iter` parameter, e.g., `n_iter = 500`.)
+
+```r
+df_ps = sim(fun_obs = customSample,
+            n_obs = 80,
+            fun_test = customTest)
+```
+
+The returned `df_ps` contains all the simulated p values, and can be directly passed to `POSSA::pow` to get the power for at any specified alpha level.
+
+```r
+pow(df_ps)
+```
+This prints to the console the following.
+
+```r
+#> # FIXED DESIGN; N(total) = 160 (alpha = .05000 for all)
+#> (p) Type I error: .05140; Power: .93327
+#> # SEQUENTIAL DESIGN; N(average-total) = 160.0 (if H0 true) or 160.0 (if H1 true)
+#> (p) Type I error: .05140; Power: .93327
+#> Local alphas (fixed): (1) .05000
+```
+
+The function uses an alpha of `.05` by default, this may be modified e.g. to `.01` below. Furthermore, since in this case the sample is always fixed at 80, the information about the fixed and sequential designs will be the same; we can just disable printing the latter.
+
+```r
+pow(df_ps, alpha_global = 0.01, design_seq = FALSE)
+
+#> # FIXED DESIGN; N(total) = 160 (alpha = .01000 for all)
+#> (p) Type I error: .00991; Power: .79069
+```
+
+So far, we can easily get the same information from other software, e.g. `pwr::pwr.t.test(n = 80, d = 0.5, alternative = 'greater')` (returns `power = 0.93368`) and `pwr::pwr.t.test(n = 80, d = 0.5, sig.level = 0.01, alternative = 'greater')` (returns `power = 0.79068`).
+
+However, sequential designs are extremely easy to be expanded from the above `sim` and `pow` examples. One just has to specify multiple instances of observation numbers for the `n_obs` in `sim` and specify a local alphas in `pow`, e.g. as below.
+
+```r
+df_ps_seq = sim(fun_obs = customSample,
+                n_obs = c(27, 54, 81),
+                fun_test = customTest)
+pow(df_ps_seq, alpha_locals = NA)
+
+#> # FIXED DESIGN; N(total) = 162 (alpha = .05000 for all)
+#> (p) Type I error: .04860; Power: .93636
+#> # SEQUENTIAL DESIGN; N(average-total) = 158.6 (if H0 true) or 98.8 (if H1 true)
+#> (p) Type I error: .05000; Power: .89922
+#> Adjusted local alphas: (1) .02288; (2) .02288; (3) .02288
+#> Likelihoods of significance if H0 true: (1) .02296; (2) .01631; (3) .01073
+#> Likelihoods of significance if H1 true: (1) .42324; (2) .32298; (3) .15300
+```
+
+The `alpha_locals = NA` input specifies that all local alphas are `NA`, in which case they will all gain a single identical number (corresponding to Pocock's correction in case of equally spaces looks). Rounding to the conventional 3 fractional digits, the adjusted constant local alpha number corresponds to the exact statistics (`.023`) provided in other software, e.g. `gsDesign::gsDesign(k = 3, test.type = 1, n.fix = 81, beta = 0.1, alpha = 0.05, sfu = 'Pocock')`.
+
+(By default, the information for fixed design is also always shown for a quick comparison and for a general "sanity check" for the scenario.)
+
+The console output contains only the most important information, but, when assigned, the `pow` function returns a data frame with detailed information per each look (and their totals), including the specified sample sizes, the numbers of iterations, etc. The printed information includes
+
+- the average number of subjects in H0 and in H1 scenarios (i.e., taking of all simulations, on average at how many participants the experiment was stopped),
+- the T1ER (here, it's for a single p value, but, in case of multiple p values, it would be a combined T1ER as specified)
+- the power (again, would be combined in case of multiple p values), 
+- the local alphas per look (and per each p value; but in the present case there is only one, named simply `p`, the root derived from `p_h0`/`p_h1`),
+- the ratios of significant findings per each look (corresponding to the local alphas).
+
+The look numbers are always in parenthesis, such that "`(1)`" designates the first look, "`(2)`" the second look, etc.
+
+### Adjusting local alphas
+
+`POSSA` helps obtain the local alphas, in sequential designs, that result in a specified overall (global) T1ER, which may also be called "global alpha". This procedure is automatized for most practical cases, but still users should ideally have a basic idea of how this works. However, impatient readers (who do not want to have customized adjustments) can skip to the **Specifying initial local alphas** section.
+
+The essential mechanism is a staircase procedure, where the local alphas are continually increased when the T1ER is smaller than specified and decreased when the T1ER is larger then specified, and each direction change (from decrease to increase or vice versa) moves onto a smaller step size in the adjustment. For example, the simplest case is when all local alphas are provided as `NA`, as above: in this case, the initial replacement value (which may be modified via the `adj_init` parameter) is by default the global alpha divided by the maximum number of looks, as a rough initial estimation. Subsequently, the given p values are tested with this setting, and a global T1ER is calculated. If it is larger than specified, the replacement value is decreased, or vice versa. The amount of decrease is the first step, by default `0.01`. Then the testing is repeated, and the change is repeated in the same direction until the obtained T1ER passes the specified T1ER (e.g., becomes smaller, when initially larger). Then the replacement value is increased with a smaller second step size, by default `0.05`. And so on, until either there are no more steps (as specified) or (more typically) the obtained T1ER is close enough to the specified one (e.g., by default, matches it up to 5 fractional digits; may be specified via `alpha_precision`), at which point the procedure stops and the obtained local alphas (each having the same value) and the corresponding results are returned and printed.
+
+The adjustment actually happens via a function that can be specified via the `adjust` parameter, but, by default, whenever there is at least one `NA` value among the given `alpha_locals` argument, the function implements the above-described procedure, and looks as follows.
+
+```r
+adjust = function(adj, prev, orig) {
+    prev[is.na(orig)] = adj
+    return(prev)
+}
+```
+
+In this function, `adj` means the adjustment value (in this case a replacement value), `prev` the previous vector of local alphas (obtained in the last adjustment), and `orig` the original vector of local alphas as provided for `alpha_locals`. (For the first adjustment, `prev` is the same as `orig`). Any sort of custom function may be provided as `adjust`, but it cannot contain any parameter other than these three (`adj`, `prev`, and `orig`).
+
+By default, if no `NA` value is found among the given `alpha_locals`, the `adjust` function uses multiplication to adjust the given values (with `adj_init` set to `1`), as follows.
+
+```r
+adjust = function(orig, adj) {
+    return(orig * adj)
+}
+```
+
+By default, there are altogether 11 step sizes, chosen in a way that typically results in 5-fractional-digit T1ER match before running getting to the last step, and the calculation typically takes only a few seconds. (Step sizes can be modified via the `staircase_steps` parameter.)
+
+### Specifying initial local alphas
+
+Given the above-described default mechanisms, there are, without modifying the adjustment procedure, two easy ways to provide the argument for `alpha_locals` (for any given p value): (a) a vector that includes (or consist entirely of) `NA` values that are to be replaced with a constant number that results in the desired global T1ER, and (b) a vector with all numeric values that are each to be multiplied with a number in order to obtain a vector of alphas that again result in the desired global T1ER.
+
+Here are some examples.
+
+pow(df_ps_v1e, alpha_locals = c(0.0088, NA), alpha_global = 0.05)
+pow(df_ps_v1e, alpha_locals = NA, alpha_global = 0.05)
+pow(df_ps_v1e, alpha_locals = NA, alpha_global = 0.01)
+pow(df_ps_v1e, alpha_locals = c(0.0088, 0.0467), alpha_global = 0.05)
+pow(df_ps_v1c, alpha_locals = c(0.0013, 0.0013, NA), alpha_global = 0.01)
+
+
+OF examples:
+
+summary(rpact::getSampleSizeMeans(rpact::getDesignGroupSequential(typeOfDesign = "OF", informationRates = c(0.5, 0.6, 1), alpha = 0.05), alternative = 0.5))
+
+gsDesign::gsDesign(k = 3, test.type = 1, n.fix = 81, beta = 0.1, alpha = 0.05, timing = c(0.5, 0.6, 1), sfu = 'OF') 
+
+pow(
+  df_ps_v1d,
+  alpha_locals = c(0.0001, 0.0004, 0.0031, 0.0089),
+  alpha_global = 0.01,
+  adjust = function(adj, prev, orig) {
+    return(orig + adj)
+  }
+)
+
+
+pow(
+  df_ps_v1d,
+  alpha_locals = c(0.0001, 0.0004, 0.0031, 0.0089),
+  alpha_global = 0.01,
+  adjust = FALSE
+)
+
+(To skip, just set to 1 -- this may be useful in case of multiple p values (in case of multiple hypthesis).)
+
+### Futility bounds
+
+
+pow(df_ps_seq, fut_locals = 0.5)
+pow(df_ps_seq, fut_locals = c(1, 0.5))
+pow(df_ps_seq, fut_locals = c(0.5, 0.5))
+
+
+pow(df_ps_seq, alpha_locals = c(NA, NA, 0.05), fut_locals = 0.5)
+pow(df_ps_seq, alpha_locals = c(0, 0.05, 0.025), fut_locals = c(0.8, 0.5))
+pow(df_ps_seq, alpha_locals = c(0.025, 0, 0.05), fut_locals = c(0.8, 0.5))
+
+### Arbitrary stops
+
+

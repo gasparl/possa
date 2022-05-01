@@ -150,35 +150,18 @@
 #'@param group_by When given as a character element or vector, specifies the
 #'  factors by which to group the analysis: the \code{p_values} data will be
 #'  divided into parts by these factors and these parts will be analyzed
-#'  separately, with power and error information (and descriptives, if
-#'  specified) printed per each part. By default (\code{NULL}), it identifies
-#'  factors, if any, given to the \code{sim} function (via \code{fun_obs}) that
-#'  created the given \code{p_values} data.
+#'  separately, with power and error information calculated per each part. By
+#'  default (\code{NULL}), it identifies factors, if any, given to the
+#'  \code{sim} function (via \code{fun_obs}) that created the given
+#'  \code{p_values} data.
 #'@param alpha_loc_nonstop Optional "non-stopper" alphas via which to evaluate p
 #'  values per look, but without stopping the data collection regardless of
 #'  statistical significance. Must be a list with names indicating p value
 #'  column name pairs, similarly as for the \code{alpha_locals} argument; see
 #'  \code{alpha_locals} for details.
-#'@param design_fix Whether to calculate fixed design (as comparable
-#'  alternative(s) to given "looks" of the sequential design). If \code{NULL}
-#'  (default), shows power for maximum sample (last "look") only. If set to
-#'  \code{TRUE}, shows power for each given "look" (interim and final).
-#'  Altogether omitted when set to \code{FALSE}.
-#'@param design_seq Whether to calculate sequential design (default:
-#'  \code{TRUE}). (Although this R package is designed for sequential analysis,
-#'  it can be used for fixed designs alone too.) Altogether omitted when set to
-#'  \code{FALSE}.
-#'@param descr_cols When given as a character element or vector, specifies the
-#'  factors for which descriptive data should be shown (by group, if
-#'  applicable). If set to \code{TRUE}, it identifies (similar as
-#'  \code{group_by}) factors, if any, given to the \code{sim} function (via
-#'  \code{fun_obs}) that produced the given \code{p_values} data. By default
-#'  (\code{FALSE}), no descriptive data is shown.
-#'@param descr_func Function used for printing descriptives (see
-#'  \code{descr_cols}). By default, it uses the \code{\link{summary}}
-#'  (\code{\link{base}}) function.
 #'@param round_to Number of fractional digits (default: \code{5}) to round to,
-#'  for the displayed power and type 1 error rate information.
+#'  for the displayed numeric information (such as alphas and power; mainly for
+#'  default value for \code{\link[POSSA:print.possa_pow_list]{printing}}).
 #'@param iter_limit In some specific cases of unideal/wrong input, the staircase
 #'  may get stuck at a given step's loop process. The \code{iter_limit}
 #'  parameter specifies the number (by default \code{100}) at which the script
@@ -188,7 +171,8 @@
 #'  \code{200}, then \code{300}, etc.).
 #'@param seed Number for \code{\link{set.seed}}; \code{8} by default. Set to
 #'  \code{NULL} for random seed.
-#'@param hush Logical. If \code{TRUE}, prevents printing any details to console.
+#'@param hush Logical. If \code{TRUE}, prevents printing any details (or the
+#'  progress bar) to console.
 #'
 #'@return Apart from printing the main power, error rate, and adjusted local
 #'  alpha outcomes, the function (invisibly) returns a \code{\link{data.frame}}
@@ -226,14 +210,12 @@ pow = function(p_values,
                multi_logic_global = 'any',
                group_by = NULL,
                alpha_loc_nonstop = NULL,
-               design_fix = NULL,
-               design_seq = TRUE,
-               descr_cols = FALSE,
-               descr_func = summary,
                round_to = 5,
                iter_limit = 100,
                seed = 8,
                hush = FALSE) {
+    all_args = mget(names(formals()), sys.frame(sys.nframe()))
+    p_values = data.table::copy(p_values)
     validate_args(
         match.call(),
         list(
@@ -242,10 +224,6 @@ pow = function(p_values,
             val_arg(adjust, c('function', 'bool')),
             val_arg(adj_init, c('null', 'num'), 1),
             val_arg(group_by, c('null', 'char')),
-            val_arg(design_fix, c('null', 'bool'), 1),
-            val_arg(design_seq, c('bool'), 1),
-            val_arg(descr_cols, c('bool', 'char')),
-            val_arg(descr_func, c('function'), 1),
             val_arg(multi_logic_a, c('char', 'function'), 1, c('all', 'any')),
             val_arg(multi_logic_fut, c('char', 'function'), 1, c('all', 'any')),
             val_arg(
@@ -276,14 +254,13 @@ pow = function(p_values,
     . = NULL
 
     set.seed(seed)
-    if (!'possa_df' %in% class(p_values)) {
+    if (!'possa_sim_df' %in% class(p_values)) {
         warning(
             'The given data frame seems not to have been created by the ',
             '"possa::sim_pvals()" function; it may not fit the "possa::get_pow()" function.',
             immediate. = TRUE
         )
     }
-    p_values = data.table::copy(p_values)
     m_l_reduce = FALSE
     m_l_fut_reduce = FALSE
     if (is.function(multi_logic_a)) {
@@ -353,6 +330,9 @@ pow = function(p_values,
         }
         m_l_glob_reduce = TRUE
     }
+    # this is where all outcome dfs will be stored
+    out_dfs = list()
+    # set data.table
     setDT(p_values)
     setkey(p_values, .look)
     setindex(p_values, .iter)
@@ -667,7 +647,8 @@ pow = function(p_values,
 
     if (is.null(group_by)) {
         group_by = fac_cols
-    } else if (!identical(sort(group_by), sort(fac_cols)) && hush == FALSE) {
+    } else if (!identical(sort(group_by), sort(fac_cols)) &&
+               hush == FALSE) {
         message('Custom "group_by" argument given. Be cautious.')
     }
     if (length(group_by) > 0) {
@@ -678,23 +659,6 @@ pow = function(p_values,
     }
     p_names_h0 = paste0(p_names, '_h0')
     p_names_h1 = paste0(p_names, '_h1')
-    if (descr_cols[1] == TRUE) {
-        descr_cols = names(p_values)[!names(p_values) %in%
-                                         c(
-                                             '.iter',
-                                             '.look',
-                                             '.n_total',
-                                             '._possa_fact_combs',
-                                             paste0(p_names_extr, '_h0'),
-                                             paste0(p_names_extr, '_h1'),
-                                             n_cols,
-                                             fac_cols
-                                         )]
-        if (!length(descr_cols) > 0) {
-            descr_cols = FALSE
-        }
-    }
-    out_dfs = list()
     p_values[, h0_stoP := TRUE]
     p_values[, h1_stoP := TRUE]
     p_values[, h0_stoP_fa := TRUE]
@@ -704,535 +668,388 @@ pow = function(p_values,
         # when none: possa_fact = NA
         if (is.na(possafacts[1])) {
             pvals_df = p_values
+            possa_fact = NULL
         } else {
-            # print descriptives of all included
-            if (descr_cols[1] != FALSE &&
-                possa_fact == possafacts[1] && hush == FALSE) {
-                cat('-- DESCRIPTIVES (total) --', fill = TRUE)
-                for (desc_col in descr_cols) {
-                    cat(desc_col, ': ', sep = '')
-                    descr_func(p_values[[desc_col]])
-                }
-            }
             # if applicable, take only given factor combination & print its "group" name
             pvals_df = p_values[._possa_fact_combs == possa_fact]
-            if (hush == FALSE) {
-                cat(
-                    '\nGROUP (',
-                    paste(group_by, collapse = '; '),
-                    '): ',
-                    possa_fact,
-                    fill = TRUE,
-                    sep = ''
-                )
-            }
-        }
-        if (descr_cols[1] != FALSE && hush == FALSE) {
-            cat('-- DESCRIPTIVES --', fill = TRUE)
-            for (desc_col in descr_cols) {
-                cat(desc_col,
-                    ': ',
-                    sep = '',
-                    fill = TRUE)
-                print(descr_func(pvals_df[[desc_col]]))
-            }
-            cat('', fill = TRUE)
         }
         tot_samples = pvals_df[, stats::median(.n_total), by = '.look']$V1
-        ## Fixed design calculation below
-        if (is.null(design_fix)) {
-            fix_looks = mlook # (default) show at max look only
-        } else  if (design_fix == TRUE) {
-            fix_looks = 1:mlook # show outcome at all looks
-        } else if (design_fix == FALSE) {
-            fix_looks = NULL # show none
+
+        ## Sequential design calculation below
+
+        # "trial and error" staircase procedure below, to get the desired adjusted alpha
+        locls_temp = a_locals
+        a_adj = adj_init
+        stair_steps = staircase_steps
+        if (!is.null(alpha_loc_nonstop) &
+            !is.na(stair_steps[length(stair_steps)])) {
+            stair_steps = c(stair_steps, NA)
         }
-        if (hush == FALSE) {
-            for (f_look in fix_looks) {
-                pvals_df_fix = pvals_df[.look == f_look]
+        a_step = stair_steps[1] # initial a_adj-changing step
+        p_h0_sign_names = paste0(p_names, '_h0_sign')
+        multi_p = length(p_h0_sign_names) > 1
+        p_h1_sign_names = paste0(p_names, '_h1_sign')
+        p_h0_fut_names = paste0(fa_p_names, '_h0_fut')
+        p_h1_fut_names = paste0(fa_p_names, '_h1_fut')
+        if (prog_bar == TRUE) {
+            p_bar = utils::txtProgressBar(
+                min = 0,
+                max = length(staircase_steps),
+                initial = 0,
+                style = 3
+            )
+        }
+        for (p_nam in p_names) {
+            pvals_df[, c(paste0(p_nam, '_h0_sign')) := NA] # create sign column for given p
+        }
+        for (p_nam in fa_p_names) {
+            # if futility bounds are given
+            pvals_df[, c(paste0(p_nam, '_h0_fut')) := TRUE] # create fut column for given p
+        }
+        p_names_temp = p_names
+        safe_count = 0
+        global_type1 = 1
+        while (length(stair_steps) > 0) {
+            ### (stepwise info just for testing)
+            # cat('\nglobal_type1',
+            #     global_type1,
+            #     'a_adj:',
+            #     a_adj,
+            #     'new step:',
+            #     a_step,
+            #     fill = T)
+
+            # in case of suspiciously many iterations, offer to stop
+            safe_count = safe_count + 1
+            if (safe_count %% iter_limit == 0) {
                 cat(
-                    '\033[1;34m# FIXED DESIGN;\033[0m N(total) = \033[0;4m',
-                    tot_samples[f_look],
-                    '\033[0m (alpha = \033[0;1m',
-                    ro(alpha_global, round_to),
-                    '\033[0m for all)',
-                    sep = '',
+                    paste0(
+                        '\nThere have been ',
+                        safe_count,
+                        ' iterations. The arguments given may be problematic (and/or may never lead to the desired error rate).',
+                        '\nNote: The current global type 1 error is ',
+                        ro(global_type1, round_to),
+                        ' (expected: ',
+                        ro(alpha_global, round_to),
+                        ').'
+                    ),
                     fill = TRUE
                 )
-                for (p_nam in p_names_extr) {
-                    cat(
-                        '(\033[0;40m',
-                        p_nam,
-                        '\033[0m) Type I error: \033[1;31m',
-                        ro(
-                            mean(pvals_df_fix[[paste0(p_nam, '_h0')]] < alpha_global),
-                            round_to
-                        ),
-                        '\033[0m; Power: \033[0;32m',
-                        ro(
-                            mean(pvals_df_fix[[paste0(p_nam, '_h1')]] < alpha_global),
-                            round_to
-                        ),
-                        '\033[0m',
-                        sep = '',
-                        fill = TRUE
-                    )
-                }
-            }
-        }
-
-        ## Sequential design calculation below (when applicable)
-        if (design_seq == TRUE) {
-            # "trial and error" straircase procedure below, to get the desired adjusted alpha
-            locls_temp = a_locals
-            a_adj = adj_init
-            stair_steps = staircase_steps
-            if (!is.null(alpha_loc_nonstop) &
-                !is.na(stair_steps[length(stair_steps)])) {
-                stair_steps = c(stair_steps, NA)
-            }
-            a_step = stair_steps[1] # initial a_adj-changing step
-            p_h0_sign_names = paste0(p_names, '_h0_sign')
-            multi_p = length(p_h0_sign_names) > 1
-            p_h1_sign_names = paste0(p_names, '_h1_sign')
-            p_h0_fut_names = paste0(fa_p_names, '_h0_fut')
-            p_h1_fut_names = paste0(fa_p_names, '_h1_fut')
-            if (prog_bar == TRUE) {
-                p_bar = utils::txtProgressBar(
-                    min = 0,
-                    max = length(staircase_steps),
-                    initial = 0,
-                    style = 3
-                )
-            }
-            for (p_nam in p_names) {
-                pvals_df[, c(paste0(p_nam, '_h0_sign')) := NA] # create sign column for given p
-            }
-            for (p_nam in fa_p_names) {
-                # if futility bounds are given
-                pvals_df[, c(paste0(p_nam, '_h0_fut')) := TRUE] # create fut column for given p
-            }
-            p_names_temp = p_names
-            safe_count = 0
-            global_type1 = 1
-            while (length(stair_steps) > 0) {
-                ### (stepwise info just for testing)
-                # cat('\nglobal_type1',
-                #     global_type1,
-                #     'a_adj:',
-                #     a_adj,
-                #     'new step:',
-                #     a_step,
-                #     fill = T)
-
-                # in case of suspiciously many iterations, offer to stop
-                safe_count = safe_count + 1
-                if (safe_count %% iter_limit == 0) {
-                    cat(
-                        paste0(
-                            '\nThere have been ',
-                            safe_count,
-                            ' iterations. The arguments given may be problematic (and/or may never lead to the desired error rate).',
-                            '\nNote: The current global type 1 error is ',
-                            ro(global_type1, round_to),
-                            ' (expected: ',
-                            ro(alpha_global, round_to),
-                            ').'
-                        ),
-                        fill = TRUE
-                    )
-                    if (readline('Do you want to quit the staircase procedure? (y/n) \n') == 'y') {
-                        message('Staircase interrupted.')
-                        break
-                    }
-                }
-
-                if (is.na(stair_steps[1])) {
-                    # as a last step, add non-stopping columns, if any
-                    p_names_temp = p_names_extr
-                } else {
-                    # adjust local alphas (for stopping alphas only)
-                    for (p_nam in p_names) {
-                        locls_temp[[p_nam]] = adjust(
-                            adj = a_adj,
-                            prev = locls_temp[[p_nam]],
-                            orig = a_locals[[p_nam]]
-                        )
-                    }
-                }
-
-                # calculate H0 significances (T/F) & stops (T/F) based on adjusted alphas
-                for (p_nam in p_names_temp) {
-                    for (lk in 1:mlook) {
-                        # decide significance at given look for given p
-                        pvals_df[.(lk), c(paste0(p_nam, '_h0_sign')) :=
-                                     .SD < locls_temp[[p_nam]][lk], .SDcol = paste0(p_nam, '_h0')]
-                    }
-                }
-                if (!is.null(fut_locals)) {
-                    for (p_nam in fa_p_names) {
-                        # (mlook - 1 because futility never matters at max look)
-                        for (lk in 1:(mlook - 1)) {
-                            pvals_df[.(lk), c(paste0(p_nam, '_h0_fut')) :=
-                                         .SD > fa_locals[[p_nam]][lk], .SDcol = paste0(p_nam, '_h0')]
-                        }
-                    }
-                }
-
-                # check at which look we stop
-                # if multiple p values are given as stoppers
-                # use multi_logic_a to check where to stop
-                # otherwise it simply stops where the given p is sign
-                if (multi_p) {
-                    if (m_l_reduce) {
-                        pvals_df[.look != mlook, h0_stoP := Reduce(multi_logic_a, .SD), .SDcols = p_h0_sign_names]
-                    } else {
-                        pvals_df[.look != mlook,  h0_stoP := apply(.SD, 1, multi_logic_a), .SDcols = p_h0_sign_names]
-                    }
-                    if (m_l_glob_reduce) {
-                        pvals_df[, h0_stoP_sign := Reduce(multi_logic_global, .SD),
-                                 .SDcols = p_h0_sign_names]
-                    } else {
-                        pvals_df[, h0_stoP_sign := apply(.SD, 1, multi_logic_global),
-                                 .SDcols = p_h0_sign_names]
-                    }
-                } else {
-                    pvals_df[.look != mlook, h0_stoP := .SD, .SDcols = p_h0_sign_names]
-                    pvals_df[, h0_stoP_sign := .SD, .SDcols = p_h0_sign_names]
-                }
-
-                if (!is.null(fut_locals)) {
-                    # analogue with futility bounds
-                    if (multi_p) {
-                        if (m_l_fut_reduce) {
-                            pvals_df[.look != mlook, h0_stoP_fa := Reduce(multi_logic_fut, .SD), .SDcols = p_h0_fut_names]
-                        } else {
-                            pvals_df[.look != mlook, h0_stoP_fa := apply(.SD, 1, multi_logic_fut), .SDcols = p_h0_fut_names]
-                        }
-                    } else {
-                        pvals_df[.look != mlook, h0_stoP_fa := .SD, .SDcols = p_h0_fut_names]
-                    }
-                    pvals_df[.look != mlook, h0_stoP := h0_stoP |
-                                 h0_stoP_fa]
-                }
-
-                # now get all outcomes at stopping point
-                pvals_stp = pvals_df[h0_stoP == TRUE, .SD,
-                                     .SDcols = c('h0_stoP_sign', '.look', '.iter')]
-                # the global type 1 error
-                global_type1 = mean(pvals_stp[, min_look := min(.look), by = .iter][.look == min_look, h0_stoP_sign])
-
-                #mean(pvals_stp[, min_look := min(.look), by = .iter][.look == min_look, p_test2_h0_sign])
-                #mean(pvals_stp[, min_look := min(.look), by = .iter][.look == min_look, p_test1_h0_sign])
-
-                if (is.na(stair_steps[1])) {
-                    # NA indicates no stairs; nothing left to be done
+                if (readline('Do you want to quit the staircase procedure? (y/n) \n') == 'y') {
+                    message('Staircase interrupted.')
                     break
-                } else {
-                    # break if global alpha is correct
-                    # otherwise continue the staircase
-                    if (round(global_type1, alpha_precision) == round(alpha_global, alpha_precision)) {
-                        if (is.null(alpha_loc_nonstop)) {
-                            break
-                        } else {
-                            stair_steps = NA
-                            a_step = 0
-                        }
-                    } else if ((global_type1 < alpha_global &&
-                                a_step < 0) ||
-                               (global_type1 > alpha_global &&
-                                a_step > 0)) {
-                        # change staircase direction (and also decrease step) if needed
-                        a_step = -stair_steps[1] * sign(a_step)
-                        stair_steps = stair_steps[-1]
-                        if (hush == FALSE) {
-                            utils::setTxtProgressBar(p_bar,
-                                                     utils::getTxtProgressBar(p_bar) + 1)
-                        }
-                    }
-                    # adjust a_adj itself by the step
-                    # this a_adj will be used in the adjust function
-                    a_adj = a_adj + a_step
                 }
             }
-            if (prog_bar == TRUE) {
-                utils::setTxtProgressBar(p_bar, length(staircase_steps))
-                close(p_bar)
-            }
-            # assign final local alphas
-            a_locals_fin = locls_temp
 
-            for (a_name in names(a_locals_fin)) {
-                a_locals_fin[[a_name]][a_locals_fin[[a_name]] < 0] = 0
+            if (is.na(stair_steps[1])) {
+                # as a last step, add non-stopping columns, if any
+                p_names_temp = p_names_extr
+            } else {
+                # adjust local alphas (for stopping alphas only)
+                for (p_nam in p_names) {
+                    locls_temp[[p_nam]] = adjust(adj = a_adj,
+                                                 prev = locls_temp[[p_nam]],
+                                                 orig = a_locals[[p_nam]])
+                }
             }
 
-            # calculate H1 significances (T/F) & stops (T/F) based on final alphas
-            # (analogue of the H0 significances above)
-            for (p_nam in p_names_extr) {
-                pvals_df[, c(paste0(p_nam, '_h1_sign')) := NA]
+            # calculate H0 significances (T/F) & stops (T/F) based on adjusted alphas
+            for (p_nam in p_names_temp) {
                 for (lk in 1:mlook) {
-                    pvals_df[.(lk), c(paste0(p_nam, '_h1_sign')) :=
-                                 .SD < locls_temp[[p_nam]][lk], .SDcol = paste0(p_nam, '_h1')]
+                    # decide significance at given look for given p
+                    pvals_df[.(lk), c(paste0(p_nam, '_h0_sign')) :=
+                                 .SD < locls_temp[[p_nam]][lk], .SDcol = paste0(p_nam, '_h0')]
                 }
             }
             if (!is.null(fut_locals)) {
                 for (p_nam in fa_p_names) {
-                    pvals_df[, c(paste0(p_nam, '_h1_fut')) := TRUE]
                     # (mlook - 1 because futility never matters at max look)
                     for (lk in 1:(mlook - 1)) {
-                        pvals_df[.(lk), c(paste0(p_nam, '_h1_fut')) :=
-                                     .SD > fa_locals[[p_nam]][lk], .SDcol = paste0(p_nam, '_h1')]
+                        pvals_df[.(lk), c(paste0(p_nam, '_h0_fut')) :=
+                                     .SD > fa_locals[[p_nam]][lk], .SDcol = paste0(p_nam, '_h0')]
                     }
                 }
             }
 
-
-            # now check the global power
-            # if multiple p columns, check at which look we stop
+            # check at which look we stop
+            # if multiple p values are given as stoppers
+            # use multi_logic_a to check where to stop
+            # otherwise it simply stops where the given p is sign
             if (multi_p) {
                 if (m_l_reduce) {
-                    pvals_df[.look != mlook, h1_stoP := Reduce(multi_logic_a, .SD), .SDcols = p_h1_sign_names]
+                    pvals_df[.look != mlook, h0_stoP := Reduce(multi_logic_a, .SD), .SDcols = p_h0_sign_names]
                 } else {
-                    pvals_df[.look != mlook, h1_stoP := apply(.SD, 1, multi_logic_a), .SDcols = p_h1_sign_names]
+                    pvals_df[.look != mlook,  h0_stoP := apply(.SD, 1, multi_logic_a), .SDcols = p_h0_sign_names]
                 }
                 if (m_l_glob_reduce) {
-                    pvals_df[, h1_stoP_sign := Reduce(multi_logic_global, .SD),
-                             .SDcols = p_h1_sign_names]
+                    pvals_df[, h0_stoP_sign := Reduce(multi_logic_global, .SD),
+                             .SDcols = p_h0_sign_names]
                 } else {
-                    pvals_df[, h1_stoP_sign := apply(.SD, 1, multi_logic_global),
-                             .SDcols = p_h1_sign_names]
+                    pvals_df[, h0_stoP_sign := apply(.SD, 1, multi_logic_global),
+                             .SDcols = p_h0_sign_names]
                 }
             } else {
-                pvals_df[.look != mlook, h1_stoP := .SD, .SDcols = p_h1_sign_names]
-                pvals_df[, h1_stoP_sign := .SD, .SDcols = p_h1_sign_names]
+                pvals_df[.look != mlook, h0_stoP := .SD, .SDcols = p_h0_sign_names]
+                pvals_df[, h0_stoP_sign := .SD, .SDcols = p_h0_sign_names]
             }
 
             if (!is.null(fut_locals)) {
+                # analogue with futility bounds
                 if (multi_p) {
                     if (m_l_fut_reduce) {
-                        pvals_df[.look != mlook, h1_stoP_fa := Reduce(multi_logic_fut, .SD), .SDcols = p_h1_fut_names]
+                        pvals_df[.look != mlook, h0_stoP_fa := Reduce(multi_logic_fut, .SD), .SDcols = p_h0_fut_names]
                     } else {
-                        pvals_df[.look != mlook,  h1_stoP_fa := apply(.SD, 1, multi_logic_fut), .SDcols = p_h1_fut_names]
+                        pvals_df[.look != mlook, h0_stoP_fa := apply(.SD, 1, multi_logic_fut), .SDcols = p_h0_fut_names]
                     }
                 } else {
-                    pvals_df[.look != mlook, h1_stoP_fa := .SD, .SDcols = p_h1_fut_names]
+                    pvals_df[.look != mlook, h0_stoP_fa := .SD, .SDcols = p_h0_fut_names]
                 }
-                pvals_df[.look != mlook, h1_stoP := h1_stoP |
-                             h1_stoP_fa]
-            }
-            if (multi_p) {
-                # if multi_p, get global power at stopping point
-                pvals_stp = pvals_df[h1_stoP == TRUE, .SD,
-                                     .SDcols = c('h1_stoP_sign', '.look', '.iter')]
-                # the global type 1 error (not necessary to calculate; will be in totals)
-                # global_power = mean(pvals_stp[, min_look := min(.look), by = .iter][.look == min_look, h1_stoP_sign])
+                pvals_df[.look != mlook, h0_stoP := h0_stoP |
+                             h0_stoP_fa]
             }
 
-            # calculate sample size information per look
-            ps_sub0 = data.table::copy(pvals_df)
-            ps_sub1 = data.table::copy(pvals_df)
-            iters_tot = length(unique(pvals_df$.iter))
-            stops = list() # collect info per each stop
-            previous_h0 = iters_tot # start with max for both
-            previous_h1 = iters_tot
-            for (lk in looks) {
-                # get iterations stopped at given look
-                iters_out0 = ps_sub0[.look == lk &
-                                         h0_stoP == TRUE]
-                # remove stopped iterations
-                ps_sub0 = ps_sub0[!.iter %in% iters_out0$.iter, ]
-                # (same for H1)
-                iters_out1 = ps_sub1[.look == lk &
-                                         h1_stoP == TRUE,]
-                ps_sub1 = ps_sub1[!.iter %in% iters_out1$.iter,]
-                outs = c()
-                # get combined significants
-                outs['iters_sign_h0'] = nrow(iters_out0[h0_stoP_sign == TRUE])
-                outs['iters_sign_h1'] = nrow(iters_out1[h1_stoP_sign == TRUE])
-                # get info per p value column
-                for (p_nam in p_names_extr) {
-                    # number of significant findings
-                    outs[paste0('iters_sign_', p_nam, '_h0')] =
-                        sum(iters_out0[[paste0(p_nam, '_h0_sign')]])
-                    outs[paste0('iters_sign_', p_nam, '_h1')] =
-                        sum(iters_out1[[paste0(p_nam, '_h1_sign')]])
-                    if (!is.null(fut_locals)) {
-                        # number of futility bound crossings
-                        outs[paste0('iters_futil_', p_nam, '_h0')] =
-                            sum(iters_out1[[paste0(p_nam, '_h0_fut')]])
-                        outs[paste0('iters_futil_', p_nam, '_h1')] =
-                            sum(iters_out1[[paste0(p_nam, '_h1_fut')]])
-                    }
-                }
-                # whatever remained
-                outs['iters_remain_h0'] =
-                    length(unique(ps_sub0$.iter))
-                outs['iters_remain_h1'] =
-                    length(unique(ps_sub1$.iter))
-                if (lk == mlook) {
-                    # at last look, all is stopped that previously remained
-                    outs['iters_stopped_h0'] = previous_h0
-                    outs['iters_stopped_h1'] = previous_h1
-                } else {
-                    # calculate stops as previous minus current remaining
-                    outs['iters_stopped_h0'] = previous_h0 - outs['iters_remain_h0']
-                    outs['iters_stopped_h1'] = previous_h1 - outs['iters_remain_h1']
-                }
-                stops[[length(stops) + 1]] = c(
-                    look = lk,
-                    n = tot_samples[lk],
-                    n_rate = tot_samples[lk] / tot_samples[mlook],
-                    outs
-                )
-                # assign current remaining as the next "previous remaining"
-                previous_h0 = outs['iters_remain_h0']
-                previous_h1 = outs['iters_remain_h1']
-            }
-            df_stops = as.data.frame(do.call(rbind, stops))
-            # derive end info (type 1, power, etc) from the iteration ratios
-            for (p_nam in p_names_extr) {
-                # write out local alphas
-                df_stops[paste0('alpha_local_', p_nam)] = a_locals_fin[[p_nam]]
-                if (!is.null(fut_locals)) {
-                    # write out local futility bounds (if any)
-                    df_stops[paste0('futil_local_', p_nam)] = c(fa_locals[[p_nam]], NA)
-                }
-                for (h01 in c('_h0', '_h1')) {
-                    # ratio of significant findings at any given stop
-                    df_stops[paste0('ratio_sign_', p_nam, h01)] = df_stops[paste0('iters_sign_', p_nam, h01)] / iters_tot
-                    if (!is.null(fut_locals)) {
-                        # ratio of futility bound crossings at any given stop
-                        df_stops[paste0('ratio_futil_', p_nam, h01)] = df_stops[paste0('iters_futil_', p_nam, h01)] / iters_tot
-                    }
-                }
-            }
+            # now get all outcomes at stopping point
+            pvals_stp = pvals_df[h0_stoP == TRUE, .SD,
+                                 .SDcols = c('h0_stoP_sign', '.look', '.iter')]
+            # the global type 1 error
+            global_type1 = mean(pvals_stp[, min_look := min(.look), by = .iter][.look == min_look, h0_stoP_sign])
 
-            # count ratios of stops per each look
-            df_stops$ratio_stopped_h0 = df_stops$iters_stopped_h0 / iters_tot
-            df_stops$ratio_stopped_h1 = df_stops$iters_stopped_h1 / iters_tot
-            # count ratios of combined significances per each look
-            df_stops$ratio_combined_sign_h0 = df_stops$iters_sign_h0 / iters_tot
-            df_stops$ratio_combined_sign_h1 = df_stops$iters_sign_h1 / iters_tot
-            # count cumulative ratios of remainings
-            df_stops$ratio_remain_h0 = df_stops$iters_remain_h0 / iters_tot
-            df_stops$ratio_remain_h1 = df_stops$iters_remain_h1 / iters_tot
-            # the average sample proportion at the given look (mainly just to calculate average-total)
-            df_stops$n_avg_prop_0 = df_stops$ratio_stopped_h0 * df_stops$n
-            df_stops$n_avg_prop_1 = df_stops$ratio_stopped_h1 * df_stops$n
-            # calculate sums per each column (with different meaning in each case)
-            df_stops = rbind(df_stops, colSums(df_stops))
-            df_nrow = nrow(df_stops)
-            df_stops$look[df_nrow] = 'totals'
+            #mean(pvals_stp[, min_look := min(.look), by = .iter][.look == min_look, p_test2_h0_sign])
+            #mean(pvals_stp[, min_look := min(.look), by = .iter][.look == min_look, p_test1_h0_sign])
 
-            if (hush == FALSE) {
-                # print results for sequential design
-                cat(
-                    '\033[0;36m# SEQUENTIAL DESIGN;\033[0m N(average-total) = \033[0;4m',
-                    ro(df_stops$n_avg_prop_0[df_nrow], 1, leading_zero = TRUE),
-                    '\033[0m (if H0 true) or \033[0;4m',
-                    ro(df_stops$n_avg_prop_1[df_nrow], 1, leading_zero = TRUE),
-                    '\033[0m (if H1 true)',
-                    sep = '',
-                    fill = TRUE
-                )
-                fut_text = ''
-                for (p_nam in p_names_extr) {
-                    if (p_nam %in% p_names) {
-                        nonstp = ''
-                        if (all(is.na(staircase_steps))) {
-                            l_a_descr = '\nLocal alphas (fixed): '
-                        } else {
-                            l_a_descr = '\nAdjusted local alphas: '
-                        }
+            if (is.na(stair_steps[1])) {
+                # NA indicates no stairs; nothing left to be done
+                break
+            } else {
+                # break if global alpha is correct
+                # otherwise continue the staircase
+                if (round(global_type1, alpha_precision) == round(alpha_global, alpha_precision)) {
+                    if (is.null(alpha_loc_nonstop)) {
+                        break
                     } else {
-                        nonstp = '\033[0;40;3mnon-stopper: \033[0;40;0m'
-                        l_a_descr = '\nLocal alphas (fixed): '
+                        stair_steps = NA
+                        a_step = 0
                     }
-                    p_a_locals = ro(a_locals_fin[[p_nam]], round_to)
-                    p_a_locals = ifelse(
-                        p_a_locals == '0',
-                        'none',
-                        paste0('\033[0;1m', p_a_locals, '\033[0m')
-                    )
-                    toprint = paste0(
-                        '(',
-                        nonstp,
-                        '\033[0;40m',
-                        p_nam,
-                        '\033[0m) Type I error: \033[1;31m',
-                        ro(df_stops[[paste0('ratio_sign_', p_nam, '_h0')]][df_nrow], round_to),
-                        '\033[0m; Power: \033[0;32m',
-                        ro(df_stops[[paste0('ratio_sign_', p_nam, '_h1')]][df_nrow], round_to),
-                        '\033[0m',
-                        l_a_descr,
-                        paste(
-                            paste0('(',
-                                   looks,
-                                   ') ',
-                                   p_a_locals,
-                                   collapse = '; ')
-                        )
-                    )
-                    cat(toprint, fill = TRUE)
-                    if (!is.null(fut_locals)) {
-                        if (all(fa_locals[[p_nam]] == 1)) {
-                            cat('Futility bounds: none', fill = TRUE)
-                        } else {
-                            p_fa_locals = ro(fa_locals[[p_nam]], round_to)
-                            p_fa_locals = ifelse(
-                                p_fa_locals == '0',
-                                'none',
-                                paste0(
-                                    '\033[0;1m',
-                                    p_fa_locals,
-                                    '\033[0m'
-                                )
-                            )
-                            cat(paste(
-                                'Futility bounds:',
-                                paste(
-                                    paste0('(',
-                                           looks[-mlook],
-                                           ') ',
-                                           p_fa_locals),
-                                    collapse = '; '
-                                )
-                            ),
-                            fill = TRUE)
-                        }
+                } else if ((global_type1 < alpha_global &&
+                            a_step < 0) ||
+                           (global_type1 > alpha_global &&
+                            a_step > 0)) {
+                    # change staircase direction (and also decrease step) if needed
+                    a_step = -stair_steps[1] * sign(a_step)
+                    stair_steps = stair_steps[-1]
+                    if (hush == FALSE) {
+                        utils::setTxtProgressBar(p_bar,
+                                                 utils::getTxtProgressBar(p_bar) + 1)
                     }
                 }
-                if (multi_p) {
-                    toprint = paste0(
-                        'Global ("combined significance") type I error: ',
-                        ro(
-                            df_stops$ratio_combined_sign_h0[df_nrow], # same as global_type1
-                            round_to
-                        ),
-                        ' (included: ',
-                        paste(p_names, collapse = ', '),
-                        '; power for reaching the "combined significance": ',
-                        ro(
-                            df_stops$ratio_combined_sign_h1[df_nrow], # same as global_power
-                            round_to
-                        ),
-                        ')'
-                    )
-                    cat(toprint, fill = TRUE)
-                }
+                # adjust a_adj itself by the step
+                # this a_adj will be used in the adjust function
+                a_adj = a_adj + a_step
             }
-            class(df_stops) = c(class(df_stops), "possa_pow_df")
-            out_dfs[[paste0('df_', gsub('; ', '_', possa_fact))]] = df_stops
         }
-    }
-    if (design_seq == TRUE) {
-        if (is.na(possafacts[1])) {
-            out_dfs = out_dfs[[1]]
+        if (prog_bar == TRUE) {
+            utils::setTxtProgressBar(p_bar, length(staircase_steps))
+            close(p_bar)
+        }
+        # assign final local alphas
+        a_locals_fin = locls_temp
+
+        for (a_name in names(a_locals_fin)) {
+            a_locals_fin[[a_name]][a_locals_fin[[a_name]] < 0] = 0
+        }
+
+        # calculate H1 significances (T/F) & stops (T/F) based on final alphas
+        # (analogue of the H0 significances above)
+        for (p_nam in p_names_extr) {
+            pvals_df[, c(paste0(p_nam, '_h1_sign')) := NA]
+            for (lk in 1:mlook) {
+                pvals_df[.(lk), c(paste0(p_nam, '_h1_sign')) :=
+                             .SD < locls_temp[[p_nam]][lk], .SDcol = paste0(p_nam, '_h1')]
+            }
+        }
+        if (!is.null(fut_locals)) {
+            for (p_nam in fa_p_names) {
+                pvals_df[, c(paste0(p_nam, '_h1_fut')) := TRUE]
+                # (mlook - 1 because futility never matters at max look)
+                for (lk in 1:(mlook - 1)) {
+                    pvals_df[.(lk), c(paste0(p_nam, '_h1_fut')) :=
+                                 .SD > fa_locals[[p_nam]][lk], .SDcol = paste0(p_nam, '_h1')]
+                }
+            }
+        }
+
+        # now check the global power
+        # if multiple p columns, check at which look we stop
+        if (multi_p) {
+            if (m_l_reduce) {
+                pvals_df[.look != mlook, h1_stoP := Reduce(multi_logic_a, .SD), .SDcols = p_h1_sign_names]
+            } else {
+                pvals_df[.look != mlook, h1_stoP := apply(.SD, 1, multi_logic_a), .SDcols = p_h1_sign_names]
+            }
+            if (m_l_glob_reduce) {
+                pvals_df[, h1_stoP_sign := Reduce(multi_logic_global, .SD),
+                         .SDcols = p_h1_sign_names]
+            } else {
+                pvals_df[, h1_stoP_sign := apply(.SD, 1, multi_logic_global),
+                         .SDcols = p_h1_sign_names]
+            }
         } else {
-            class(out_dfs) = c(class(out_dfs), "possa_pow_list")
+            pvals_df[.look != mlook, h1_stoP := .SD, .SDcols = p_h1_sign_names]
+            pvals_df[, h1_stoP_sign := .SD, .SDcols = p_h1_sign_names]
         }
-        invisible(out_dfs)
-    } else {
-        invisible(NULL)
+
+        if (!is.null(fut_locals)) {
+            if (multi_p) {
+                if (m_l_fut_reduce) {
+                    pvals_df[.look != mlook, h1_stoP_fa := Reduce(multi_logic_fut, .SD), .SDcols = p_h1_fut_names]
+                } else {
+                    pvals_df[.look != mlook,  h1_stoP_fa := apply(.SD, 1, multi_logic_fut), .SDcols = p_h1_fut_names]
+                }
+            } else {
+                pvals_df[.look != mlook, h1_stoP_fa := .SD, .SDcols = p_h1_fut_names]
+            }
+            pvals_df[.look != mlook, h1_stoP := h1_stoP |
+                         h1_stoP_fa]
+        }
+        if (multi_p) {
+            # if multi_p, get global power at stopping point
+            pvals_stp = pvals_df[h1_stoP == TRUE, .SD,
+                                 .SDcols = c('h1_stoP_sign', '.look', '.iter')]
+            # the global type 1 error (not necessary to calculate; will be in totals)
+            # global_power = mean(pvals_stp[, min_look := min(.look), by = .iter][.look == min_look, h1_stoP_sign])
+        }
+
+        # calculate sample size information per look
+        ps_sub0 = data.table::copy(pvals_df)
+        ps_sub1 = data.table::copy(pvals_df)
+        iters_tot = length(unique(pvals_df$.iter))
+        stops = list() # collect info per each stop
+        previous_h0 = iters_tot # start with max for both
+        previous_h1 = iters_tot
+        for (lk in looks) {
+            # get iterations stopped at given look
+            iters_out0 = ps_sub0[.look == lk &
+                                     h0_stoP == TRUE]
+            # remove stopped iterations
+            ps_sub0 = ps_sub0[!.iter %in% iters_out0$.iter,]
+            # (same for H1)
+            iters_out1 = ps_sub1[.look == lk &
+                                     h1_stoP == TRUE, ]
+            ps_sub1 = ps_sub1[!.iter %in% iters_out1$.iter, ]
+            outs = c()
+            # get combined significants
+            outs['iters_sign_h0'] = nrow(iters_out0[h0_stoP_sign == TRUE])
+            outs['iters_sign_h1'] = nrow(iters_out1[h1_stoP_sign == TRUE])
+            if (!is.null(fut_locals)) {
+                outs['iters_fut_h0'] = nrow(iters_out0[h0_stoP_fa == TRUE])
+                outs['iters_fut_h1'] = nrow(iters_out1[h1_stoP_fa == TRUE])
+            }
+            # get info per p value column
+            for (p_nam in p_names_extr) {
+                # number of significant findings
+                outs[paste0('iters_sign_', p_nam, '_h0')] =
+                    sum(iters_out0[[paste0(p_nam, '_h0_sign')]])
+                outs[paste0('iters_sign_', p_nam, '_h1')] =
+                    sum(iters_out1[[paste0(p_nam, '_h1_sign')]])
+                if (!is.null(fut_locals)) {
+                    # number of futility bound crossings
+                    outs[paste0('iters_futil_', p_nam, '_h0')] =
+                        sum(iters_out1[[paste0(p_nam, '_h0_fut')]])
+                    outs[paste0('iters_futil_', p_nam, '_h1')] =
+                        sum(iters_out1[[paste0(p_nam, '_h1_fut')]])
+                }
+            }
+            # whatever remained
+            outs['iters_remain_h0'] =
+                length(unique(ps_sub0$.iter))
+            outs['iters_remain_h1'] =
+                length(unique(ps_sub1$.iter))
+            if (lk == mlook) {
+                # at last look, all is stopped that previously remained
+                outs['iters_stopped_h0'] = previous_h0
+                outs['iters_stopped_h1'] = previous_h1
+            } else {
+                # calculate stops as previous minus current remaining
+                outs['iters_stopped_h0'] = previous_h0 - outs['iters_remain_h0']
+                outs['iters_stopped_h1'] = previous_h1 - outs['iters_remain_h1']
+            }
+            stops[[length(stops) + 1]] = c(
+                look = lk,
+                n = tot_samples[lk],
+                n_rate = tot_samples[lk] / tot_samples[mlook],
+                outs
+            )
+            # assign current remaining as the next "previous remaining"
+            previous_h0 = outs['iters_remain_h0']
+            previous_h1 = outs['iters_remain_h1']
+        }
+        df_stops = as.data.frame(do.call(rbind, stops))
+        # derive end info (type 1, power, etc) from the iteration ratios
+        for (p_nam in p_names_extr) {
+            # write out local alphas
+            df_stops[paste0('alpha_local_', p_nam)] = a_locals_fin[[p_nam]]
+            if (!is.null(fut_locals)) {
+                # write out local futility bounds (if any)
+                df_stops[paste0('futil_local_', p_nam)] = c(fa_locals[[p_nam]], NA)
+            }
+            for (h01 in c('_h0', '_h1')) {
+                # ratio of significant findings at any given stop
+                df_stops[paste0('ratio_sign_', p_nam, h01)] = df_stops[paste0('iters_sign_', p_nam, h01)] / iters_tot
+                if (!is.null(fut_locals)) {
+                    # ratio of futility bound crossings at any given stop
+                    df_stops[paste0('ratio_futil_', p_nam, h01)] = df_stops[paste0('iters_futil_', p_nam, h01)] / iters_tot
+                }
+            }
+        }
+
+        # count ratios of stops per each look
+        df_stops$ratio_stopped_h0 = df_stops$iters_stopped_h0 / iters_tot
+        df_stops$ratio_stopped_h1 = df_stops$iters_stopped_h1 / iters_tot
+
+        # count ratios of combined stopping significances per each look
+        df_stops$ratio_combined_sign_h0 = df_stops$iters_sign_h0 / iters_tot
+        df_stops$ratio_combined_sign_h1 = df_stops$iters_sign_h1 / iters_tot
+
+        # count ratios of combined futility stops (if any) per each look
+        if (!is.null(fut_locals)) {
+            df_stops$ratio_combined_fut_h0 = df_stops$iters_fut_h0 / iters_tot
+            df_stops$ratio_combined_fut_h1 = df_stops$iters_fut_h1 / iters_tot
+        }
+
+        # count cumulative ratios of remainings
+        df_stops$ratio_remain_h0 = df_stops$iters_remain_h0 / iters_tot
+        df_stops$ratio_remain_h1 = df_stops$iters_remain_h1 / iters_tot
+        # the average sample proportion at the given look (mainly just to calculate average-total)
+        df_stops$n_avg_prop_0 = df_stops$ratio_stopped_h0 * df_stops$n
+        df_stops$n_avg_prop_1 = df_stops$ratio_stopped_h1 * df_stops$n
+        # calculate sums per each column (with different meaning in each case)
+        df_stops = rbind(df_stops, colSums(df_stops))
+        df_stops$look[nrow(df_stops)] = 'totals'
+
+        for (p_nam in p_names_extr) {
+            if (p_nam %in% p_names) {
+                class(df_stops[[paste0('alpha_local_',
+                                       p_nam)]]) = c(class(df_stops[[paste0('alpha_local_', p_nam)]]),
+                                                     'possa_p')
+            } else {
+                class(df_stops[[paste0('alpha_local_',
+                                       p_nam)]]) = c(class(df_stops[[paste0('alpha_local_', p_nam)]]),
+                                                     'possa_p_nonstopper')
+            }
+            if (!is.null(df_stops[[paste0('futil_local_', p_nam)]])) {
+                class(df_stops[[paste0('futil_local_',
+                                       p_nam)]]) = c(class(df_stops[[paste0('alpha_local_', p_nam)]]),
+                                                     'possa_futility')
+            }
+        }
+        class(df_stops) = c("possa_pow_df", "data.frame")
+        if (is.null(possa_fact)) {
+            out_dfs$pow = df_stops
+        } else {
+            out_dfs[[paste('pow', gsub('; ', '_', possa_fact), sep = '_')]] = df_stops
+        }
     }
+    out_dfs$arguments = all_args
+    class(out_dfs) = c("possa_pow_list", class(out_dfs))
+    return(out_dfs)
 }

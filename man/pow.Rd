@@ -18,10 +18,6 @@ pow(
   multi_logic_global = "any",
   group_by = NULL,
   alpha_loc_nonstop = NULL,
-  design_fix = NULL,
-  design_seq = TRUE,
-  descr_cols = FALSE,
-  descr_func = summary,
   round_to = 5,
   iter_limit = 100,
   seed = 8,
@@ -174,10 +170,10 @@ global power is then the ratio of iterations with such positive findings.}
 \item{group_by}{When given as a character element or vector, specifies the
 factors by which to group the analysis: the \code{p_values} data will be
 divided into parts by these factors and these parts will be analyzed
-separately, with power and error information (and descriptives, if
-specified) printed per each part. By default (\code{NULL}), it identifies
-factors, if any, given to the \code{sim} function (via \code{fun_obs}) that
-created the given \code{p_values} data.}
+separately, with power and error information calculated per each part. By
+default (\code{NULL}), it identifies factors, if any, given to the
+\code{sim} function (via \code{fun_obs}) that created the given
+\code{p_values} data.}
 
 \item{alpha_loc_nonstop}{Optional "non-stopper" alphas via which to evaluate p
 values per look, but without stopping the data collection regardless of
@@ -185,30 +181,9 @@ statistical significance. Must be a list with names indicating p value
 column name pairs, similarly as for the \code{alpha_locals} argument; see
 \code{alpha_locals} for details.}
 
-\item{design_fix}{Whether to calculate fixed design (as comparable
-alternative(s) to given "looks" of the sequential design). If \code{NULL}
-(default), shows power for maximum sample (last "look") only. If set to
-\code{TRUE}, shows power for each given "look" (interim and final).
-Altogether omitted when set to \code{FALSE}.}
-
-\item{design_seq}{Whether to calculate sequential design (default:
-\code{TRUE}). (Although this R package is designed for sequential analysis,
-it can be used for fixed designs alone too.) Altogether omitted when set to
-\code{FALSE}.}
-
-\item{descr_cols}{When given as a character element or vector, specifies the
-factors for which descriptive data should be shown (by group, if
-applicable). If set to \code{TRUE}, it identifies (similar as
-\code{group_by}) factors, if any, given to the \code{sim} function (via
-\code{fun_obs}) that produced the given \code{p_values} data. By default
-(\code{FALSE}), no descriptive data is shown.}
-
-\item{descr_func}{Function used for printing descriptives (see
-\code{descr_cols}). By default, it uses the \code{\link{summary}}
-(\code{\link{base}}) function.}
-
 \item{round_to}{Number of fractional digits (default: \code{5}) to round to,
-for the displayed power and type 1 error rate information.}
+for the displayed numeric information (such as alphas and power; mainly for
+default value for \code{\link[POSSA:print.possa_pow_list]{printing}}).}
 
 \item{iter_limit}{In some specific cases of unideal/wrong input, the staircase
 may get stuck at a given step's loop process. The \code{iter_limit}
@@ -221,7 +196,8 @@ same number of iterations (e.g., by default, after \code{100}, at
 \item{seed}{Number for \code{\link{set.seed}}; \code{8} by default. Set to
 \code{NULL} for random seed.}
 
-\item{hush}{Logical. If \code{TRUE}, prevents printing any details to console.}
+\item{hush}{Logical. If \code{TRUE}, prevents printing any details (or the
+progress bar) to console.}
 }
 \value{
 Apart from printing the main power, error rate, and adjusted local
