@@ -61,7 +61,9 @@ format.possa_sim_df = function(x,
     cat('\033[0;37mSample:\033[0m', fill = TRUE)
 
     setDT(df_sim)
-    print(utils::head(df_sim, min(max(df_sim$.look), 6L)))
+    print(utils::head(df_sim, min(max(c(
+        df_sim$.look, 2L
+    )), 8L)))
     setkey(df_sim, .look)
 
     n_cols = c()
