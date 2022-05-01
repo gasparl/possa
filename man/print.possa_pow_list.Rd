@@ -4,22 +4,24 @@
 \alias{print.possa_pow_list}
 \title{Print pow results}
 \usage{
-\method{print}{possa_pow_list}(pow_list, round_to = NA, ...)
+\method{print}{possa_pow_list}(x, round_to = NA, ...)
 }
 \arguments{
-\item{pow_list}{The \code{\link{list}} returned by the
+\item{x}{The \code{\link{list}} returned by the
 \code{\link[POSSA:pow]{POSSA::pow}} function.}
 
 \item{round_to}{Number of fractional digits to round to, for the displayed
 numbers. The default is the value passed from the
 \code{\link[POSSA:pow]{POSSA::pow}} function (stored in the returned list).}
+
+\item{...}{(Allow additional arguments for technical reasons.)}
 }
 \description{
 Prints, in a readable manner, the main information from the list
  created by the \code{\link[POSSA:pow]{POSSA::pow}} function, calling
  \code{\link{print.possa_pow_df}} for each of the POSSA power information
  data frames in the list. This is an extension (method) of the base R
- \code{\link[print]} function, so it can be called simply as \code{print()}.
+ \code{\link{print}} function, so it can be called simply as \code{print()}.
 }
 \seealso{
 \code{\link{pow}}, \code{\link{print.possa_pow_df}}

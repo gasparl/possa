@@ -4,24 +4,25 @@
 #'  created by the \code{\link[POSSA:pow]{POSSA::pow}} function, calling
 #'  \code{\link{print.possa_pow_df}} for each of the POSSA power information
 #'  data frames in the list. This is an extension (method) of the base R
-#'  \code{\link[print]} function, so it can be called simply as \code{print()}.
-#'@param list_pow The \code{\link{list}} returned by the
+#'  \code{\link{print}} function, so it can be called simply as \code{print()}.
+#'@param x The \code{\link{list}} returned by the
 #'  \code{\link[POSSA:pow]{POSSA::pow}} function.
 #'@param round_to Number of fractional digits to round to, for the displayed
 #'  numbers. The default is the value passed from the
 #'  \code{\link[POSSA:pow]{POSSA::pow}} function (stored in the returned list).
+#'@param ... (Allow additional arguments for technical reasons.)
 #'
 #'@seealso \code{\link{pow}}, \code{\link{print.possa_pow_df}}
 #'
 #' @export
-print.possa_pow_list = function(list_pow,
+print.possa_pow_list = function(x,
                                 round_to = NA,
                                 ...) {
     if (is.na(round_to)) {
-        round_to = list_pow$arguments$round_to
+        round_to = x$arguments$round_to
     }
     cat('\033[0;34m# POSSA pow() results #\033[0m', fill = TRUE)
-    for (possa_pow_list_elem in list_pow) {
+    for (possa_pow_list_elem in x) {
         if ('possa_pow_df' %in% class(possa_pow_list_elem)) {
             print.possa_pow_df(possa_pow_list_elem,
                                round_to = round_to,
@@ -36,37 +37,38 @@ print.possa_pow_list = function(list_pow,
 #'@description Prints, in a readable manner, the main information from any of
 #'  the data frames containing power information from the list created by the
 #'  \code{\link[POSSA:pow]{POSSA::pow}} function. This is an extension (method)
-#'  of the base R \code{\link[print]} function, so it can be called simply as
+#'  of the base R \code{\link{print}} function, so it can be called simply as
 #'  \code{print()}.
-#'@param list_pow The \code{\link{list}} returned by the
-#'  \code{\link[POSSA:pow]{POSSA::pow}} function.
+#'@param x Power information \code{\link{data.frame}} included in the list
+#'  returned by the \code{\link[POSSA:pow]{POSSA::pow}} function.
 #'@param round_to Number of fractional digits to round to, for the displayed
 #'  numbers (\code{5} by default).
+#'@param possa_title Set to \code{FALSE} to omit title printing.
+#'@param ... (Allow additional arguments for technical reasons.)
 #'
 #'@seealso \code{\link{pow}}, \code{\link{print.possa_pow_list}}
 #'
 #' @export
-print.possa_pow_df = function(df_pow,
+print.possa_pow_df = function(x,
                               round_to = 5,
                               possa_title = TRUE,
                               ...) {
-    cat(
-        format.possa_pow_df(
-            df_pow = df_pow,
-            round_to = round_to,
-            possa_title = possa_title,
-            ...
-        )
-    )
+    cat(format.possa_pow_df(
+        x = x,
+        round_to = round_to,
+        possa_title = possa_title,
+        ...
+    ))
 }
 
-format.possa_pow_df = function(df_pow,
+format.possa_pow_df = function(x,
                                round_to = 5,
                                possa_title = TRUE,
                                ...) {
     if (possa_title) {
         cat('\033[0;34m# POSSA pow() results (df) #\033[0m', fill = TRUE)
     }
+    df_pow = x
     df_nrow = nrow(df_pow)
     mlook = df_nrow - 1
     looks = 1:mlook

@@ -4,21 +4,24 @@
 \alias{print.possa_pow_df}
 \title{Print pow results data frame}
 \usage{
-\method{print}{possa_pow_df}(df_pow, round_to = NA, possa_title = TRUE, ...)
+\method{print}{possa_pow_df}(x, round_to = 5, possa_title = TRUE, ...)
 }
 \arguments{
-\item{round_to}{Number of fractional digits to round to, for the displayed
-numbers. The default is the value passed from the
-\code{\link[POSSA:pow]{POSSA::pow}} function (stored in the returned list).}
+\item{x}{Power information \code{\link{data.frame}} included in the list
+returned by the \code{\link[POSSA:pow]{POSSA::pow}} function.}
 
-\item{pow_list}{The \code{\link{list}} returned by the
-\code{\link[POSSA:pow]{POSSA::pow}} function.}
+\item{round_to}{Number of fractional digits to round to, for the displayed
+numbers (\code{5} by default).}
+
+\item{possa_title}{Set to \code{FALSE} to omit title printing.}
+
+\item{...}{(Allow additional arguments for technical reasons.)}
 }
 \description{
 Prints, in a readable manner, the main information from any of
  the data frames containing power information from the list created by the
  \code{\link[POSSA:pow]{POSSA::pow}} function. This is an extension (method)
- of the base R \code{\link[print]} function, so it can be called simply as
+ of the base R \code{\link{print}} function, so it can be called simply as
  \code{print()}.
 }
 \seealso{

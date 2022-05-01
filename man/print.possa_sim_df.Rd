@@ -4,33 +4,35 @@
 \alias{print.possa_sim_df}
 \title{Print sim results}
 \usage{
-\method{print}{possa_sim_df}(df_sim, group_by = NA, descr_cols = NULL, descr_func = summary, ...)
+\method{print}{possa_sim_df}(x, group_by = NULL, descr_cols = TRUE, descr_func = summary, ...)
 }
 \arguments{
-\item{df_sim}{The \code{\link{data.frame}} returned by the
+\item{x}{The \code{\link{data.frame}} returned by the
 \code{\link[POSSA:sim]{POSSA::sim}} function.}
 
 \item{group_by}{When given as a character element or vector, specifies the
-factors by which to group the descriptives: the \code{df_sim} data will be
+factors by which to group the descriptives: the \code{x} data will be
 divided into parts by these factors and these parts will be analyzed
 separately, with descriptives printed per each part. By default
 (\code{NULL}), it identifies factors, if any, given to the \code{sim}
-function (via \code{fun_obs}) that created the given \code{df_sim} data.}
+function (via \code{fun_obs}) that created the given \code{x} data.}
 
 \item{descr_cols}{When given as a character element or vector, specifies the
 factors for which descriptive data should be shown (by group, if
 applicable). By default \code{NULL}, it identifies (similar as
 \code{group_by}) factors, if any, given to the \code{sim} function (via
-\code{fun_obs}) that produced the given \code{df_sim} data.}
+\code{fun_obs}) that produced the given \code{x} data.}
 
 \item{descr_func}{Function used for printing descriptives (see
 \code{descr_cols}). By default, it uses the \code{\link{summary}}
 (\code{\link{base}}) function.}
+
+\item{...}{(Allow additional arguments for technical reasons.)}
 }
 \description{
 Prints information about the simulated p values created by the
  \code{\link[POSSA:sim]{POSSA::sim}} function. This is an extension (method)
- of the base R \code{\link[print]} function, so it can be called simply as
+ of the base R \code{\link{print}} function, so it can be called simply as
  \code{print()}.
 }
 \seealso{
