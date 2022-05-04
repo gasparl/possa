@@ -175,7 +175,8 @@ executed in the beginning of this function, each time it is called; see the
 \code{seed} parameter.
 }
 \examples{
-# some example
+
+# see the vignettes via https://github.com/gasparl/possa#usage
 
 }
 \seealso{
