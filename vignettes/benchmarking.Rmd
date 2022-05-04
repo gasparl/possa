@@ -76,7 +76,7 @@ testEmptyMulti = function(sample1, sample2_h0, sample2_h1, sample3_h0, sample3_h
 
 Now the benchmarking. (Caution: actually running all this takes a while.)
 
-```{r}
+```r
 bm_results = microbenchmark::microbenchmark(
   fixed_120_obs =
     {
@@ -131,6 +131,14 @@ bm_results = microbenchmark::microbenchmark(
   times = 5
 )
 print(bm_results)
+
+#> Unit: milliseconds
+#>                       expr      min        lq       mean    median         uq        max neval
+#>              fixed_120_obs  148.011  154.4439   172.5028  156.2547   175.3121   228.4922     5
+#>         sequential_120_obs 1216.329 1499.6831  1512.8659 1524.3713  1571.4734  1752.4722     5
+#>        sequential_1200_obs 3134.309 3218.3147  3496.8585 3685.3403  3711.9782  3734.3506     5
+#>   sequential_120_obs_multi 3270.239 3387.0647  3794.1274 3739.9446  3881.3312  4692.0578     5
+#>  sequential_1200_obs_multi 8980.836 9861.9136 10112.6613 9925.8795 10623.9350 11170.7427     5
 ```
 
 Voila, even the extremely large-sample multiple-hypothesis sequential design takes only about 10 seconds (on my pretty much low-end PC).

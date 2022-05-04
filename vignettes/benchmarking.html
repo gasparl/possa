@@ -247,19 +247,14 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a>  <span class="at">times =</span> <span class="dv">5</span></span>
 <span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb3-54"><a href="#cb3-54" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(bm_results)</span>
-<span id="cb3-55"><a href="#cb3-55" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Unit: milliseconds</span></span>
-<span id="cb3-56"><a href="#cb3-56" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;                       expr        min         lq       mean     median</span></span>
-<span id="cb3-57"><a href="#cb3-57" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;              fixed_120_obs   332.8588   338.4141   397.4143   404.4497</span></span>
-<span id="cb3-58"><a href="#cb3-58" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;         sequential_120_obs  1623.7655  1660.6368  2096.7597  2178.5851</span></span>
-<span id="cb3-59"><a href="#cb3-59" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;        sequential_1200_obs  5312.8900  5627.7060  5862.8616  5783.7631</span></span>
-<span id="cb3-60"><a href="#cb3-60" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   sequential_120_obs_multi  4389.1905  6147.6246  5881.8900  6199.3254</span></span>
-<span id="cb3-61"><a href="#cb3-61" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  sequential_1200_obs_multi 14654.0768 15355.9526 15439.7798 15419.7072</span></span>
-<span id="cb3-62"><a href="#cb3-62" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;         uq       max neval</span></span>
-<span id="cb3-63"><a href="#cb3-63" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    438.271   473.078     5</span></span>
-<span id="cb3-64"><a href="#cb3-64" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   2476.994  2543.817     5</span></span>
-<span id="cb3-65"><a href="#cb3-65" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   5946.245  6643.704     5</span></span>
-<span id="cb3-66"><a href="#cb3-66" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   6287.222  6386.088     5</span></span>
-<span id="cb3-67"><a href="#cb3-67" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  15565.802 16203.360     5</span></span></code></pre></div>
+<span id="cb3-55"><a href="#cb3-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-56"><a href="#cb3-56" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Unit: milliseconds</span></span>
+<span id="cb3-57"><a href="#cb3-57" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;                       expr      min        lq       mean    median         uq        max neval</span></span>
+<span id="cb3-58"><a href="#cb3-58" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;              fixed_120_obs  148.011  154.4439   172.5028  156.2547   175.3121   228.4922     5</span></span>
+<span id="cb3-59"><a href="#cb3-59" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;         sequential_120_obs 1216.329 1499.6831  1512.8659 1524.3713  1571.4734  1752.4722     5</span></span>
+<span id="cb3-60"><a href="#cb3-60" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;        sequential_1200_obs 3134.309 3218.3147  3496.8585 3685.3403  3711.9782  3734.3506     5</span></span>
+<span id="cb3-61"><a href="#cb3-61" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   sequential_120_obs_multi 3270.239 3387.0647  3794.1274 3739.9446  3881.3312  4692.0578     5</span></span>
+<span id="cb3-62"><a href="#cb3-62" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  sequential_1200_obs_multi 8980.836 9861.9136 10112.6613 9925.8795 10623.9350 11170.7427     5</span></span></code></pre></div>
 <p>Voila, even the extremely large-sample multiple-hypothesis sequential design takes only about 10 seconds (on my pretty much low-end PC).</p>
 
 
