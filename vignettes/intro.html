@@ -142,7 +142,6 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 
 
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&#39;POSSA&#39;</span>)</span></code></pre></div>
 <p>Below, the essence of <code>POSSA</code>’s power (and type 1 error rate, T1ER) calculation for sequential designs is explained using the simple example of a t-test. Of course, for t-tests specifically, you could use other and potentially easier software – however, the point here is to understand how the <code>POSSA</code> works, and, subsequently, it should be possible for you to extend this example to virtually any statistical null hypothesis test. Cases of correlated samples and multiple hypotheses are explained on separate pages, but these too are straightforward extensions of the present example.</p>
 <p>This tutorial presupposes the basic conceptual understanding of sequential analyses (and the basics or statistical power and T1ER). There are several related free tutorials online (see e.g. <a href="https://psyarxiv.com/9yegd/">Lakens, 2014</a>).</p>
 <p>All parameters mentioned below are described in detail in full the documentation (see <code>?sim</code> and <code>?pow</code>).</p>
@@ -152,30 +151,32 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p>First, write a function that simulates the samples (i.e., observed values) for a single instance of the hypothetical experiment in case the null hypothesis is true (no actual difference between the two population means) as well as in case the alternative hypothesis is true (there is in fact difference).</p>
 <p>If the null hypothesis “H0” is true, the two samples have the same mean, let’s say <code>0</code> units; and let’s assume normally distributed values an SD of <code>10</code> units for each sample. For this, two samples can each be simulated via the function <code>rnorm(sampleSize, mean = 0, sd = 10)</code> (where <code>sampleSize</code> is a variable to be provided via another function, as explained later). You can assign this to <code>sample1</code>, which represents a baseline variable (e.g., “group A”), and, separately, to <code>sample2_h0</code>, which represents a sample that does not differ from the baseline (“H0” true). If the null hypothesis “H1” is true, the baseline sample may again have a mean of <code>0</code>, but the other sample should have the SESOI, <code>5</code> units (again assuming an SD of <code>10</code>) – which can be simulated as <code>rnorm(sampleSize, mean = 0, sd = 10)</code>. This can be assigned to <code>sample2_h1</code>, which represents a sample that does differ from the baseline (“H1” true). (The baseline sample has identical properties in case of H0 and H1, so for it’s enough to simulate one.)</p>
 <p>All this is to be put into a function, which takes a <code>sampleSize</code> argument and returns the simulated samples as a named list, as follows.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>customSample <span class="ot">=</span> <span class="cf">function</span>(sampleSize) {</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">sample1 =</span> <span class="fu">rnorm</span>(sampleSize, <span class="at">mean =</span> <span class="dv">0</span>, <span class="at">sd =</span> <span class="dv">10</span>),</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">sample2_h0 =</span> <span class="fu">rnorm</span>(sampleSize, <span class="at">mean =</span> <span class="dv">0</span>, <span class="at">sd =</span> <span class="dv">10</span>),</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">sample2_h1 =</span> <span class="fu">rnorm</span>(sampleSize, <span class="at">mean =</span> <span class="dv">5</span>, <span class="at">sd =</span> <span class="dv">10</span>)</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>customSample <span class="ot">=</span> <span class="cf">function</span>(sampleSize) {</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">sample1 =</span> <span class="fu">rnorm</span>(sampleSize, <span class="at">mean =</span> <span class="dv">0</span>, <span class="at">sd =</span> <span class="dv">10</span>),</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">sample2_h0 =</span> <span class="fu">rnorm</span>(sampleSize, <span class="at">mean =</span> <span class="dv">0</span>, <span class="at">sd =</span> <span class="dv">10</span>),</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">sample2_h1 =</span> <span class="fu">rnorm</span>(sampleSize, <span class="at">mean =</span> <span class="dv">5</span>, <span class="at">sd =</span> <span class="dv">10</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <p>Note that the <code>customSample</code> and <code>sampleSize</code> variables were written with camel case (likeThis), while the <code>_h0</code> and <code>_h1</code> endings used underscores (like_this). This alternate notation is used in the present tutorial to help distinguish what names can be freely chosen, and what is necessarily named so for the <code>POSSA</code> package: custom names are all camel case, while underscores indicate notation necessary for <code>POSSA</code>. Here specifically, the list names for the sample that varies depending on whether the null (H0) and alternative (H1) hypothesis is true must be indicated with <code>_h0</code> and <code>_h1</code> endings, respectively, with a common root (here: <code>sample2</code>). The root name or the other variable names (<code>customSample</code> and <code>sampleSize</code>) could be named differently, and everything would work just as well.</p>
 <p>Now, write a function that performs the test; here, a one-sided t-test (with equal variances assumed – this is just for the example’s outcome’s comparability for other software, normally Welch’s test should be preferred).</p>
 <p>The function’s parameters must be identical to the names of the list elements returned by the sample function (here: <code>sample1</code>, <code>sample2_h0</code>, and <code>sample2_h1</code>). The returned value must be a named vector that contains the derived p values. The name of each p value must start with <code>p_</code>, and end with <code>_h0</code> for the “H0” outcome and with <code>_h1</code> for the “H1” outcome. (Below, it’s simply <code>p_h0</code>/<code>p_h1</code>, but it could just as well be, e.g., <code>p_my_t.test_h0</code>/<code>p_my_t.test_h1</code>).</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>customTest <span class="ot">=</span> <span class="cf">function</span>(sample1, sample2_h0, sample2_h1) {</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_h0 =</span> <span class="fu">t.test</span>(sample1, sample2_h0, <span class="st">&#39;less&#39;</span>, <span class="at">var.equal =</span> <span class="cn">TRUE</span>)<span class="sc">$</span>p.value,</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_h1 =</span> <span class="fu">t.test</span>(sample1, sample2_h1, <span class="st">&#39;less&#39;</span>, <span class="at">var.equal =</span> <span class="cn">TRUE</span>)<span class="sc">$</span>p.value</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>customTest <span class="ot">=</span> <span class="cf">function</span>(sample1, sample2_h0, sample2_h1) {</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_h0 =</span> <span class="fu">t.test</span>(sample1, sample2_h0, <span class="st">&#39;less&#39;</span>, <span class="at">var.equal =</span> <span class="cn">TRUE</span>)<span class="sc">$</span>p.value,</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_h1 =</span> <span class="fu">t.test</span>(sample1, sample2_h1, <span class="st">&#39;less&#39;</span>, <span class="at">var.equal =</span> <span class="cn">TRUE</span>)<span class="sc">$</span>p.value</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <p>To make sure the two functions are working correctly, as a quick test you can run the following line (with any applicable number argument).</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">do.call</span>(customTest, <span class="fu">customSample</span>(<span class="dv">55</span>))</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;       p_h0       p_h1 </span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.54215900 0.00909422</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">do.call</span>(customTest, <span class="fu">customSample</span>(<span class="dv">55</span>))</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;         p_h0         p_h1 </span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3.591918e-01 6.353332e-05</span></span></code></pre></div>
 <p>This passes <code>55</code> as (arbitrary) sample size to <code>customSample</code>, which passes the created samples to <code>customTest</code>, which finally returns the named vector with the <code>p_h0</code> and <code>p_h1</code> p values. (Given the randomization, if you run this line repeatedly, the outcome should differ each time – however, with large enough numbers, <code>p_h1</code> is likely to be noticeably smaller then <code>p_h0</code>.)</p>
 </div>
 <div id="possas-sim-and-pow" class="section level3">
 <h3>POSSA’s <em>sim</em> and <em>pow</em></h3>
+<p>Time to load <code>POSSA</code>.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&#39;POSSA&#39;</span>)</span></code></pre></div>
 <p>Now, the <code>POSSA::sim</code> function can be used with <code>customSample</code> for <code>fun_obs</code> (function for observation values) and <code>customTest</code> for <code>fun_test</code> (function for statistical testing), and any desired numbers of observation. (This runs the simulation <code>45000</code> times by default, so it takes a while. For quick testing, set the number to a lower value via the <code>n_iter</code> parameter, e.g., <code>n_iter = 500</code>.)</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>df_ps <span class="ot">=</span> <span class="fu">sim</span>(<span class="at">fun_obs =</span> customSample,</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>            <span class="at">n_obs =</span> <span class="dv">80</span>,</span>
@@ -309,57 +310,113 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) none; (2) none; (3) .05000</span></span>
 <span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) 0; (2) 0; (3) .04860</span></span>
 <span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) 0; (2) 0; (3) .93636</span></span></code></pre></div>
-<p>This is to make the setting of <em>futility bounds</em> alone easy and straightforward. For instance, to stop collection for futility</p>
-<p>pow(df_ps_seq, fut_locals = 0.5)</p>
-<p>pow(df_ps_seq, fut_locals = c(1, 0.5)) pow(df_ps_seq, fut_locals = c(0.5, 0.5))</p>
-<p>pow(df_ps_seq, alpha_locals = c(NA, NA, 0.05), fut_locals = 0.5) pow(df_ps_seq, alpha_locals = c(0, 0.05, 0.025), fut_locals = c(0.8, 0.5)) pow(df_ps_seq, alpha_locals = c(0.025, 0, 0.05), fut_locals = c(0.8, 0.5))</p>
-<p>– To skip, at any look, alpha/futility stop, just set to 1/0.</p>
+<p>This is to make the setting of <em>futility bounds</em> alone easy and straightforward. For instance, to stop collection for futility whenever the p value exceeds <code>.5</code> (during interim looks), one can simply add <code>fut_locals = 0.5</code>.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">pow</span>(df_ps_seq, <span class="at">fut_locals =</span> <span class="fl">0.5</span>)</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # POSSA pow() results #</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; N(average-total) = 101.1 (if H0 true) or 158.3 (if H1 true)</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p) Type I error: .04516; Power: .91622</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) none; (2) none; (3) .05000</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) 0; (2) 0; (3) .04516</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) 0; (2) 0; (3) .91622</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Futility bounds: (1) .50000; (2) .50000</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of exceeding futility alpha if H0 true: (1) .03011; (2) .00176</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of exceeding futility alpha if H1 true: (1) .03324; (2) .00180</span></span></code></pre></div>
+<p>This is equivalent to specifying each futility bound. Since futility bound is meaningless for the final look, and the present example (<code>df_ps_seq</code>) contains two interim looks, two values are required. Hence the <code>pow(df_ps_seq, fut_locals = c(0.5, 0.5))</code> gives results equivalent to <code>pow(df_ps_seq, fut_locals = 0.5)</code> (as above).</p>
+<p>Of course, once again, a constant value is not ideal; the futility bound is more effective with values decreasing by each look. The specific choices depends on how much power one is willing to sacrifice in exchange for reduced sample sizes (which, as seen in the outputs, will help primarily in case H0 is true).</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">pow</span>(df_ps_seq, <span class="at">fut_locals =</span> <span class="fu">c</span>(<span class="fl">0.6</span>, <span class="fl">0.3</span>))</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # POSSA pow() results #</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; N(average-total) = 100.9 (if H0 true) or 159.3 (if H1 true)</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p) Type I error: .04587; Power: .92331</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) none; (2) none; (3) .05000</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) 0; (2) 0; (3) .04587</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) 0; (2) 0; (3) .92331</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Futility bounds: (1) .60000; (2) .30000</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of exceeding futility alpha if H0 true: (1) .01549; (2) .01307</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of exceeding futility alpha if H1 true: (1) .01789; (2) .01336</span></span></code></pre></div>
+<p>Importantly, alphas stopping for significance and bounds stopping for futility can be combined in any desired way.</p>
+<p>For instance:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">pow</span>(</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  df_ps_seq,</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">alpha_locals =</span> <span class="fu">c</span>(<span class="fl">0.002</span>, <span class="fl">0.018</span>, <span class="fl">0.044</span>),</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">fut_locals =</span> <span class="fu">c</span>(<span class="fl">0.6</span>, <span class="fl">0.3</span>)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # POSSA pow() results #</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; N(average-total) = 99.7 (if H0 true) or 114.3 (if H1 true)</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p) Type I error: .05000; Power: .92229</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) .00211; (2) .01897; (3) .04636</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) .00216; (2) .01864; (3) .02920</span></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) .13907; (2) .55542; (3) .22780</span></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Futility bounds: (1) .60000; (2) .30000</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of exceeding futility alpha if H0 true: (1) .03304; (2) .37542</span></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of exceeding futility alpha if H1 true: (1) .01789; (2) .01336</span></span></code></pre></div>
+<p>(Note the robust sample size reduction in case of both H0 and H1, with power hardly changed as compared to the fixed design.)</p>
+<p>The <code>alpha_locals</code> functions same as without futility bounds; e.g., in this last example it was adjusted via multiplication, but it could also be again given <code>NA</code> values to be adjusted via replacements.</p>
+<p>To disable, at any given look, stopping either for significance or for futility, just set the local alpha/bound to zero or to one, respectively. For example, the above example can be modified as below to have no stopping for futility at the first look and no stopping for significance at the second look.</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">pow</span>(</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  df_ps_seq,</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">alpha_locals =</span> <span class="fu">c</span>(<span class="fl">0.002</span>, <span class="dv">0</span>, <span class="fl">0.044</span>),</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">fut_locals =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="fl">0.3</span>)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # POSSA pow() results #</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; N(average-total) = 123.8 (if H0 true) or 145.2 (if H1 true)</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p) Type I error: .05000; Power: .93416</span></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) .00235; (2) none; (3) .05167</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) .00247; (2) 0; (3) .04753</span></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) .14633; (2) 0; (3) .78782</span></span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Futility bounds: (1) none; (2) .30000</span></span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of exceeding futility alpha if H0 true: (1) 0; (2) .01867</span></span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of exceeding futility alpha if H1 true: (1) 0; (2) .01916</span></span></code></pre></div>
+<p>(Of course, once again, this example hardly makes sense in a real case; it serves only as a demonstration here.)</p>
 </div>
 <div id="arbitrary-stops" class="section level3">
 <h3>Arbitrary stops</h3>
 <p>In a real experiment, you may not know in advance the exact number of observations at the stopping point. For example, you plan (and preregister) to open an initial 30 slots for participation, after which you would perform the first testing (first interim “look”) – however, some participants will probably have to be excluded (e.g. because of failing attention checks), expected to be only a few, but cannot be known exactly in advance.</p>
 <p>Assuming that minor variations in power do not matter, you can simply calculate with the approximate observation numbers (at the given planned looks) in advance, and, when the actual observation numbers are known, the calculation is repeated with these latter numbers to ensure that the T1ER remains as desired. For example, taking into account some necessary exclusions, the expected observation numbers with two interim looks are <code>27</code> (first look), <code>54</code> , and <code>81</code>. This may be calculated as before, using O’Brien-Fleming bounds (as provided by, e.g., <code>gsDesign::gsDesign(test.type = 1, alpha = 0.05, sfu = &#39;OF&#39;, timing = c(27, 54, 81)/81)</code>, then adjusted by <code>POSSA</code>).</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>df_ps_planned <span class="ot">=</span> <span class="fu">sim</span>(<span class="at">fun_obs =</span> customSample,</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>                <span class="at">n_obs =</span> <span class="fu">c</span>(<span class="dv">27</span>, <span class="dv">54</span>, <span class="dv">81</span>),</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>                <span class="at">fun_test =</span> customTest)</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="fu">pow</span>(df_ps_planned, <span class="at">alpha_locals =</span> <span class="fu">c</span>(<span class="fl">0.0015</span>, <span class="fl">0.0181</span>, <span class="fl">0.0437</span>), <span class="at">alpha_global =</span> <span class="fl">0.05</span>)</span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # POSSA pow() results #</span></span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; N(average-total) = 160.8 (if H0 true) or 118.5 (if H1 true)</span></span>
-<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p) Type I error: .05000; Power: .93164</span></span>
-<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) .00152; (2) .01830; (3) .04419</span></span>
-<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) .00164; (2) .01831; (3) .03004</span></span>
-<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) .11604; (2) .57309; (3) .24251</span></span></code></pre></div>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>df_ps_planned <span class="ot">=</span> <span class="fu">sim</span>(<span class="at">fun_obs =</span> customSample,</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>                <span class="at">n_obs =</span> <span class="fu">c</span>(<span class="dv">27</span>, <span class="dv">54</span>, <span class="dv">81</span>),</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>                <span class="at">fun_test =</span> customTest)</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="fu">pow</span>(df_ps_planned, <span class="at">alpha_locals =</span> <span class="fu">c</span>(<span class="fl">0.0015</span>, <span class="fl">0.0181</span>, <span class="fl">0.0437</span>), <span class="at">alpha_global =</span> <span class="fl">0.05</span>)</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # POSSA pow() results #</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; N(average-total) = 160.8 (if H0 true) or 118.5 (if H1 true)</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p) Type I error: .05000; Power: .93164</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) .00152; (2) .01830; (3) .04419</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) .00164; (2) .01831; (3) .03004</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) .11604; (2) .57309; (3) .24251</span></span></code></pre></div>
 <p>Now, let’s say that, due to somewhat more exclusions than expected, the initial sample contains only 24 valid observations. You can rerun the simulation with the modified first observation number, and run the power calculation with initial alphas corrected with <code>gsDesign::gsDesign(test.type = 1, alpha = 0.05, sfu = &#39;OF&#39;, timing = c(24, 54, 81)/81)</code>.</p>
-<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>df_ps_first <span class="ot">=</span> <span class="fu">sim</span>(<span class="at">fun_obs =</span> customSample,</span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>                <span class="at">n_obs =</span> <span class="fu">c</span>(<span class="dv">24</span>, <span class="dv">54</span>, <span class="dv">81</span>),</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>                <span class="at">fun_test =</span> customTest)</span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="fu">pow</span>(df_ps_first, <span class="at">alpha_locals =</span> <span class="fu">c</span>(<span class="fl">0.0009</span>, <span class="fl">0.0182</span>, <span class="fl">0.0438</span>), <span class="at">alpha_global =</span> <span class="fl">0.05</span>)</span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # POSSA pow() results #</span></span>
-<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; N(average-total) = 161.0 (if H0 true) or 120.6 (if H1 true)</span></span>
-<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p) Type I error: .05000; Power: .93484</span></span>
-<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) .00091; (2) .01850; (3) .04453</span></span>
-<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) .00087; (2) .01760; (3) .03153</span></span>
-<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) .07056; (2) .61742; (3) .24687</span></span></code></pre></div>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>df_ps_first <span class="ot">=</span> <span class="fu">sim</span>(<span class="at">fun_obs =</span> customSample,</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>                <span class="at">n_obs =</span> <span class="fu">c</span>(<span class="dv">24</span>, <span class="dv">54</span>, <span class="dv">81</span>),</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>                <span class="at">fun_test =</span> customTest)</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="fu">pow</span>(df_ps_first, <span class="at">alpha_locals =</span> <span class="fu">c</span>(<span class="fl">0.0009</span>, <span class="fl">0.0182</span>, <span class="fl">0.0438</span>), <span class="at">alpha_global =</span> <span class="fl">0.05</span>)</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # POSSA pow() results #</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; N(average-total) = 161.0 (if H0 true) or 120.6 (if H1 true)</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p) Type I error: .05000; Power: .93484</span></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) .00091; (2) .01850; (3) .04453</span></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) .00087; (2) .01760; (3) .03153</span></span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) .07056; (2) .61742; (3) .24687</span></span></code></pre></div>
 <p>Let’s say that the p value was not below the local alpha (<code>.02295</code>), so you move open another 30 slots, and once again end up with more exclusions than expected, resulting in only <code>49</code> valid observations. The adjusted calculation is then as follows.</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>gsDesign<span class="sc">::</span><span class="fu">gsDesign</span>(<span class="at">test.type =</span> <span class="dv">1</span>, <span class="at">alpha =</span> <span class="fl">0.05</span>, <span class="at">sfu =</span> <span class="st">&#39;OF&#39;</span>, <span class="at">timing =</span> <span class="fu">c</span>(<span class="dv">24</span>, <span class="dv">49</span>, <span class="dv">81</span>)<span class="sc">/</span><span class="dv">81</span>)</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="co"># gives new initial local alphas</span></span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>df_ps_second <span class="ot">=</span> <span class="fu">sim</span>(<span class="at">fun_obs =</span> customSample,</span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>                   <span class="at">n_obs =</span> <span class="fu">c</span>(<span class="dv">24</span>, <span class="dv">49</span>, <span class="dv">81</span>),</span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>                   <span class="at">fun_test =</span> customTest)</span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="fu">pow</span>(df_ps_second, <span class="at">alpha_locals =</span> <span class="fu">c</span>(<span class="fl">0.0009</span>, <span class="fl">0.0145</span>, <span class="fl">0.0447</span>), <span class="at">alpha_global =</span> <span class="fl">0.05</span>)</span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # POSSA pow() results #</span></span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; N(average-total) = 161.0 (if H0 true) or 119.6 (if H1 true)</span></span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p) Type I error: .04996; Power: .93153</span></span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) .00090; (2) .01453; (3) .04479</span></span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) .00091; (2) .01360; (3) .03544</span></span>
-<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) .07009; (2) .53733; (3) .32411</span></span></code></pre></div>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>gsDesign<span class="sc">::</span><span class="fu">gsDesign</span>(<span class="at">test.type =</span> <span class="dv">1</span>, <span class="at">alpha =</span> <span class="fl">0.05</span>, <span class="at">sfu =</span> <span class="st">&#39;OF&#39;</span>, <span class="at">timing =</span> <span class="fu">c</span>(<span class="dv">24</span>, <span class="dv">49</span>, <span class="dv">81</span>)<span class="sc">/</span><span class="dv">81</span>)</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="co"># gives new initial local alphas</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>df_ps_second <span class="ot">=</span> <span class="fu">sim</span>(<span class="at">fun_obs =</span> customSample,</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>                   <span class="at">n_obs =</span> <span class="fu">c</span>(<span class="dv">24</span>, <span class="dv">49</span>, <span class="dv">81</span>),</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>                   <span class="at">fun_test =</span> customTest)</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a><span class="fu">pow</span>(df_ps_second, <span class="at">alpha_locals =</span> <span class="fu">c</span>(<span class="fl">0.0009</span>, <span class="fl">0.0145</span>, <span class="fl">0.0447</span>), <span class="at">alpha_global =</span> <span class="fl">0.05</span>)</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # POSSA pow() results #</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; N(average-total) = 161.0 (if H0 true) or 119.6 (if H1 true)</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p) Type I error: .04996; Power: .93153</span></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) .00090; (2) .01453; (3) .04479</span></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) .00091; (2) .01360; (3) .03544</span></span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) .07009; (2) .53733; (3) .32411</span></span></code></pre></div>
 <p>(And, if needed, a similar modified recalculation could be done for the last look.)</p>
 <p>As can be seen, the power differences are very small. Nonetheless, if it is important to keep the same level of power with high precision (e.g., up to 3 fractional digits), you can plan for (and preregister) to conditionally adjust (increase/decrease) the subsequent interim (if any) and final sample sizes to achieve the same power. (Technically, another option is to conditionally adjust the alpha level, i.e., the T1ER, but that’s rather questionable.)</p>
 </div>
