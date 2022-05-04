@@ -151,7 +151,8 @@
 #'
 #'@seealso \code{\link{pow}}
 #' @examples
-#'# some example
+#'
+#'# see the vignettes via https://github.com/gasparl/possa#usage
 #'
 #' @export
 sim = function(fun_obs,

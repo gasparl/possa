@@ -186,15 +186,10 @@
 #'
 #'This function uses, internally, the \code{\link{data.table}} R package.
 #'
-#'@references
-#'
-#'Lakens, D. (2014). Performing high-powered studies efficiently with sequential
-#'analyses: Sequential analyses. European Journal of Social Psychology, 44(7),
-#'701–710. \doi{https://doi.org/10.1002/ejsp.2023}
-#'
 #'@seealso \code{\link{sim}}
 #' @examples
-#' # some pow
+#'
+#'# see the vignettes via https://github.com/gasparl/possa#usage
 #'
 #'@export
 pow = function(p_values,

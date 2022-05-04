@@ -75,7 +75,7 @@ df_ps = sim(fun_obs = customSample,
             fun_test = customTest)
 ```
 
-The returned `df_ps` contains all the simulated p values, and can be directly passed to `POSSA::pow` to get the power for at any specified alpha level.
+The returned `df_ps` contains all the simulated p values, and can be directly passed to `POSSA::pow` to get the power for any specified alpha level.
 
 ```r
 pow(df_ps)
@@ -83,20 +83,21 @@ pow(df_ps)
 This prints to the console the following.
 
 ```r
-#> # FIXED DESIGN; N(total) = 160 (alpha = .05000 for all)
+#> # POSSA pow() results #
+#> N(average-total) = 160.0 (if H0 true) or 160.0 (if H1 true)
 #> (p) Type I error: .05140; Power: .93327
-#> # SEQUENTIAL DESIGN; N(average-total) = 160.0 (if H0 true) or 160.0 (if H1 true)
-#> (p) Type I error: .05140; Power: .93327
-#> Local alphas (fixed): (1) .05000
+#> Local alphas: (1) .05000
 ```
 
-The function uses an alpha of `.05` by default, this may be modified e.g. to `.01` below. Furthermore, since in this case the sample is always fixed at 80, the information about the fixed and sequential designs will be the same; we can just disable printing the latter.
+This is a fixed sample design with 80 observations per each of the two groups. The function uses an alpha of `.05` by default, this may be modified e.g. to `.01` below.
 
 ```r
-pow(df_ps, alpha_global = 0.01, design_seq = FALSE)
+pow(df_ps, alpha_global = 0.01)
 
-#> # FIXED DESIGN; N(total) = 160 (alpha = .01000 for all)
+#> # POSSA pow() results #
+#> N(average-total) = 160.0 (if H0 true) or 160.0 (if H1 true)
 #> (p) Type I error: .00991; Power: .79069
+#> Local alphas: (1) .01000
 ```
 
 So far, we can easily get the same information from other software, e.g. `pwr::pwr.t.test(n = 80, d = 0.5, alternative = 'greater')` (returns `power = 0.93368`) and `pwr::pwr.t.test(n = 80, d = 0.5, sig.level = 0.01, alternative = 'greater')` (returns `power = 0.79068`).
@@ -109,18 +110,15 @@ df_ps_seq = sim(fun_obs = customSample,
                 fun_test = customTest)
 pow(df_ps_seq, alpha_locals = NA)
 
-#> # FIXED DESIGN; N(total) = 162 (alpha = .05000 for all)
-#> (p) Type I error: .04860; Power: .93636
-#> # SEQUENTIAL DESIGN; N(average-total) = 158.6 (if H0 true) or 98.8 (if H1 true)
+#> # POSSA pow() results #
+#> N(average-total) = 158.6 (if H0 true) or 98.8 (if H1 true)
 #> (p) Type I error: .05000; Power: .89922
-#> Adjusted local alphas: (1) .02288; (2) .02288; (3) .02288
+#> Local alphas: (1) .02288; (2) .02288; (3) .02288
 #> Likelihoods of significance if H0 true: (1) .02296; (2) .01631; (3) .01073
 #> Likelihoods of significance if H1 true: (1) .42324; (2) .32298; (3) .15300
 ```
 
 The `alpha_locals = NA` input specifies that all local alphas are `NA`, in which case they will all gain a single identical number (corresponding to Pocock's correction in case of equally spaces looks). Rounding to the conventional 3 fractional digits, the adjusted constant local alpha number corresponds to the exact statistics (`.023`) provided in other software, e.g. `gsDesign::gsDesign(k = 3, test.type = 1, n.fix = 81, beta = 0.1, alpha = 0.05, sfu = 'Pocock')`.
-
-(By default, the information for fixed design is also always shown for a quick comparison and for a general "sanity check" for the scenario.)
 
 The console output contains only the most important information, but, when assigned, the `pow` function returns a data frame with detailed information per each look (and their totals), including the specified sample sizes, the numbers of iterations, etc. The printed information includes
 
@@ -134,7 +132,7 @@ The look numbers are always in parenthesis, such that "`(1)`" designates the fir
 
 ### Adjusting local alphas
 
-`POSSA` helps obtain the local alphas, in sequential designs, that result in a specified overall (global) T1ER, which may also be called "global alpha". This procedure is automatized for most practical cases, but still users should ideally have a basic idea of how this works. However, impatient readers (who do not want to have customized adjustments) can skip to the **Specifying initial local alphas** section.
+`POSSA` helps obtain the local alphas, in sequential designs, that result in a specified overall (global) T1ER, which may also be called "global alpha". This procedure is automatized for most practical cases, but still users should ideally have a basic idea of how this works. However, impatient readers (who do not want to have customized adjustments) can skip to the **Specifying initial local alphas** section below.
 
 The essential mechanism is a staircase procedure, where the local alphas are continually increased when the T1ER is smaller than specified and decreased when the T1ER is larger then specified, and each direction change (from decrease to increase or vice versa) moves onto a smaller step size in the adjustment. For example, the simplest case is when all local alphas are provided as `NA`, as above: in this case, the initial replacement value (which may be modified via the `adj_init` parameter) is by default the global alpha divided by the maximum number of looks, as a rough initial estimation. Subsequently, the given p values are tested with this setting, and a global T1ER is calculated. If it is larger than specified, the replacement value is decreased, or vice versa. The amount of decrease is the first step, by default `0.01`. Then the testing is repeated, and the change is repeated in the same direction until the obtained T1ER passes the specified T1ER (e.g., becomes smaller, when initially larger). Then the replacement value is increased with a smaller second step size, by default `0.05`. And so on, until either there are no more steps (as specified) or (more typically) the obtained T1ER is close enough to the specified one (e.g., by default, matches it up to 5 fractional digits; may be specified via `alpha_precision`), at which point the procedure stops and the obtained local alphas (each having the same value) and the corresponding results are returned and printed.
 
@@ -210,5 +208,4 @@ pow(df_ps_seq, alpha_locals = c(0, 0.05, 0.025), fut_locals = c(0.8, 0.5))
 pow(df_ps_seq, alpha_locals = c(0.025, 0, 0.05), fut_locals = c(0.8, 0.5))
 
 ### Arbitrary stops
-
 

@@ -26,6 +26,7 @@
     </style>
 
 
+
 <style type="text/css">
   code {
     white-space: pre;
@@ -142,7 +143,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&#39;POSSA&#39;</span>)</span></code></pre></div>
-<p>Below, the essence of <code>POSSA</code>’s power (and type 1 error rate, T1ER) calculation for sequential designs is explained using the simple example of a t-test. Of course, for t-tests specifically, you could use other and potentially easier software – however, the point here is to understand how the <code>POSSA</code> works, and, subsequently, it should be possible for you to extend this example to virtually any statistical null hypothesis test.</p>
+<p>Below, the essence of <code>POSSA</code>’s power (and type 1 error rate, T1ER) calculation for sequential designs is explained using the simple example of a t-test. Of course, for t-tests specifically, you could use other and potentially easier software – however, the point here is to understand how the <code>POSSA</code> works, and, subsequently, it should be possible for you to extend this example to virtually any statistical null hypothesis test. (Cases of correlated samples and multiple hypotheses are explained on separate pages, but these too are straightforward extensions of the present example.)</p>
+<p>All parameters mentioned below are described in detail in full the documentation (see <code>?sim</code> and <code>?pow</code>).</p>
 <p>So let’s say you want to compare the means of two independent continuous variables with a simple t-test. Your smallest effect size of interest (SESOI) is <code>5</code> units (arbitrary units that could represent anything – e.g., the height of a plant in cm, or the time of performing a task in seconds, etc.).</p>
 <div id="user-functions-for-sample-simulation-and-testing" class="section level3">
 <h3>User functions for sample simulation and testing</h3>
@@ -168,7 +170,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p>To make sure the two functions are working correctly, as a quick test you can run the following line (with any applicable number argument).</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">do.call</span>(customTest, <span class="fu">customSample</span>(<span class="dv">55</span>))</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;         p_h0         p_h1 </span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.6975129693 0.0003303901</span></span></code></pre></div>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.4940975151 0.0004259357</span></span></code></pre></div>
 <p>This passes <code>55</code> as (arbitrary) sample size to <code>customSample</code>, which passes the created samples to <code>customTest</code>, which finally returns the named vector with the <code>p_h0</code> and <code>p_h1</code> p values. (Given the randomization, if you run this line repeatedly, the outcome should differ each time – however, with large enough numbers, <code>p_h1</code> is likely to be noticeably smaller then <code>p_h0</code>.)</p>
 </div>
 <div id="possas-sim-and-pow" class="section level3">
@@ -177,19 +179,20 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>df_ps <span class="ot">=</span> <span class="fu">sim</span>(<span class="at">fun_obs =</span> customSample,</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>            <span class="at">n_obs =</span> <span class="dv">80</span>,</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>            <span class="at">fun_test =</span> customTest)</span></code></pre></div>
-<p>The returned <code>df_ps</code> contains all the simulated p values, and can be directly passed to <code>POSSA::pow</code> to get the power for at any specified alpha level.</p>
+<p>The returned <code>df_ps</code> contains all the simulated p values, and can be directly passed to <code>POSSA::pow</code> to get the power for any specified alpha level.</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">pow</span>(df_ps)</span></code></pre></div>
 <p>This prints to the console the following.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # FIXED DESIGN; N(total) = 160 (alpha = .05000 for all)</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p) Type I error: .05140; Power: .93327</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # SEQUENTIAL DESIGN; N(average-total) = 160.0 (if H0 true) or 160.0 (if H1 true)</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p) Type I error: .05140; Power: .93327</span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas (fixed): (1) .05000</span></span></code></pre></div>
-<p>The function uses an alpha of <code>.05</code> by default, this may be modified e.g. to <code>.01</code> below. Furthermore, since in this case the sample is always fixed at 80, the information about the fixed and sequential designs will be the same; we can just disable printing the latter.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">pow</span>(df_ps, <span class="at">alpha_global =</span> <span class="fl">0.01</span>, <span class="at">design_seq =</span> <span class="cn">FALSE</span>)</span>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # POSSA pow() results #</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; N(average-total) = 160.0 (if H0 true) or 160.0 (if H1 true)</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p) Type I error: .05140; Power: .93327</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) .05000</span></span></code></pre></div>
+<p>This is a fixed sample design with 80 observations per each of the two groups. The function uses an alpha of <code>.05</code> by default, this may be modified e.g. to <code>.01</code> below.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">pow</span>(df_ps, <span class="at">alpha_global =</span> <span class="fl">0.01</span>)</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # FIXED DESIGN; N(total) = 160 (alpha = .01000 for all)</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p) Type I error: .00991; Power: .79069</span></span></code></pre></div>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # POSSA pow() results #</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; N(average-total) = 160.0 (if H0 true) or 160.0 (if H1 true)</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p) Type I error: .00991; Power: .79069</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) .01000</span></span></code></pre></div>
 <p>So far, we can easily get the same information from other software, e.g. <code>pwr::pwr.t.test(n = 80, d = 0.5, alternative = &#39;greater&#39;)</code> (returns <code>power = 0.93368</code>) and <code>pwr::pwr.t.test(n = 80, d = 0.5, sig.level = 0.01, alternative = &#39;greater&#39;)</code> (returns <code>power = 0.79068</code>).</p>
 <p>However, sequential designs are extremely easy to be expanded from the above <code>sim</code> and <code>pow</code> examples. One just has to specify multiple instances of observation numbers for the <code>n_obs</code> in <code>sim</code> and specify a local alphas in <code>pow</code>, e.g. as below.</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>df_ps_seq <span class="ot">=</span> <span class="fu">sim</span>(<span class="at">fun_obs =</span> customSample,</span>
@@ -197,15 +200,13 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>                <span class="at">fun_test =</span> customTest)</span>
 <span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="fu">pow</span>(df_ps_seq, <span class="at">alpha_locals =</span> <span class="cn">NA</span>)</span>
 <span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # FIXED DESIGN; N(total) = 162 (alpha = .05000 for all)</span></span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p) Type I error: .04860; Power: .93636</span></span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # SEQUENTIAL DESIGN; N(average-total) = 158.6 (if H0 true) or 98.8 (if H1 true)</span></span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p) Type I error: .05000; Power: .89922</span></span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Adjusted local alphas: (1) .02288; (2) .02288; (3) .02288</span></span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) .02296; (2) .01631; (3) .01073</span></span>
-<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) .42324; (2) .32298; (3) .15300</span></span></code></pre></div>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # POSSA pow() results #</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; N(average-total) = 158.6 (if H0 true) or 98.8 (if H1 true)</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p) Type I error: .05000; Power: .89922</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) .02288; (2) .02288; (3) .02288</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) .02296; (2) .01631; (3) .01073</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) .42324; (2) .32298; (3) .15300</span></span></code></pre></div>
 <p>The <code>alpha_locals = NA</code> input specifies that all local alphas are <code>NA</code>, in which case they will all gain a single identical number (corresponding to Pocock’s correction in case of equally spaces looks). Rounding to the conventional 3 fractional digits, the adjusted constant local alpha number corresponds to the exact statistics (<code>.023</code>) provided in other software, e.g. <code>gsDesign::gsDesign(k = 3, test.type = 1, n.fix = 81, beta = 0.1, alpha = 0.05, sfu = &#39;Pocock&#39;)</code>.</p>
-<p>(By default, the information for fixed design is also always shown for a quick comparison and for a general “sanity check” for the scenario.)</p>
 <p>The console output contains only the most important information, but, when assigned, the <code>pow</code> function returns a data frame with detailed information per each look (and their totals), including the specified sample sizes, the numbers of iterations, etc. The printed information includes</p>
 <ul>
 <li>the average number of subjects in H0 and in H1 scenarios (i.e., taking of all simulations, on average at how many participants the experiment was stopped),</li>
@@ -215,6 +216,42 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li>the ratios of significant findings per each look (corresponding to the local alphas).</li>
 </ul>
 <p>The look numbers are always in parenthesis, such that “<code>(1)</code>” designates the first look, “<code>(2)</code>” the second look, etc.</p>
+</div>
+<div id="adjusting-local-alphas" class="section level3">
+<h3>Adjusting local alphas</h3>
+<p><code>POSSA</code> helps obtain the local alphas, in sequential designs, that result in a specified overall (global) T1ER, which may also be called “global alpha”. This procedure is automatized for most practical cases, but still users should ideally have a basic idea of how this works. However, impatient readers (who do not want to have customized adjustments) can skip to the <strong>Specifying initial local alphas</strong> section below.</p>
+<p>The essential mechanism is a staircase procedure, where the local alphas are continually increased when the T1ER is smaller than specified and decreased when the T1ER is larger then specified, and each direction change (from decrease to increase or vice versa) moves onto a smaller step size in the adjustment. For example, the simplest case is when all local alphas are provided as <code>NA</code>, as above: in this case, the initial replacement value (which may be modified via the <code>adj_init</code> parameter) is by default the global alpha divided by the maximum number of looks, as a rough initial estimation. Subsequently, the given p values are tested with this setting, and a global T1ER is calculated. If it is larger than specified, the replacement value is decreased, or vice versa. The amount of decrease is the first step, by default <code>0.01</code>. Then the testing is repeated, and the change is repeated in the same direction until the obtained T1ER passes the specified T1ER (e.g., becomes smaller, when initially larger). Then the replacement value is increased with a smaller second step size, by default <code>0.05</code>. And so on, until either there are no more steps (as specified) or (more typically) the obtained T1ER is close enough to the specified one (e.g., by default, matches it up to 5 fractional digits; may be specified via <code>alpha_precision</code>), at which point the procedure stops and the obtained local alphas (each having the same value) and the corresponding results are returned and printed.</p>
+<p>The adjustment actually happens via a function that can be specified via the <code>adjust</code> parameter, but, by default, whenever there is at least one <code>NA</code> value among the given <code>alpha_locals</code> argument, the function implements the above-described procedure, and looks as follows.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>adjust <span class="ot">=</span> <span class="cf">function</span>(adj, prev, orig) {</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    prev[<span class="fu">is.na</span>(orig)] <span class="ot">=</span> adj</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(prev)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>In this function, <code>adj</code> means the adjustment value (in this case a replacement value), <code>prev</code> the previous vector of local alphas (obtained in the last adjustment), and <code>orig</code> the original vector of local alphas as provided for <code>alpha_locals</code>. (For the first adjustment, <code>prev</code> is the same as <code>orig</code>). Any sort of custom function may be provided as <code>adjust</code>, but it cannot contain any parameter other than these three (<code>adj</code>, <code>prev</code>, and <code>orig</code>).</p>
+<p>By default, if no <code>NA</code> value is found among the given <code>alpha_locals</code>, the <code>adjust</code> function uses multiplication to adjust the given values (with <code>adj_init</code> set to <code>1</code>), as follows.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>adjust <span class="ot">=</span> <span class="cf">function</span>(orig, adj) {</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(orig <span class="sc">*</span> adj)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>By default, there are altogether 11 step sizes, chosen in a way that typically results in 5-fractional-digit T1ER match before running getting to the last step, and the calculation typically takes only a few seconds. (Step sizes can be modified via the <code>staircase_steps</code> parameter.)</p>
+</div>
+<div id="specifying-initial-local-alphas" class="section level3">
+<h3>Specifying initial local alphas</h3>
+<p>Given the above-described default mechanisms, there are, without modifying the adjustment procedure, two easy ways to provide the argument for <code>alpha_locals</code> (for any given p value): (a) a vector that includes (or consist entirely of) <code>NA</code> values that are to be replaced with a constant number that results in the desired global T1ER, and (b) a vector with all numeric values that are each to be multiplied with a number in order to obtain a vector of alphas that again result in the desired global T1ER.</p>
+<p>Here are some examples.</p>
+<p>pow(df_ps_v1e, alpha_locals = c(0.0088, NA), alpha_global = 0.05) pow(df_ps_v1e, alpha_locals = NA, alpha_global = 0.05) pow(df_ps_v1e, alpha_locals = NA, alpha_global = 0.01) pow(df_ps_v1e, alpha_locals = c(0.0088, 0.0467), alpha_global = 0.05) pow(df_ps_v1c, alpha_locals = c(0.0013, 0.0013, NA), alpha_global = 0.01)</p>
+<p>OF examples:</p>
+<p>summary(rpact::getSampleSizeMeans(rpact::getDesignGroupSequential(typeOfDesign = “OF”, informationRates = c(0.5, 0.6, 1), alpha = 0.05), alternative = 0.5))</p>
+<p>gsDesign::gsDesign(k = 3, test.type = 1, n.fix = 81, beta = 0.1, alpha = 0.05, timing = c(0.5, 0.6, 1), sfu = ‘OF’)</p>
+<p>pow( df_ps_v1d, alpha_locals = c(0.0001, 0.0004, 0.0031, 0.0089), alpha_global = 0.01, adjust = function(adj, prev, orig) { return(orig + adj) } )</p>
+<p>pow( df_ps_v1d, alpha_locals = c(0.0001, 0.0004, 0.0031, 0.0089), alpha_global = 0.01, adjust = FALSE )</p>
+<p>(To skip, just set to 1 – this may be useful in case of multiple p values (in case of multiple hypthesis).)</p>
+</div>
+<div id="futility-bounds" class="section level3">
+<h3>Futility bounds</h3>
+<p>pow(df_ps_seq, fut_locals = 0.5) pow(df_ps_seq, fut_locals = c(1, 0.5)) pow(df_ps_seq, fut_locals = c(0.5, 0.5))</p>
+<p>pow(df_ps_seq, alpha_locals = c(NA, NA, 0.05), fut_locals = 0.5) pow(df_ps_seq, alpha_locals = c(0, 0.05, 0.025), fut_locals = c(0.8, 0.5)) pow(df_ps_seq, alpha_locals = c(0.025, 0, 0.05), fut_locals = c(0.8, 0.5))</p>
+</div>
+<div id="arbitrary-stops" class="section level3">
+<h3>Arbitrary stops</h3>
 </div>
 
 
