@@ -23,7 +23,7 @@ library('POSSA')
 
 Some "empty" sampling and testing functions:
 
-```{r include=FALSE}
+```{r}
 # minimal output
 sampleEmpty = function(sample_size) {
   list(
