@@ -1,0 +1,19 @@
+---
+title: "Testing multiple hypotheses (multiple p values)."
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{multiple_hypotheses}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library('POSSA')
+```

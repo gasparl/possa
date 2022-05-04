@@ -18,7 +18,7 @@ knitr::opts_chunk$set(
 library('POSSA')
 ```
 
-Below, the essence of `POSSA`'s power (and type 1 error rate, T1ER) calculation for sequential designs is explained using the simple example of a t-test. Of course, for t-tests specifically, you could use other and potentially easier software – however, the point here is to understand how the `POSSA` works, and, subsequently, it should be possible for you to extend this example to virtually any statistical null hypothesis test. (Cases of correlated samples and multiple hypotheses are explained on separate pages, but these too are straightforward extensions of the present example.)
+Below, the essence of `POSSA`'s power (and type 1 error rate, T1ER) calculation for sequential designs is explained using the simple example of a t-test. Of course, for t-tests specifically, you could use other and potentially easier software – however, the point here is to understand how the `POSSA` works, and, subsequently, it should be possible for you to extend this example to virtually any statistical null hypothesis test. Cases of correlated samples and multiple hypotheses are explained on separate pages, but these too are straightforward extensions of the present example.
 
 All parameters mentioned below are described in detail in full the documentation (see `?sim` and `?pow`).
 
@@ -118,7 +118,7 @@ pow(df_ps_seq, alpha_locals = NA)
 #> Likelihoods of significance if H1 true: (1) .42324; (2) .32298; (3) .15300
 ```
 
-The `alpha_locals = NA` input specifies that all local alphas are `NA`, in which case they will all gain a single identical number (corresponding to Pocock's correction in case of equally spaces looks). Rounding to the conventional 3 fractional digits, the adjusted constant local alpha number corresponds to the exact statistics (`.023`) provided in other software, e.g. `gsDesign::gsDesign(k = 3, test.type = 1, n.fix = 81, beta = 0.1, alpha = 0.05, sfu = 'Pocock')`.
+The `alpha_locals = NA` input specifies that all local alphas are `NA`, in which case they will all gain a single identical number (corresponding to Pocock's correction in case of equally spaced looks). Rounding to the conventional 3 fractional digits, the adjusted constant local alpha number corresponds to the exact statistics (`.023`) provided in other software, e.g. `gsDesign::gsDesign(k = 3, test.type = 1, alpha = 0.05, sfu = 'Pocock')`.
 
 The console output contains only the most important information, but, when assigned, the `pow` function returns a data frame with detailed information per each look (and their totals), including the specified sample sizes, the numbers of iterations, etc. The printed information includes
 
@@ -161,51 +161,174 @@ By default, there are altogether 11 step sizes, chosen in a way that typically r
 
 Given the above-described default mechanisms, there are, without modifying the adjustment procedure, two easy ways to provide the argument for `alpha_locals` (for any given p value): (a) a vector that includes (or consist entirely of) `NA` values that are to be replaced with a constant number that results in the desired global T1ER, and (b) a vector with all numeric values that are each to be multiplied with a number in order to obtain a vector of alphas that again result in the desired global T1ER.
 
-Here are some examples.
+However, you can also simply check the results, without any adjustment, of any given set of local alphas, by setting `adjust = FALSE`.
 
-pow(df_ps_v1e, alpha_locals = c(0.0088, NA), alpha_global = 0.05)
-pow(df_ps_v1e, alpha_locals = NA, alpha_global = 0.05)
-pow(df_ps_v1e, alpha_locals = NA, alpha_global = 0.01)
-pow(df_ps_v1e, alpha_locals = c(0.0088, 0.0467), alpha_global = 0.05)
-pow(df_ps_v1c, alpha_locals = c(0.0013, 0.0013, NA), alpha_global = 0.01)
+Here are some examples, all using the data frame "`df_ps_seq`" created above with `POSSA::sim()`.
 
+To use Haybittle–Peto boundary (all interim local alphas `.001`), you can specify `.001` for each local alpha except for the last, which could be `NA` to be adjusted for the given global alpha (here: `.025`), as below.
 
-OF examples:
+```r
+pow(df_ps_seq, alpha_locals = c(0.001, 0.001, NA), alpha_global = 0.025)
 
-summary(rpact::getSampleSizeMeans(rpact::getDesignGroupSequential(typeOfDesign = "OF", informationRates = c(0.5, 0.6, 1), alpha = 0.05), alternative = 0.5))
+#> # POSSA pow() results #
+#> N(average-total) = 161.8 (if H0 true) or 140.4 (if H1 true)
+#> (p) Type I error: .02500; Power: .88411
+#> Local alphas: (1) .00100; (2) .00100; (3) .02431
+#> Likelihoods of significance if H0 true: (1) .00111; (2) .00067; (3) .02322
+#> Likelihoods of significance if H1 true: (1) .09224; (2) .21596; (3) .57591
+```
 
-gsDesign::gsDesign(k = 3, test.type = 1, n.fix = 81, beta = 0.1, alpha = 0.05, timing = c(0.5, 0.6, 1), sfu = 'OF') 
+In this specific scenario, despite noticably decreased average sample in case of H1 (`140.4` instead of the fixed `162`), the adverse effect of interim stops on T1ER is so minimal (see, in case of H0, the tiny ratio significant [false positive] findings at the first and second looks), that the last look's alpha (`.02431`) hardly differs from the specified global alpha (`.025`).
 
+You can also check what happens without adjustment, using `adjust = FALSE`.
+
+```r
+pow(df_ps_seq, alpha_locals = c(0.001, 0.001, 0.025), alpha_global = 0.025, adjust = FALSE)
+
+#> # POSSA pow() results #
+#> N(average-total) = 161.8 (if H0 true) or 140.4 (if H1 true)
+#> (p) Type I error: .02551; Power: .88618
+#> Local alphas: (1) .00100; (2) .00100; (3) .02500
+#> Likelihoods of significance if H0 true: (1) .00111; (2) .00067; (3) .02373
+#> Likelihoods of significance if H1 true: (1) .09224; (2) .21596; (3) .57798
+```
+
+Which leads to the same conclusion from the reverse perspective: the T1ER hardly exceeds `.25`.
+
+Nonetheless, more substantial sample reduction can be achieved with somewhat more liberal interim local alphas; besides, normally it makes more sense to increase the local alphas gradually (because, in brief, given the greater uncertainty of the initial smaller samples, beginning with lower local alphas and gradually increasing them provides the most efficient "information gain" for the same eventual T1ER). For this, one could base the adjustment on one of the popular boundary methods used for parametric tests, such as the O'Brien-Fleming bounds. These bounds for parametric tests can be easily calculated via other packages. These bounds may not apply to nonparametric tests in exactly the same way, but the principle of exponentially increasing local alphas remains the same. (To decide what fits your specific scenario best, you could also check the outcomes of various versions of the Wang-Tsiatis bounds by changing its _Delta_ parameter; e.g., in `gsDesign::gsDesign()`, set `sfu = 'WT'` for Wang-Tsiatis, and vary its Delta via `sfupar`.) Most importantly in any case, the adjustment of alphas in `POSSA` will ensure that the T1ER is at the specified level. This will only make a difference for other custom tests and multiple hypotheses, but not for the present t-test example.
+
+For our example of three equally spaced interim looks, O'Brien-Fleming bounds can be calculated e.g. via `gsDesign::gsDesign(k = 3, test.type = 1, alpha = 0.05, sfu = 'OF')`, giving the local alphas of `0.0015`, `0.0181`, and `0.0437`. (The same is returned by `rpact::getDesignGroupSequential(typeOfDesign = "OF", informationRates = c(1/3, 2/3, 1), alpha = 0.05)`.)
+
+To merely calculate the T1ER and power for any specific tests, again use `adjust = FALSE`.
+
+```r
+pow(df_ps_seq, alpha_locals = c(0.0015, 0.0181, 0.0437), alpha_global = 0.05, adjust = FALSE)
+
+#> # POSSA pow() results #
+#> N(average-total) = 160.8 (if H0 true) or 118.7 (if H1 true)
+#> (p) Type I error: .04951; Power: .93087
+#> Local alphas: (1) .00150; (2) .01810; (3) .04370
+#> Likelihoods of significance if H0 true: (1) .00162; (2) .01809; (3) .02980
+#> Likelihoods of significance if H1 true: (1) .11531; (2) .57211; (3) .24344
+```
+
+(To verify the power via other software, see e.g. `summary(rpact::getSampleSizeMeans(rpact::getDesignGroupSequential(typeOfDesign = "OF", informationRates = c(1/3, 2/3, 1), alpha = 0.05, beta = 1-0.93087), alternative = 0.5))`.)
+
+Since these local alphas were specifically chosen to have a T1ER of `.05` for the t-test comparison used here, they will hardly change even with `adjust = TRUE`. However, to test the adjustment function, we can set a different global alpha, e.g. `.01`, so that the adjustment will reduce each local alpha value by multiplication.
+
+```r
+pow(df_ps_seq, alpha_locals = c(0.0015, 0.0181, 0.0437), alpha_global = 0.025)
+
+#> # POSSA pow() results #
+#> N(average-total) = 161.4 (if H0 true) or 126.9 (if H1 true)
+#> (p) Type I error: .02498; Power: .87487
+#> Local alphas: (1) .00071; (2) .00862; (3) .02080
+#> Likelihoods of significance if H0 true: (1) .00089; (2) .00876; (3) .01533
+#> Likelihoods of significance if H1 true: (1) .07629; (2) .49747; (3) .30111
+```
+
+(Cf. `summary(rpact::getSampleSizeMeans(rpact::getDesignGroupSequential(typeOfDesign = "asUser", informationRates = c(1/3, 2/3, 1), userAlphaSpending = c(.00071, .0089, .0244), beta = 1-.87487), alternative = 0.5))`.)
+
+Finally, just for quick demonstration, for the same scenario, here is a function that adjusts all values via additions (constant increase/decrease of all local alpha values). Also, here the global alpha is set to be larger (`alpha_global = 0.1`), just so as to make the local alphas increase too in this case.
+
+```r
 pow(
-  df_ps_v1d,
-  alpha_locals = c(0.0001, 0.0004, 0.0031, 0.0089),
-  alpha_global = 0.01,
+  df_ps_seq,
+  alpha_locals = c(0.0015, 0.0181, 0.0437),
+  alpha_global = 0.1,
   adjust = function(adj, prev, orig) {
     return(orig + adj)
   }
 )
 
-
-pow(
-  df_ps_v1d,
-  alpha_locals = c(0.0001, 0.0004, 0.0031, 0.0089),
-  alpha_global = 0.01,
-  adjust = FALSE
-)
-
-(To skip, just set to 1 -- this may be useful in case of multiple p values (in case of multiple hypthesis).)
+#> # POSSA pow() results #
+#> N(average-total) = 161.4 (if H0 true) or 126.9 (if H1 true)
+#> (p) Type I error: .02498; Power: .87487
+#> Local alphas: (1) .00071; (2) .00862; (3) .02080
+#> Likelihoods of significance if H0 true: (1) .00089; (2) .00876; (3) .01533
+#> Likelihoods of significance if H1 true: (1) .07629; (2) .49747; (3) .30111
+```
 
 ### Futility bounds
 
+By default, the interim local alphas will all be zero (i.e., no stopping for significance), and the final local alpha will equal the given global alpha – meaning a simple fixed design (with the maximum specified observation number).
+
+```r
+pow(df_ps_seq)
+
+#> # POSSA pow() results #
+#> N(average-total) = 162.0 (if H0 true) or 162.0 (if H1 true)
+#> (p) Type I error: .04860; Power: .93636
+#> Local alphas: (1) none; (2) none; (3) .05000
+#> Likelihoods of significance if H0 true: (1) 0; (2) 0; (3) .04860
+#> Likelihoods of significance if H1 true: (1) 0; (2) 0; (3) .93636
+```
+
+This is to make the setting of _futility bounds_ alone easy and straightforward.
 
 pow(df_ps_seq, fut_locals = 0.5)
-pow(df_ps_seq, fut_locals = c(1, 0.5))
-pow(df_ps_seq, fut_locals = c(0.5, 0.5))
 
 
-pow(df_ps_seq, alpha_locals = c(NA, NA, 0.05), fut_locals = 0.5)
-pow(df_ps_seq, alpha_locals = c(0, 0.05, 0.025), fut_locals = c(0.8, 0.5))
-pow(df_ps_seq, alpha_locals = c(0.025, 0, 0.05), fut_locals = c(0.8, 0.5))
+-- To skip, at any look, alpha/futility stop, just set to 1/0.
 
 ### Arbitrary stops
 
+In a real experiment, you may not know in advance the exact number of observations at the stopping point. For example, you plan (and preregister) to open an initial 30 slots for participation, after which you would perform the first testing (first interim "look") – however, some participants will probably have to be excluded (e.g. because of failing attention checks), expected to be only a few, but cannot be known exactly in advance.
+
+Assuming that minor variations in power do not matter, you can simply calculate with the approximate observation numbers (at the given planned looks) in advance, and, when the actual observation numbers are known, the calculation is repeated with these latter numbers to ensure that the T1ER remains as desired. For example, taking into account some necessary exclusions, the expected observation numbers with two interim looks are `27` (first look), `54` , and `81`. This may be calculated as before, using O'Brien-Fleming bounds (as provided by, e.g., `gsDesign::gsDesign(test.type = 1, alpha = 0.05, sfu = 'OF', timing = c(27, 54, 81)/81)`, then adjusted by `POSSA`).
+
+```r
+df_ps_planned = sim(fun_obs = customSample,
+                n_obs = c(27, 54, 81),
+                fun_test = customTest)
+
+pow(df_ps_planned, alpha_locals = c(0.0015, 0.0181, 0.0437), alpha_global = 0.05)
+
+#> # POSSA pow() results #
+#> N(average-total) = 160.8 (if H0 true) or 118.5 (if H1 true)
+#> (p) Type I error: .05000; Power: .93164
+#> Local alphas: (1) .00152; (2) .01830; (3) .04419
+#> Likelihoods of significance if H0 true: (1) .00164; (2) .01831; (3) .03004
+#> Likelihoods of significance if H1 true: (1) .11604; (2) .57309; (3) .24251
+```
+
+Now, let's say that, due to somewhat more exclusions than expected, the initial sample contains only 24 valid observations. You can rerun the simulation with the modified first observation number, and run the power calculation with initial alphas corrected with `gsDesign::gsDesign(test.type = 1, alpha = 0.05, sfu = 'OF', timing = c(24, 54, 81)/81)`.
+
+```r
+df_ps_first = sim(fun_obs = customSample,
+                n_obs = c(24, 54, 81),
+                fun_test = customTest)
+
+pow(df_ps_first, alpha_locals = c(0.0009, 0.0182, 0.0438), alpha_global = 0.05)
+
+#> # POSSA pow() results #
+#> N(average-total) = 161.0 (if H0 true) or 120.6 (if H1 true)
+#> (p) Type I error: .05000; Power: .93484
+#> Local alphas: (1) .00091; (2) .01850; (3) .04453
+#> Likelihoods of significance if H0 true: (1) .00087; (2) .01760; (3) .03153
+#> Likelihoods of significance if H1 true: (1) .07056; (2) .61742; (3) .24687
+```
+
+Let's say that the p value was not below the local alpha (`.02295`), so you move open another 30 slots, and once again end up with more exclusions than expected, resulting in only `49` valid observations. The adjusted calculation is then as follows.
+
+```r
+gsDesign::gsDesign(test.type = 1, alpha = 0.05, sfu = 'OF', timing = c(24, 49, 81)/81)
+# gives new initial local alphas
+
+df_ps_second = sim(fun_obs = customSample,
+                   n_obs = c(24, 49, 81),
+                   fun_test = customTest)
+
+pow(df_ps_second, alpha_locals = c(0.0009, 0.0145, 0.0447), alpha_global = 0.05)
+
+#> # POSSA pow() results #
+#> N(average-total) = 161.0 (if H0 true) or 119.6 (if H1 true)
+#> (p) Type I error: .04996; Power: .93153
+#> Local alphas: (1) .00090; (2) .01453; (3) .04479
+#> Likelihoods of significance if H0 true: (1) .00091; (2) .01360; (3) .03544
+#> Likelihoods of significance if H1 true: (1) .07009; (2) .53733; (3) .32411
+```
+
+(And, if needed, a similar modified recalculation could be done for the last look.)
+
+As can be seen, the power differences are very small. Nonetheless, if it is important to keep the same level of power with high precision (e.g., up to 3 fractional digits), you can plan for (and preregister) to conditionally adjust (increase/decrease) the subsequent interim (if any) and final sample sizes to achieve the same power. (Technically, another option is to conditionally adjust the alpha level, i.e., the T1ER, but that's rather questionable.)
