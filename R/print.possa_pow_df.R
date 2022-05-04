@@ -176,7 +176,7 @@ format.possa_pow_df = function(x,
             } else {
                 p_fa_locals = ro(df_pow[[paste0('futil_local_', p_nam)]][looks[-mlook]], round_to)
                 p_fa_locals = ifelse(
-                    p_fa_locals == '0',
+                    p_fa_locals == '1',
                     'none',
                     paste0('\033[0;1m',
                            p_fa_locals,

@@ -14,11 +14,9 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
-library('POSSA')
-```
-
 Below, the essence of `POSSA`'s power (and type 1 error rate, T1ER) calculation for sequential designs is explained using the simple example of a t-test. Of course, for t-tests specifically, you could use other and potentially easier software – however, the point here is to understand how the `POSSA` works, and, subsequently, it should be possible for you to extend this example to virtually any statistical null hypothesis test. Cases of correlated samples and multiple hypotheses are explained on separate pages, but these too are straightforward extensions of the present example.
+
+This tutorial presupposes the basic conceptual understanding of sequential analyses (and the basics or statistical power and T1ER). There are several related free tutorials online (see e.g. [Lakens, 2014](https://psyarxiv.com/9yegd/)).
 
 All parameters mentioned below are described in detail in full the documentation (see `?sim` and `?pow`).
 
@@ -66,6 +64,12 @@ do.call(customTest, customSample(55))
 This passes `55` as (arbitrary) sample size to `customSample`, which passes the created samples to `customTest`, which finally returns the named vector with the `p_h0` and `p_h1` p values. (Given the randomization, if you run this line repeatedly, the outcome should differ each time – however, with large enough numbers, `p_h1` is likely to be noticeably smaller then `p_h0`.)
 
 ### POSSA's *sim* and *pow*
+
+Time to load `POSSA`.
+
+```{r setup}
+library('POSSA')
+```
 
 Now, the `POSSA::sim` function can be used with `customSample` for `fun_obs` (function for observation values) and `customTest` for `fun_test` (function for statistical testing), and any desired numbers of observation. (This runs the simulation `45000` times by default, so it takes a while. For quick testing, set the number to a lower value via the `n_iter` parameter, e.g., `n_iter = 500`.)
 
@@ -264,12 +268,87 @@ pow(df_ps_seq)
 #> Likelihoods of significance if H1 true: (1) 0; (2) 0; (3) .93636
 ```
 
-This is to make the setting of _futility bounds_ alone easy and straightforward.
+This is to make the setting of _futility bounds_ alone easy and straightforward. For instance, to stop collection for futility whenever the p value exceeds `.5` (during interim looks), one can simply add `fut_locals = 0.5`.
 
+```r
 pow(df_ps_seq, fut_locals = 0.5)
 
+#> # POSSA pow() results #
+#> N(average-total) = 101.1 (if H0 true) or 158.3 (if H1 true)
+#> (p) Type I error: .04516; Power: .91622
+#> Local alphas: (1) none; (2) none; (3) .05000
+#> Likelihoods of significance if H0 true: (1) 0; (2) 0; (3) .04516
+#> Likelihoods of significance if H1 true: (1) 0; (2) 0; (3) .91622
+#> Futility bounds: (1) .50000; (2) .50000
+#> Likelihoods of exceeding futility alpha if H0 true: (1) .03011; (2) .00176
+#> Likelihoods of exceeding futility alpha if H1 true: (1) .03324; (2) .00180
+```
 
--- To skip, at any look, alpha/futility stop, just set to 1/0.
+This is equivalent to specifying each futility bound. Since futility bound is meaningless for the final look, and the present example (`df_ps_seq`) contains two interim looks, two values are required. Hence the `pow(df_ps_seq, fut_locals = c(0.5, 0.5))` gives results equivalent to `pow(df_ps_seq, fut_locals = 0.5)` (as above).
+
+Of course, once again, a constant value is not ideal; the futility bound is more effective with values decreasing by each look. The specific choices depends on how much power one is willing to sacrifice in exchange for reduced sample sizes (which, as seen in the outputs, will help primarily in case H0 is true).
+
+```r
+pow(df_ps_seq, fut_locals = c(0.6, 0.3))
+
+#> # POSSA pow() results #
+#> N(average-total) = 100.9 (if H0 true) or 159.3 (if H1 true)
+#> (p) Type I error: .04587; Power: .92331
+#> Local alphas: (1) none; (2) none; (3) .05000
+#> Likelihoods of significance if H0 true: (1) 0; (2) 0; (3) .04587
+#> Likelihoods of significance if H1 true: (1) 0; (2) 0; (3) .92331
+#> Futility bounds: (1) .60000; (2) .30000
+#> Likelihoods of exceeding futility alpha if H0 true: (1) .01549; (2) .01307
+#> Likelihoods of exceeding futility alpha if H1 true: (1) .01789; (2) .01336
+```
+
+Importantly, alphas stopping for significance and bounds stopping for futility can be combined in any desired way.
+
+For instance:
+
+```r
+pow(
+  df_ps_seq,
+  alpha_locals = c(0.002, 0.018, 0.044),
+  fut_locals = c(0.6, 0.3)
+)
+
+#> # POSSA pow() results #
+#> N(average-total) = 99.7 (if H0 true) or 114.3 (if H1 true)
+#> (p) Type I error: .05000; Power: .92229
+#> Local alphas: (1) .00211; (2) .01897; (3) .04636
+#> Likelihoods of significance if H0 true: (1) .00216; (2) .01864; (3) .02920
+#> Likelihoods of significance if H1 true: (1) .13907; (2) .55542; (3) .22780
+#> Futility bounds: (1) .60000; (2) .30000
+#> Likelihoods of exceeding futility alpha if H0 true: (1) .03304; (2) .37542
+#> Likelihoods of exceeding futility alpha if H1 true: (1) .01789; (2) .01336
+```
+
+(Note the robust sample size reduction in case of both H0 and H1, with power hardly changed as compared to the fixed design.)
+
+The `alpha_locals` functions same as without futility bounds; e.g., in this last example it was adjusted via multiplication, but it could also be again given `NA` values to be adjusted via replacements.
+
+To disable, at any given look, stopping either for significance or for futility, just set the local alpha/bound to zero or to one, respectively. For example, the above example can be modified as below to have no stopping for futility at the first look and no stopping for significance at the second look.
+
+```r
+pow(
+  df_ps_seq,
+  alpha_locals = c(0.002, 0, 0.044),
+  fut_locals = c(1, 0.3)
+)
+
+#> # POSSA pow() results #
+#> N(average-total) = 123.8 (if H0 true) or 145.2 (if H1 true)
+#> (p) Type I error: .05000; Power: .93416
+#> Local alphas: (1) .00235; (2) none; (3) .05167
+#> Likelihoods of significance if H0 true: (1) .00247; (2) 0; (3) .04753
+#> Likelihoods of significance if H1 true: (1) .14633; (2) 0; (3) .78782
+#> Futility bounds: (1) none; (2) .30000
+#> Likelihoods of exceeding futility alpha if H0 true: (1) 0; (2) .01867
+#> Likelihoods of exceeding futility alpha if H1 true: (1) 0; (2) .01916
+```
+
+(Of course, once again, this example hardly makes sense in a real case; it serves only as a demonstration here.)
 
 ### Arbitrary stops
 
