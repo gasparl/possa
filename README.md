@@ -6,7 +6,7 @@ This package is already in working condition as it is, but some parts of the und
 
 ### Installation in R
 
-Currently, POSSA is only available via GitHub. It can be installed as follows.
+For now, POSSA is only available via GitHub. It can be installed as follows.
 
 ```
 install.packages("devtools") # if "devtools" package is not yet installed
@@ -16,19 +16,10 @@ install_github("gasparl/possa")
 
 ### Usage
 
-Please see the vignettes:
+Please see the main vignettes: [General introduction](https://gasparl.github.io/possa/vignettes/intro.html "POSSA: Introduction") and
+[Multiple hypotheses](https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html "POSSA: Multiple hypotheses"). (Less important: [Benchmarking](https://gasparl.github.io/possa/vignettes/benchmarking.html "POSSA: Benchmarking").) _Upcoming: Real use examples (unequal samples and SDs; ranked data; DeLong's test; AOV)._
 
-- [General introduction](https://gasparl.github.io/possa/vignettes/intro.html "POSSA: Introduction")
-- [Correlated samples](https://gasparl.github.io/possa/vignettes/correlations.html "POSSA: Correlated samples")
-- [Multiple hypotheses](https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html "POSSA: Multiple hypotheses")
-- [Benchmarking](https://gasparl.github.io/possa/vignettes/benchmarking.html "POSSA: Benchmarking")
-
-Upcoming:
-- Real use examples (unequal samples and SDs; ranked data; DeLong's test; AOV)
-
-
-For details about each function, see [the manual](https://github.com/gasparl/possa/blob/master/POSSA.pdf "POSSA manual") (or enter `help(xy)` or `?xy` in R for any specific function).
-
+For detailed information about each function and parameter, see [the manual](https://github.com/gasparl/possa/blob/master/POSSA.pdf "POSSA manual").
 
 ### Support
 

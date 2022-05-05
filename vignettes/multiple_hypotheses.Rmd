@@ -1,5 +1,5 @@
 ---
-title: "Testing multiple hypotheses (multiple p values)."
+title: "Recording descriptives. Varying factors. Testing multiple hypotheses."
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{multiple_hypotheses}
@@ -14,6 +14,22 @@ knitr::opts_chunk$set(
 )
 ```
 
+This tutorial presupposes having read the [general introduction to `POSSA`](https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html). Here, that introduction is extended for cases of multiple hypotheses, i.e., where each analysis (at a given "look") involves multiple significance tests, and hence multiple p values.
+
+To verify that such relatively more complex used-defined functions were written correctly, it is useful to store some descriptive data, such as the means and SDs of the variables, or correlations, effect sizes, etc. Relatedly, in real cases, one should ideally test a [variety of possible scenarios](https://doi.org/10.1177%2F1745691616658637): for this, `POSSA` provides the possibility to easy run multiple simulations with varying factors (e.g., varying correlations, effect sizes, etc.).
+
+Hence, recording descriptives and using varying factors will be explained here first, after which testing for multiple hypotheses is presented. This completes (together with the [intro](https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html)) everything important that needs knowing for using `POSSA`.
+
+### Recording descriptives
+
 ```{r setup}
 library('POSSA')
 ```
+
+### Varying factors
+
+
+
+### Testing multiple hypotheses
+
+
