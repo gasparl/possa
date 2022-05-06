@@ -12,7 +12,7 @@
 
 
 
-<title>Testing multiple hypotheses (multiple p values).</title>
+<title>Recording descriptives. Varying factors. Testing multiple hypotheses.</title>
 
 <script src="data:application/javascript;base64,Ly8gUGFuZG9jIDIuOSBhZGRzIGF0dHJpYnV0ZXMgb24gYm90aCBoZWFkZXIgYW5kIGRpdi4gV2UgcmVtb3ZlIHRoZSBmb3JtZXIgKHRvCi8vIGJlIGNvbXBhdGlibGUgd2l0aCB0aGUgYmVoYXZpb3Igb2YgUGFuZG9jIDwgMi44KS4KZG9jdW1lbnQuYWRkRXZlbnRMaXN0ZW5lcignRE9NQ29udGVudExvYWRlZCcsIGZ1bmN0aW9uKGUpIHsKICB2YXIgaHMgPSBkb2N1bWVudC5xdWVyeVNlbGVjdG9yQWxsKCJkaXYuc2VjdGlvbltjbGFzcyo9J2xldmVsJ10gPiA6Zmlyc3QtY2hpbGQiKTsKICB2YXIgaSwgaCwgYTsKICBmb3IgKGkgPSAwOyBpIDwgaHMubGVuZ3RoOyBpKyspIHsKICAgIGggPSBoc1tpXTsKICAgIGlmICghL15oWzEtNl0kL2kudGVzdChoLnRhZ05hbWUpKSBjb250aW51ZTsgIC8vIGl0IHNob3VsZCBiZSBhIGhlYWRlciBoMS1oNgogICAgYSA9IGguYXR0cmlidXRlczsKICAgIHdoaWxlIChhLmxlbmd0aCA+IDApIGgucmVtb3ZlQXR0cmlidXRlKGFbMF0ubmFtZSk7CiAgfQp9KTsK"></script>
 
@@ -138,11 +138,324 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 
 
-<h1 class="title toc-ignore">Testing multiple hypotheses (multiple p values).</h1>
+<h1 class="title toc-ignore">Recording descriptives. Varying factors. Testing multiple hypotheses.</h1>
 
 
 
+<p>This tutorial presupposes having read the <a href="https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html">general introduction to <code>POSSA</code></a>. Here, that introduction is extended for cases of multiple hypotheses, i.e., where each analysis (at a given “look”) involves multiple significance tests, and hence multiple p values.</p>
+<p>To verify that such relatively more complex used-defined functions were written correctly, it is useful to store some descriptive data, such as the means and SDs of the variables, or correlations, effect sizes, etc. Relatedly, in real cases, one should ideally test a <a href="https://doi.org/10.1177%2F1745691616658637">variety of possible scenarios</a>: for this, <code>POSSA</code> provides the possibility to easily run multiple simulations with varying factors (e.g., varying correlations, effect sizes, etc.).</p>
+<p>Hence, recording descriptives and using varying factors will be explained here first, after which testing for multiple hypotheses is presented. This completes (together with the <a href="https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html">intro</a>) everything important that needs knowing for using <code>POSSA</code>.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&#39;POSSA&#39;</span>)</span></code></pre></div>
+<div id="recording-descriptives" class="section level3">
+<h3>Recording descriptives</h3>
+<p>Let’s take again a t-test. The sample generating function is like before.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>customSample <span class="ot">=</span> <span class="cf">function</span>(sampleSize) {</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">sample1 =</span> <span class="fu">rnorm</span>(sampleSize, <span class="at">mean =</span> <span class="dv">0</span>, <span class="at">sd =</span> <span class="dv">10</span>),</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">sample2_h0 =</span> <span class="fu">rnorm</span>(sampleSize, <span class="at">mean =</span> <span class="dv">0</span>, <span class="at">sd =</span> <span class="dv">10</span>),</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">sample2_h1 =</span> <span class="fu">rnorm</span>(sampleSize, <span class="at">mean =</span> <span class="dv">5</span>, <span class="at">sd =</span> <span class="dv">10</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>However, the test function will return, apart from the p values, some additional information. For a simple example, let’s calculate the mean difference in case of both H0 and H1, and store it as <code>meanDiffH0</code> and <code>meanDiffH1</code> (but any other custom name could just as well be given – except for the notation reserved for p values, i.e., starting with <code>p_</code> and ending with <code>_h0</code>/<code>_h1</code>).</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>customTestWithMeans <span class="ot">=</span> <span class="cf">function</span>(sample1, sample2_h0, sample2_h1) {</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_h0 =</span> <span class="fu">t.test</span>(sample1, sample2_h0, <span class="st">&#39;less&#39;</span>, <span class="at">var.equal =</span> <span class="cn">TRUE</span>)<span class="sc">$</span>p.value,</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_h1 =</span> <span class="fu">t.test</span>(sample1, sample2_h1, <span class="st">&#39;less&#39;</span>, <span class="at">var.equal =</span> <span class="cn">TRUE</span>)<span class="sc">$</span>p.value,</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">meanDiffH0 =</span> <span class="fu">mean</span>(sample1 <span class="sc">-</span> sample2_h0),</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">meanDiffH1 =</span> <span class="fu">mean</span>(sample1 <span class="sc">-</span> sample2_h1)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>See that it’s working:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">do.call</span>(customTestWithMeans, <span class="fu">customSample</span>(<span class="dv">85</span>))</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;         p_h0         p_h1   meanDiffH0   meanDiffH1 </span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  0.698128500  0.003632574  0.728124848 -3.858589359</span></span></code></pre></div>
+<p>Now the simulation as before.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>dfPvalsAndMeans <span class="ot">=</span> <span class="fu">sim</span>(<span class="at">fun_obs =</span> customSample,</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">n_obs =</span> <span class="fu">c</span>(<span class="dv">27</span>, <span class="dv">54</span>, <span class="dv">81</span>),</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>                      <span class="at">fun_test =</span> customTestWithMeans)</span></code></pre></div>
+<p>The power calculation could be accessed as before via <code>pow</code>, e.g. <code>pow(dfPvalsAndMeans)</code>, and the results will be the same – but that’s not important here.</p>
+<p>What’s important is that the <code>dfPvalsAndMeans</code> can be printed, and the factors will be automatically shown.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(dfPvalsAndMeans)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; POSSA sim() results (p values)</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Sample:</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    .iter .look .n_total sample1 sample2_h       p_h0         p_h1 meanDiffH0 meanDiffH1</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1:     1     1       54      27        27 0.57639929 0.0206001019  0.5229246  -5.886524</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2:     1     2      108      54        54 0.02521739 0.0001540393 -3.9918067  -6.850594</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3:     1     3      162      81        81 0.04303389 0.0000339881 -2.7414472  -6.031900</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Descriptives:</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; meanDiffH0: </span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;       Min.    1st Qu.     Median       Mean    3rd Qu.       Max. </span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; -11.208494  -1.331260   0.003347   0.006194   1.346132  12.649740 </span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; meanDiffH1: </span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; -15.704  -6.350  -5.006  -5.005  -3.656   5.699 </span></span></code></pre></div>
+<p>Note that entering a variable name, in this case <code>dfPvalsAndMeans</code>, in the console (or, in RStudio, highlighting it and pressing <em>Ctrl</em>+<em>Enter</em>) is equivalent to using the <code>print()</code> function.</p>
+<p>As can be seen, summary information for the additional values returned from the testing function is automatically printed (under a “Descriptives” title). When only p values are included, no such information is printed. For some optional arguments, such as to change the function used for summary information, see <code>?print.possa_sim_df</code>. Some examples are also given below.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(dfPvalsAndMeans, <span class="at">descr_cols =</span> <span class="st">&#39;meanDiffH0&#39;</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(dfPvalsAndMeans, <span class="at">descr_cols =</span> <span class="fu">c</span>(<span class="st">&#39;meanDiffH0&#39;</span>, <span class="st">&#39;.n_total&#39;</span>))</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(dfPvalsAndMeans, <span class="at">descr_func =</span> sd)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(dfPvalsAndMeans, <span class="at">group_by =</span> <span class="st">&#39;.look&#39;</span>)</span></code></pre></div>
+<p>Of course, one can also just check the data frame directly via other functions, including plots. For example, <code>neatStats::peek_neat(dfPvalsAndMeans, c(&quot;meanDiffH0&quot;, &quot;meanDiffH1&quot;), group_by = c(&#39;.look&#39;))</code>.</p>
+</div>
+<div id="varying-factors" class="section level3">
+<h3>Varying factors</h3>
+<p>To get some additional information from each mean comparison, here is an extended “t-test” function that returns, apart from the p value, the mean difference, correlation, and the standardized mean difference (SMD; Cohen’s d).</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>tTestPlus <span class="ot">=</span> <span class="cf">function</span>(x, y) {</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  t_info <span class="ot">=</span> stats<span class="sc">::</span><span class="fu">t.test</span>(x, y, <span class="at">paired =</span> <span class="cn">TRUE</span>, <span class="at">var.equal =</span> T)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  sdx <span class="ot">=</span> <span class="fu">sd</span>(x)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  sdy <span class="ot">=</span> <span class="fu">sd</span>(y)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  corr <span class="ot">=</span> <span class="fu">cor</span>(x, y)</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  sd_p <span class="ot">=</span> <span class="fu">sqrt</span>((sdx <span class="sc">**</span> <span class="dv">2</span> <span class="sc">+</span> sdy <span class="sc">**</span> <span class="dv">2</span>) <span class="sc">-</span> <span class="dv">2</span> <span class="sc">*</span> corr <span class="sc">*</span> sdx <span class="sc">*</span> sdy)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">list</span>(</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>      <span class="at">pval =</span> t_info<span class="sc">$</span>p.value,</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>      <span class="at">mean_diff =</span> <span class="fu">as.numeric</span>(t_info<span class="sc">$</span>estimate),</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>      <span class="at">corr =</span>  corr,</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>      <span class="at">smd =</span> <span class="fu">as.numeric</span>(t_info<span class="sc">$</span>estimate) <span class="sc">/</span> sd_p</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>Now, the function for sample generation. What’s new here is that, apart from the sample size (here: <code>sampSize</code>), there are two additional parameters, <code>meanH1</code> and <code>corrH1</code>, which specify the mean difference and the correlation, respectively, for the differing variable in case of H1.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>sampFun <span class="ot">=</span> <span class="cf">function</span>(sampSize, meanH1, corrH1) {</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  correlatedSamples <span class="ot">=</span> faux<span class="sc">::</span><span class="fu">rnorm_multi</span>(</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">n =</span> sampSize,</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">vars =</span> <span class="dv">3</span>,</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">mu =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, meanH1),</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">sd =</span> <span class="dv">5</span>,</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">r =</span> <span class="fu">c</span>(corrH1, corrH1, <span class="dv">0</span>)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">GRP_v1 =</span> correlatedSamples<span class="sc">$</span>X1,</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">GRP_v2_h0 =</span> correlatedSamples<span class="sc">$</span>X2,</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">GRP_v2_h1 =</span> correlatedSamples<span class="sc">$</span>X3</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>And then the test function that return related additional information (using the extra t-test function): the mean differences, correlations, and SMDs, per H0 and H1.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>testFun <span class="ot">=</span> <span class="cf">function</span>(GRP_v1, GRP_v2_h0, GRP_v2_h1) {</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  t0 <span class="ot">=</span> <span class="fu">tTestPlus</span>(GRP_v2_h0, GRP_v1)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  t1 <span class="ot">=</span> <span class="fu">tTestPlus</span>(GRP_v2_h1, GRP_v1)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>      <span class="at">p_h0 =</span> t0<span class="sc">$</span>pval,</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>      <span class="at">meanDiffValueH0 =</span> t0<span class="sc">$</span>mean_diff,</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">corrValueH0 =</span> t0<span class="sc">$</span>corr,</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>      <span class="at">smdValueH0 =</span> t0<span class="sc">$</span>smd,</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>      <span class="at">p_h1 =</span> t1<span class="sc">$</span>pval,</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>      <span class="at">meanDiffValueH1 =</span> t1<span class="sc">$</span>mean_diff,</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>      <span class="at">corrValueH1 =</span> t1<span class="sc">$</span>corr,</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>      <span class="at">smdValueH1 =</span> t1<span class="sc">$</span>smd</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>The <code>sim()</code> function works the same as before, except that the varying factors <code>meanH1</code> and <code>corrH1</code> (the parameters in <code>sampFun</code>) need to be provided as part of <code>fun_obs</code>: instead of assigning a function as e.g. <code>fun_obs = sampFun</code>, a list is needed where the first element is the function (<code>sampFun</code>), and the rest of the elements specify the varying factor via their names and their corresponding values in a vector.</p>
+<p>Hence, if one intends to see, for instance, all the combinations of mean differences of <code>1.5</code>, <code>2.5</code>, <code>3.5</code>, and correlations of <code>0</code> and <code>0.5</code>, this can be specified as <code>fun_obs = list(sampFun, meanH1 = c(1.5, 2.5, 3.5), corrH1 = c(0, 0.5))</code>.</p>
+<p>(Given 2x3 = 6 combinations, each with the default 45000 iterations, this simulation would take a while – for quick testing, one can set e.g. <code>n_iter = 500</code>.)</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>dfPvalsFacts <span class="ot">=</span> <span class="fu">sim</span>(</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">fun_obs =</span> <span class="fu">list</span>(</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    sampFun,</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">meanH1 =</span> <span class="fu">c</span>(<span class="fl">1.5</span>, <span class="fl">2.5</span>, <span class="fl">3.5</span>),</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">corrH1 =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.5</span>)</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">n_obs =</span> <span class="fu">c</span>(<span class="dv">27</span>, <span class="dv">54</span>, <span class="dv">81</span>),</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">fun_test =</span> testFun,</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">n_iter =</span> <span class="dv">500</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+<p>Now, simply by printing <code>dfPvalsFacts</code>, one can check the means, correlations, and SMDs, for each factor combination, to make sure everything is as intended; it’s also assuring to see that each look has similar values (e.g., correlations) for each combination; <code>print(dfPvalsFacts, group_by = c(&#39;.look&#39;, &#39;corrH1&#39;), descr_cols = &#39;corrValueH1&#39;)</code>. Or, again, some plots can give quick insight: <code>neatStats::peek_neat(dfPvalsFacts, c(&quot;corrValueH0&quot;, &quot;corrValueH1&quot;), group_by = c(&#39;corrH1&#39;, &#39;.look&#39;))</code>; <code>neatStats::peek_neat(dfPvalsFacts, c(&quot;smdValueH1&quot;), group_by = c(&#39;meanH1&#39;, &#39;corrH1&#39;))</code>; etc.</p>
+<p>Finally, <code>POSSA::pow</code> will calculate power for each factor combination separately – otherwise behaving just the same as when no varying factors are given.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">pow</span>(dfPvalsFacts)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # POSSA pow() results #</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; GROUP: pow_1.5_0</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; N(average-total) = 81.0 (if H0 true) or 81.0 (if H1 true)</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p) Type I error: .10000; Power: .43000</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) none; (2) none; (3) .05000</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) 0; (2) 0; (3) .10000</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) 0; (2) 0; (3) .43000</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; GROUP: pow_1.5_0.5</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; N(average-total) = 81.0 (if H0 true) or 81.0 (if H1 true)</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p) Type I error: .07000; Power: .80000</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) none; (2) none; (3) .05000</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) 0; (2) 0; (3) .07000</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) 0; (2) 0; (3) .80000</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; GROUP: pow_2.5_0</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; N(average-total) = 81.0 (if H0 true) or 81.0 (if H1 true)</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p) Type I error: .03000; Power: .84000</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) none; (2) none; (3) .05000</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) 0; (2) 0; (3) .03000</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) 0; (2) 0; (3) .84000</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ...</span></span></code></pre></div>
+<p>(For brevity here, only the three first combinations are printed.)</p>
+<p>To check any one or subset of the factor combinations, the <code>dfPvalsFacts</code> data frame can be subset, as, for instance, <code>pow(dfPvalsFacts[dfPvalsFacts$meanH1 == 1.5 &amp; dfPvalsFacts$corrH1 == 0,])</code>.</p>
+<p>Alternatively, any of the data frames contained in the list returned by <code>pow()</code> can be printed separately. E.g., <code>all_pow_data = pow(dfPvalsFacts)</code>; then <code>print(all_pow_data$pow_1.5_0)</code>.</p>
+</div>
+<div id="testing-multiple-hypotheses" class="section level2">
+<h2>Testing multiple hypotheses</h2>
+<div id="basics-notation-for-multiple-groups" class="section level3">
+<h3>Basics – notation for multiple groups</h3>
+<p>It is possible to perform tests for multiple hypotheses where each test’s sample is independent from all the other tests’ samples, and this is possible to do with <code>POSSA</code> too. However, the outcome is fairly straightforward in such cases: each test will have its own power and T1ER independently from the rest, and these can be rather easily combined into some total power or T1ER values as needed. What is more interesting is how correlated samples’ testing affect the global outcomes (e.g., the likelihood that any of the tests give a false positive finding). Hence, the focus here is on correlated samples. Nonetheless, by removing the <code>grp_</code> notation (see below), independent tests can just as well be used in <code>POSSA</code>.</p>
+<p>Now, the <code>GRP</code> notation served to designate a single group within the entire analysis. This could have any additions in the name, such as <code>GRP_x</code>, <code>GRP_Y</code>, etc., it makes no difference. The lowercase <code>grp_</code> notation on the other hand will designate variables that belong to one of several groups, each of which requires a specific group name following this <code>grp_</code> prefix. For instance, to designate a group “<code>1</code>”, the variable name can be any of the following: <code>grp_1</code>, <code>grp_1_x</code>, <code>grp_1_YZ</code>. To designate a group “<code>green</code>”, the variable name can be any of the following: <code>grp_green</code>, <code>grp_green_y</code>, <code>grp_green_Xz</code>. In other words, the name must be separated by underscores, and the first element must be <code>grp</code>, and the second element the group name, which allows all group members to be categorized together.</p>
+<p>Let’s say we have two independent groups, and we want to compare two different variables (<code>A</code> and <code>B</code>), that we suspect will be correlated within each group. For simplicity, let’s say that in each case, the baseline has a mean of zero, and the SESOI is a mean difference of <code>5</code> units. Since the baseline is identical in either case, here it’s enough to assign it to one variable. To simulate the correlation of the two variables in the other group, which is expected to change (in case of H1), two pairs of correlated variables have to be generated, one pair for H0, and one pair for H1.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>multiSample <span class="ot">=</span> <span class="cf">function</span>(sampSize) {</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  corr_vars_h0 <span class="ot">=</span> faux<span class="sc">::</span><span class="fu">rnorm_multi</span>(</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">n =</span> sampSize,</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">vars =</span> <span class="dv">2</span>,</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">mu =</span> <span class="dv">0</span>,</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">sd =</span> <span class="dv">10</span>,</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">r =</span> <span class="fl">0.6</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>  corr_vars_h1 <span class="ot">=</span> faux<span class="sc">::</span><span class="fu">rnorm_multi</span>(</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">n =</span> sampSize,</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">vars =</span> <span class="dv">2</span>,</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">mu =</span> <span class="dv">5</span>,</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">sd =</span> <span class="dv">10</span>,</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">r =</span> <span class="fl">0.6</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>  v1 <span class="ot">=</span> <span class="fu">rnorm</span>(sampSize, <span class="at">mean =</span> <span class="dv">0</span>, <span class="at">sd =</span> <span class="dv">10</span>)</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">grp_1_test_base =</span> v1,</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">grp_2_test1_h0 =</span> corr_vars_h0<span class="sc">$</span>X1,</span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">grp_2_test1_h1 =</span> corr_vars_h1<span class="sc">$</span>X1,</span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">grp_2_test2_h0 =</span> corr_vars_h0<span class="sc">$</span>X2,</span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">grp_2_test2_h1 =</span> corr_vars_h1<span class="sc">$</span>X2</span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>The test function is then straightforward.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>multiTest <span class="ot">=</span> <span class="cf">function</span>(grp_1_test_base,</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>                     grp_2_test1_h0,</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>                     grp_2_test1_h1,</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>                     grp_2_test2_h0,</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>                     grp_2_test2_h1) {</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_test1_h0 =</span> <span class="fu">t.test</span>(grp_1_test_base, grp_2_test1_h0, <span class="st">&#39;less&#39;</span>, <span class="at">var.equal =</span> <span class="cn">TRUE</span>)<span class="sc">$</span>p.value,</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_test1_h1 =</span> <span class="fu">t.test</span>(grp_1_test_base, grp_2_test1_h1, <span class="st">&#39;less&#39;</span>, <span class="at">var.equal =</span> <span class="cn">TRUE</span>)<span class="sc">$</span>p.value,</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_test2_h0 =</span> <span class="fu">t.test</span>(grp_1_test_base, grp_2_test2_h0, <span class="st">&#39;less&#39;</span>, <span class="at">var.equal =</span> <span class="cn">TRUE</span>)<span class="sc">$</span>p.value,</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_test2_h1 =</span> <span class="fu">t.test</span>(grp_1_test_base, grp_2_test2_h1, <span class="st">&#39;less&#39;</span>, <span class="at">var.equal =</span> <span class="cn">TRUE</span>)<span class="sc">$</span>p.value</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>The <code>sim</code> and <code>pow</code> functions also essentially work the same; only <code>pow</code> will return separate results for each test (each p value), as well as a “combined” result. This combined result, by default, uses the <code>any</code> option, meaning that, in each set of analysis (performing the two t-tests), if <em>any</em> (in this case: either) of the t-tests is significant (i.e., p value below the specified alpha), this will be counted as a global “combined” significant finding. Hence, for instance, in case of a single look (fixed design), if either (or both) of the t-tests gives a significant result in case of H0, the result of that analysis is counted as a type 1 error, increasing the combined T1ER. Similarly, either test’s significance in case of H1 will mean that the analysis set is counted as a correct finding, increasing combined power. (Hardly needs saying, the combined T1ER and power greatly depends on the strength of the correlation; e.g. here the rather high correlation lowers both.)</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>dfPvalsMulti <span class="ot">=</span> <span class="fu">sim</span>(</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">fun_obs =</span> multiSample,</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">n_obs =</span> <span class="fu">c</span>(<span class="dv">27</span>, <span class="dv">54</span>, <span class="dv">81</span>),</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">fun_test =</span> multiTest</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Note: Observation numbers groupped as &quot;grp_1&quot; for grp_1_test_base.</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Note: Observation numbers groupped as &quot;grp_2&quot; for grp_2_test1_h0, grp_2_test1_h1, grp_2_test2_h0, grp_2_test2_h1.</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a><span class="fu">pow</span>(dfPvalsMulti)</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # POSSA pow() results #</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; N(average-total) = 162.0 (if H0 true) or 162.0 (if H1 true)</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p_test1) Type I error: .05122; Power: .93807</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) none; (2) none; (3) .05000</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) 0; (2) 0; (3) .05122</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) 0; (2) 0; (3) .93807</span></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p_test2) Type I error: .05056; Power: .93556</span></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) none; (2) none; (3) .05000</span></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) 0; (2) 0; (3) .05056</span></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) 0; (2) 0; (3) .93556</span></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Global (&quot;combined significance&quot;) type I error: .07604 (included: p_test1, p_test2; power for reaching the &quot;combined significance&quot;: .96751)</span></span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of stopping for (combined) significance if H0 true: (1) 0; (2) 0; (3) .07604</span></span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of stopping for (combined) significance if H1 true: (1) 0; (2) 0; (3) .96751</span></span></code></pre></div>
+<p>The method for combined results can be changed via <code>multi_logic_global</code>. For instance, <code>pow(dfPvalsMulti, multi_logic_global = &#39;all&#39;)</code> lowers both global combined T1ER and power, because each evaluation is based on all (here: both) tests being significant to count the set of analysis (two t-tests) as a significant finding.</p>
+</div>
+<div id="sequential-design" class="section level3">
+<h3>Sequential design</h3>
+<p>In case of a sequential design, the stopping logic is in principle similar to the calculation of combined T1ER and power, although the default here is <code>all</code>: data collection is stopped only when all included tests have significant results (i.e., p value below the given local alpha).</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">pow</span>(dfPvalsMulti, <span class="at">alpha_locals =</span> <span class="cn">NA</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # POSSA pow() results #</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; N(average-total) = 160.4 (if H0 true) or 108.1 (if H1 true)</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p_test1) Type I error: .03773; Power: .89769</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) .02444; (2) .02444; (3) .02444</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) .01100; (2) .00802; (3) .01871</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) .33047; (2) .33673; (3) .23049</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p_test2) Type I error: .03767; Power: .89896</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) .02444; (2) .02444; (3) .02444</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) .01100; (2) .00802; (3) .01864</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) .33047; (2) .33673; (3) .23176</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Global (&quot;combined significance&quot;) type I error: .05000 (included: p_test1, p_test2; power for reaching the &quot;combined significance&quot;: .93847)</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of stopping for (combined) significance if H0 true: (1) .01100; (2) .00802; (3) .03098</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of stopping for (combined) significance if H1 true: (1) .33047; (2) .33673; (3) .27127</span></span></code></pre></div>
+<p>The stopping logic can be modified via <code>multi_logic_a</code>. E.g., setting <code>multi_logic_a = &#39;any&#39;</code> means that collection is stopped whenever any of the included tests are significant; hence stopping is more likely, the average expected observation number will decrease, and the global combined T1ER and/or power will increase (see <code>pow(dfPvalsMulti, alpha_locals = NA, multi_logic_a = &#39;any&#39;)</code> – here, the combined T1ER remains <code>.05</code> because of the default adjustment procedure).</p>
+</div>
+<div id="specifying-local-alphas-per-each-test" class="section level3">
+<h3>Specifying local alphas per each test</h3>
+<p>So far, <code>alpha_locals</code> were assigned a single value (or single vector) that was then applied for each test. However, using a named list, one could also assign a separate vector to each test – more specifically, to each p value, via their root name (without the <code>_h0</code>/<code>_h1</code> endings). Here, for instance, the <code>p_test2_h0</code>/<code>p_test2_h1</code> can be assigned local alphas as <code>p_test2 = c(.01,.02,.04)</code>; see an example below with different local alphas for <code>p_test1</code> and <code>p_test2</code>.</p>
+<p>(To clearly show the assigned alpha values in the results, below <code>adjust = FALSE</code> is set, as the adjustment procedure would otherwise multiply the all given local alphas so that the combined T1ER would be at the specified level.)</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">pow</span>(dfPvalsMulti,</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">alpha_locals =</span> <span class="fu">list</span>(</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>      <span class="at">p_test1 =</span> <span class="fu">c</span>(.<span class="dv">02</span>, .<span class="dv">03</span>, .<span class="dv">03</span>),</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>      <span class="at">p_test2 =</span> <span class="fu">c</span>(.<span class="dv">005</span>, .<span class="dv">02</span>, .<span class="dv">04</span>)</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">adjust =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # POSSA pow() results #</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; N(average-total) = 161.2 (if H0 true) or 117.1 (if H1 true)</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p_test1) Type I error: .03749; Power: .90891</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) .02000; (2) .03000; (3) .03000</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) .00302; (2) .00938; (3) .02509</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) .18542; (2) .46093; (3) .26256</span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p_test2) Type I error: .04604; Power: .92553</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) .00500; (2) .02000; (3) .04000</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) .00302; (2) .00938; (3) .03364</span></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) .18542; (2) .46093; (3) .27918</span></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Global (&quot;combined significance&quot;) type I error: .05958 (included: p_test1, p_test2; power for reaching the &quot;combined significance&quot;: .95367)</span></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of stopping for (combined) significance if H0 true: (1) .00302; (2) .00938; (3) .04718</span></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of stopping for (combined) significance if H1 true: (1) .18542; (2) .46093; (3) .30731</span></span></code></pre></div>
+<p>Setting futility bounds (for interim looks) works just the same.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">pow</span>(</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  dfPvalsMulti,</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">alpha_locals =</span> <span class="fu">list</span>(</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_test1 =</span> <span class="fu">c</span>(.<span class="dv">02</span>, .<span class="dv">03</span>, .<span class="dv">03</span>),</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_test2 =</span> <span class="fu">c</span>(.<span class="dv">005</span>, .<span class="dv">02</span>, .<span class="dv">04</span>)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">fut_locals =</span> <span class="fu">list</span>(<span class="at">p_test1 =</span> <span class="fu">c</span>(.<span class="dv">6</span>, .<span class="dv">5</span>),</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>                    <span class="at">p_test2 =</span> <span class="fu">c</span>(.<span class="dv">8</span>, .<span class="dv">4</span>)),</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">adjust =</span> <span class="cn">FALSE</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # POSSA pow() results #</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; N(average-total) = 126.5 (if H0 true) or 116.7 (if H1 true)</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p_test1) Type I error: .03711; Power: .90796</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) .02000; (2) .03000; (3) .03000</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) .00302; (2) .00938; (3) .02471</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) .18542; (2) .46089; (3) .26164</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Futility bounds: (1) .60000; (2) .50000</span></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of exceeding futility alpha if H0 true: (1) .02727; (2) .18969</span></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of exceeding futility alpha if H1 true: (1) .00253; (2) .00189</span></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (p_test2) Type I error: .04591; Power: .92453</span></span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Local alphas: (1) .00500; (2) .02000; (3) .04000</span></span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H0 true: (1) .00302; (2) .00938; (3) .03351</span></span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) .18542; (2) .46089; (3) .27822</span></span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Futility bounds: (1) .80000; (2) .40000</span></span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of exceeding futility alpha if H0 true: (1) .00993; (2) .24111</span></span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of exceeding futility alpha if H1 true: (1) .00253; (2) .00189</span></span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Global (&quot;combined significance&quot;) type I error: .05911 (included: p_test1, p_test2; power for reaching the &quot;combined significance&quot;: .95231)</span></span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of stopping for (combined) significance if H0 true: (1) .00302; (2) .00938; (3) .04671</span></span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of stopping for (combined) significance if H1 true: (1) .18542; (2) .46089; (3) .30600</span></span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of stopping for (combined) futility if H0 true: (1) .17609; (2) .28896</span></span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of stopping for (combined) futility if H1 true: (1) .00253; (2) .00189</span></span></code></pre></div>
+</div>
+<div id="non-stopping-local-alphas" class="section level3">
+<h3>Non-stopping local alphas</h3>
+<p>Again: To skip, at any look, alpha/futility stop, just set to 1/0</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">pow</span>(dfPvalsMulti,</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">alpha_locals =</span> <span class="fu">list</span>(<span class="at">p_test1 =</span> <span class="fu">c</span>(<span class="cn">NA</span>, <span class="cn">NA</span>, <span class="cn">NA</span>)),</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">multi_logic_a =</span> <span class="st">&#39;any&#39;</span>, <span class="at">alpha_loc_nonstop =</span> <span class="fu">list</span>(<span class="at">p_test2 =</span> <span class="fu">c</span>(.<span class="dv">05</span>,.<span class="dv">05</span>,.<span class="dv">05</span>), <span class="at">p_test3 =</span> <span class="fu">c</span>(.<span class="dv">05</span>,.<span class="dv">05</span>,.<span class="dv">05</span>)))</span></code></pre></div>
+</div>
+<div id="specifying-observation-numbers-per-each-group" class="section level3">
+<h3>Specifying observation numbers per each group</h3>
+<p>Different sample sizes may be specified via the sample parameters names, for instance, as follows.</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>dfPvalsMulti <span class="ot">=</span> <span class="fu">sim</span>(</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">fun_obs =</span> multiSample,</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">n_obs =</span> <span class="fu">list</span>(<span class="at">grp_1 =</span> <span class="fu">c</span>(<span class="dv">27</span>, <span class="dv">54</span>, <span class="dv">81</span>),</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>               <span class="at">grp_2 =</span> <span class="fu">c</span>(<span class="dv">60</span>, <span class="dv">90</span>, <span class="dv">120</span>)),</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">fun_test =</span> multiTest,</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">n_iter =</span> <span class="dv">500</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+</div>
 
 
 

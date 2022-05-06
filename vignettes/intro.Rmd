@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-Below, the essence of `POSSA`'s power (and type 1 error rate, T1ER) calculation for sequential designs is explained using the simple example of a t-test. Of course, for t-tests specifically, you could use other and potentially easier software – however, the point here is to understand how the `POSSA` works, and, subsequently, it should be possible for you to extend this example to virtually any statistical null hypothesis test. Cases of multiple hypotheses (and recording descriptives) are explained on a [separate page](https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html), but these too are straightforward extensions of the present examples.
+Below, the essence of `POSSA`'s power (and type 1 error rate, T1ER) calculation for sequential designs is explained using the simple example of a t-test. Of course, for t-tests specifically, you could use other and potentially more user-friendly software – however, the point here is to understand how the `POSSA` works, and, subsequently, it should be possible for you to extend this example to virtually any statistical null hypothesis test. Cases of multiple hypotheses (and recording descriptives) are explained on a [separate page](https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html), but these too are straightforward extensions of the present examples.
 
 This tutorial presupposes the basic conceptual understanding of sequential analyses (and the basics or statistical power and T1ER). There are several related free tutorials online (see e.g. [Lakens, 2014](https://psyarxiv.com/9yegd/)).
 
@@ -55,7 +55,7 @@ customTest = function(sample1, sample2_h0, sample2_h1) {
 }
 ```
 
-(Other information, in particular descriptives such as means or SDs, can also be returned via this function – but this is described in the [_Multiple hypotheses_](https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html) vignette.)
+(Other information, in particular descriptives such as means or SDs, can also be returned via this function – but this is described in a [separate vignette](https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html).)
 
 To make sure the two functions are working correctly, as a quick test you can run the following line (with any applicable number argument).
 
@@ -135,6 +135,8 @@ The console output contains only the most important information, but, when assig
 - the ratios of significant findings per each look (corresponding to the local alphas).
 
 The look numbers are always in parenthesis, such that "`(1)`" designates the first look, "`(2)`" the second look, etc.
+
+The console output can also be called as `print(dfPvalsSeq)`. The number of fractional digits to which the values are to be rounded can be changed via a `round_to` argument, such as e.g. `print(dfPvalsSeq, round_to = 2)`.
 
 ### Adjusting local alphas
 

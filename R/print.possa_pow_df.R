@@ -21,14 +21,28 @@ print.possa_pow_list = function(x,
     if (is.na(round_to)) {
         round_to = x$arguments$round_to
     }
-    cat('\033[0;34m# POSSA pow() results #\033[0m', fill = TRUE)
-    for (possa_pow_list_elem in x) {
-        if ('possa_pow_df' %in% class(possa_pow_list_elem)) {
-            print.possa_pow_df(possa_pow_list_elem,
-                               round_to = round_to,
-                               possa_title = FALSE,
-                               ...)
+    pow_df_names = c()
+    for (el_name in names(x)) {
+        if ('possa_pow_df' %in% class(x[[el_name]])) {
+            pow_df_names = c(pow_df_names, el_name)
         }
+    }
+    cat('\033[0;34m# POSSA pow() results #\033[0m', fill = TRUE)
+    for (possa_pow_el_name in pow_df_names) {
+        possa_pow_list_elem = x[[possa_pow_el_name]]
+        if (length(pow_df_names) > 1) {
+            cat(
+                'GROUP: \033[0;40m',
+                possa_pow_el_name,
+                '\033[0m',
+                fill = TRUE,
+                sep = ''
+            )
+        }
+        print.possa_pow_df(possa_pow_list_elem,
+                           round_to = round_to,
+                           possa_title = FALSE,
+                           ...)
     }
 }
 

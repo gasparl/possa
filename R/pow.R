@@ -174,9 +174,8 @@
 #'@param hush Logical. If \code{TRUE}, prevents printing any details (or the
 #'  progress bar) to console.
 #'
-#'@return Apart from printing the main power, error rate, and adjusted local
-#'  alpha outcomes, the function (invisibly) returns a \code{\link{data.frame}}
-#'  that includes all details of the calculated information.
+#'@return The returns a \code{\link{list}} that includes all details of the
+#'  calculated information, and can be printed legibly.
 #'
 #'@note
 #'

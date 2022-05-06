@@ -142,7 +142,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 
 
-<p>Below, the essence of <code>POSSA</code>’s power (and type 1 error rate, T1ER) calculation for sequential designs is explained using the simple example of a t-test. Of course, for t-tests specifically, you could use other and potentially easier software – however, the point here is to understand how the <code>POSSA</code> works, and, subsequently, it should be possible for you to extend this example to virtually any statistical null hypothesis test. Cases of multiple hypotheses (and recording descriptives) are explained on a <a href="https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html">separate page</a>, but these too are straightforward extensions of the present examples.</p>
+<p>Below, the essence of <code>POSSA</code>’s power (and type 1 error rate, T1ER) calculation for sequential designs is explained using the simple example of a t-test. Of course, for t-tests specifically, you could use other and potentially more user-friendly software – however, the point here is to understand how the <code>POSSA</code> works, and, subsequently, it should be possible for you to extend this example to virtually any statistical null hypothesis test. Cases of multiple hypotheses (and recording descriptives) are explained on a <a href="https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html">separate page</a>, but these too are straightforward extensions of the present examples.</p>
 <p>This tutorial presupposes the basic conceptual understanding of sequential analyses (and the basics or statistical power and T1ER). There are several related free tutorials online (see e.g. <a href="https://psyarxiv.com/9yegd/">Lakens, 2014</a>).</p>
 <p>All parameters mentioned below are described in detail in full the documentation (see <code>?sim</code> and <code>?pow</code>).</p>
 <p>So let’s say you want to compare the means of two independent continuous variables with a simple t-test. Your smallest effect size of interest (SESOI) is <code>5</code> units (arbitrary units that could represent anything – e.g., the height of a plant in cm, or the time of performing a task in seconds, etc.).</p>
@@ -167,11 +167,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_h1 =</span> <span class="fu">t.test</span>(sample1, sample2_h1, <span class="st">&#39;less&#39;</span>, <span class="at">var.equal =</span> <span class="cn">TRUE</span>)<span class="sc">$</span>p.value</span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  )</span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
-<p>(Other information, in particular descriptives such as means or SDs, can also be returned via this function – but this is described in the <a href="https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html"><em>Multiple hypotheses</em></a> vignette.)</p>
+<p>(Other information, in particular descriptives such as means or SDs, can also be returned via this function – but this is described in a <a href="https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html">separate vignette</a>.)</p>
 <p>To make sure the two functions are working correctly, as a quick test you can run the following line (with any applicable number argument).</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">do.call</span>(customTest, <span class="fu">customSample</span>(<span class="dv">55</span>))</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;        p_h0        p_h1 </span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.189702370 0.006821975</span></span></code></pre></div>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;         p_h0         p_h1 </span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.5571306103 0.0002444637</span></span></code></pre></div>
 <p>This passes <code>55</code> as (arbitrary) sample size to <code>customSample</code>, which passes the created samples to <code>customTest</code>, which finally returns the named vector with the <code>p_h0</code> and <code>p_h1</code> p values. (Given the randomization, if you run this line repeatedly, the outcome should differ each time – however, with large enough numbers, <code>p_h1</code> is likely to be noticeably smaller then <code>p_h0</code>.)</p>
 </div>
 <div id="possas-sim-and-pow" class="section level3">
@@ -568,6 +568,10 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb36-15"><a href="#cb36-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) .07009; (2) .53733; (3) .32411</span></span></code></pre></div>
 <p>(And, if needed, a similar modified recalculation could be done for the last look.)</p>
 <p>As can be seen, the power differences are very small. Nonetheless, if it is important to keep the same level of power with high precision (e.g., up to 3 fractional digits), you can plan for (and preregister) to conditionally adjust (increase/decrease) the subsequent interim (if any) and final sample sizes to achieve the same power. (Technically, another option is to conditionally adjust the alpha level, i.e., the T1ER, but that’s rather questionable.)</p>
+</div>
+<div id="more" class="section level3">
+<h3>More…</h3>
+<p>Go to the <a href="https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html">next</a> (and the only other important) <code>POSSA</code> vignette see how to record descriptives, easily check varying factors, and test multiple hypotheses.</p>
 </div>
 
 

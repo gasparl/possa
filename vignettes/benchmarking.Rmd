@@ -15,7 +15,7 @@ knitr::opts_chunk$set(
 ```
 
 
-This page serve simply to provide some benchmarks for the `POSSA::sim()` function's internal mechanism. The rather speedy completion of calculations with empty functions highlight that `POSSA`'s overhead is minimal, the bulk of the time consumed in simulations is due to the user-given sampling and testing functions. Hence, attention should be paid to minimize the execution time of these use functions.
+This page serve simply to provide some benchmarks for the `POSSA::sim()` function's internal mechanism. The rather speedy completion of calculations with empty functions highlights that `POSSA`'s overhead is minimal, the bulk of the time consumed in simulations is due to the user-given sampling and testing functions. Hence, attention should be paid to minimize the execution time of these user functions.
 
 ```{r setup}
 library('POSSA')
