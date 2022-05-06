@@ -171,7 +171,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p>To make sure the two functions are working correctly, as a quick test you can run the following line (with any applicable number argument).</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">do.call</span>(customTest, <span class="fu">customSample</span>(<span class="dv">55</span>))</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;         p_h0         p_h1 </span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.5571306103 0.0002444637</span></span></code></pre></div>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5.836652e-02 9.780383e-06</span></span></code></pre></div>
 <p>This passes <code>55</code> as (arbitrary) sample size to <code>customSample</code>, which passes the created samples to <code>customTest</code>, which finally returns the named vector with the <code>p_h0</code> and <code>p_h1</code> p values. (Given the randomization, if you run this line repeatedly, the outcome should differ each time – however, with large enough numbers, <code>p_h1</code> is likely to be noticeably smaller then <code>p_h0</code>.)</p>
 </div>
 <div id="possas-sim-and-pow" class="section level3">
@@ -219,6 +219,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li>the ratios of significant findings per each look (corresponding to the local alphas).</li>
 </ul>
 <p>The look numbers are always in parenthesis, such that “<code>(1)</code>” designates the first look, “<code>(2)</code>” the second look, etc.</p>
+<p>The console output can also be called as <code>print(dfPvalsSeq)</code>. The number of fractional digits to which the values are to be rounded can be changed via a <code>round_to</code> argument, such as e.g. <code>print(dfPvalsSeq, round_to = 2)</code>.</p>
 </div>
 <div id="adjusting-local-alphas" class="section level3">
 <h3>Adjusting local alphas</h3>
