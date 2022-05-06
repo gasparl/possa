@@ -142,9 +142,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 
 
-<p>This tutorial presupposes having read the <a href="https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html">general introduction to <code>POSSA</code></a>. Here, that introduction is extended for cases of multiple hypotheses, i.e., where each analysis (at a given “look”) involves multiple significance tests, and hence multiple p values.</p>
+<p>This tutorial presupposes having read the <a href="https://gasparl.github.io/possa/vignettes/intro.html">general introduction to <code>POSSA</code></a>. Here, that introduction is extended for cases of multiple hypotheses, i.e., where each analysis (at a given “look”) involves multiple significance tests, and hence multiple p values.</p>
 <p>To verify that such relatively more complex used-defined functions were written correctly, it is useful to store some descriptive data, such as the means and SDs of the variables, or correlations, effect sizes, etc. Relatedly, in real cases, one should ideally test a <a href="https://doi.org/10.1177%2F1745691616658637">variety of possible scenarios</a>: for this, <code>POSSA</code> provides the possibility to easily run multiple simulations with varying factors (e.g., varying correlations, effect sizes, etc.).</p>
-<p>Hence, recording descriptives and using varying factors will be explained here first, after which testing for multiple hypotheses is presented. This completes (together with the <a href="https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html">intro</a>) everything important that needs knowing for using <code>POSSA</code>.</p>
+<p>Hence, recording descriptives and using varying factors will be explained here first, after which testing for multiple hypotheses is presented. This completes (together with the <a href="https://gasparl.github.io/possa/vignettes/intro.html">intro</a>) everything important that needs knowing for using <code>POSSA</code>.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&#39;POSSA&#39;</span>)</span></code></pre></div>
 <div id="recording-descriptives" class="section level3">
 <h3>Recording descriptives</h3>
@@ -167,8 +167,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <p>See that it’s working:</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">do.call</span>(customTestWithMeans, <span class="fu">customSample</span>(<span class="dv">85</span>))</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;          p_h0          p_h1    meanDiffH0    meanDiffH1 </span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  1.341722e-01  5.526994e-05 -1.677808e+00 -5.952636e+00</span></span></code></pre></div>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;        p_h0        p_h1  meanDiffH0  meanDiffH1 </span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  0.99137422  0.02686561  3.44359030 -2.78273361</span></span></code></pre></div>
 <p>Now the simulation as before.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>dfPvalsAndMeans <span class="ot">=</span> <span class="fu">sim</span>(<span class="at">fun_obs =</span> customSample,</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">n_obs =</span> <span class="fu">c</span>(<span class="dv">27</span>, <span class="dv">54</span>, <span class="dv">81</span>),</span>
