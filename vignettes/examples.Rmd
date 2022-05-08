@@ -1,0 +1,171 @@
+---
+title: "Practical examples (unequal variances; ranked data; DeLong's test; AOV)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{examples}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+Below are some `POSSA` power calculation examples for sequential designs that cannot be done with common software.
+
+```{r setup}
+library('POSSA')
+```
+
+
+### Unequal variances
+
+This is a relatively small modification of the first t-test examples given in the [introduction](https://gasparl.github.io/possa/vignettes/intro.html): Here it's [Welch's test](http://doi.org/10.5334/irsp.82) expecting unequal variances. The effect sizes and total samples are always the same as in the intro examples, for the easier comparison.
+
+First, a function to have some added information along with the Welch's test p value.
+
+```r
+wTestPlus = function(x, y) {
+    m_diff = mean(x) - mean(y)
+    sdx = sd(x)
+    sdy = sd(y)
+    n1 = length(x)
+    n2 = length(y)
+    sd_p = sqrt(((n1 - 1) * (sdx ** 2) + (n2 - 1) * (sdy ** 2)) / (n1 + n2 - 2))
+    return(
+        list(
+            pval = stats::t.test(x, y, 'less')$p.value,
+            mean_diff = m_diff,
+            sd1 =  sdx,
+            sd2 =  sdy,
+            smd = m_diff / sd_p
+        )
+    )
+}
+```
+
+Then a function that generates two different sample sizes depending on `SDs` parameter: one with equal SDs, one with unequal ones.
+
+```r
+sampsUnequal = function(sample1, sample2_h, SDs) {
+  if (SDs == 'EqualSDs') {
+    sd1 = 10
+    sd2 = 10
+  } else {
+    sd1 = 5.57
+    sd2 = 13
+  }
+  list(
+    sample1 = rnorm(sample1, mean = 0, sd = sd1),
+    sample2_h0 = rnorm(sample2_h, mean = 0, sd = sd2),
+    sample2_h1 = rnorm(sample2_h, mean = 5, sd = sd2)
+  )
+}
+```
+
+(The effect sizes are `0.5` for both SD variations: `neatStats::t_neat(bayestestR::distribution_normal(5000, 5, 10),bayestestR::distribution_normal(5000, 0, 10))$stats`, `neatStats::t_neat(bayestestR::distribution_normal(5000, 5, 13),bayestestR::distribution_normal(5000, 0, 5.57))$stats`.)
+
+Then the testing function with some extra information returned (per H0 and H1: mean difference, the two SDs, and the SMD).
+
+```r
+wTestForUnequal = function(sample1, sample2_h0, sample2_h1) {
+  t0 = wTestPlus(sample1, sample2_h0)
+  t1 = wTestPlus(sample1, sample2_h1)
+  return(
+    c(
+      p_h0 = t0$pval,
+      H0mDiff = t0$mean_diff,
+      H0sd1 = t0$sd1,
+      H0sd2 = t0$sd2,
+      H0smd = t0$smd,
+      p_h1 = t1$pval,
+      H1mDiff = t1$mean_diff,
+      H1sd1 = t1$sd1,
+      H1sd2 = t1$sd2,
+      H1smd = t1$smd
+    )
+  )
+}
+```
+
+(Check via `do.call(wTestForUnequal, sampsUnequal(30, 60, 'EqualSDs'))`.)
+
+Now the sampling and testing passed to the `sim` function.
+
+```r
+dfPvalsWelch = sim(
+    fun_obs = list(sampsUnequal, SDs = c('EqualSDs', 'UnequalSDs')),
+    n_obs = c(27, 54, 81),
+    fun_test = wTestForUnequal
+)
+```
+
+(The descriptives can be quickly checked via `neatStats::peek_neat(dfPvalsWelch, c("H0sd1", "H0sd2", "H1sd1", "H1sd2"), group_by = c('SDs'))`; `neatStats::peek_neat(dfPvalsWelch, c("H0smd", "H1smd"), group_by = c('SDs'))`; `neatStats::peek_neat(dfPvalsWelch, c("H0mDiff", "H1mDiff"), group_by = c('SDs'))`; all correspond to the intended factors.)
+
+Finally, the `pow` function.
+
+```r
+pow(dfPvalsWelch, alpha_locals = NA)
+
+#> # POSSA pow() results #
+#> GROUP: pow_EqualSDs
+#> N(average-total) = 158.6 (if H0 true) or 98.8 (if H1 true)
+#> (p) Type I error: .05000; Power: .89931
+#> Local alphas: (1) .02296; (2) .02296; (3) .02296
+#> Likelihoods of significance if H0 true: (1) .02291; (2) .01633; (3) .01076
+#> Likelihoods of significance if H1 true: (1) .42313; (2) .32331; (3) .15287
+#> GROUP: pow_UnequalSDs
+#> N(average-total) = 158.7 (if H0 true) or 100.2 (if H1 true)
+#> (p) Type I error: .05000; Power: .89276
+#> Local alphas: (1) .02204; (2) .02204; (3) .02204
+#> Likelihoods of significance if H0 true: (1) .02329; (2) .01502; (3) .01169
+#> Likelihoods of significance if H1 true: (1) .41013; (2) .32371; (3) .15891
+```
+
+The results are pretty similar as with `var.equal = TRUE`: almost the same with equal variances ([as expected](http://doi.org/10.5334/irsp.82)), and just a little different with unequal variances.
+
+But let's now see with unequal sample sizes as well.
+
+```r
+dfPvalsUnequal = sim(
+    fun_obs = list(sampsUnequal, SDs = c('EqualSDs', 'UnequalSDs')),
+    n_obs = list(sample1 = (c(27, 54, 81) - 15),
+                 sample2_h = (c(27, 54, 81) + 15)),
+    fun_test = wTestForUnequal
+)
+pow(dfPvalsUnequal, alpha_locals = NA)
+
+#> # POSSA pow() results #
+#> GROUP: pow_EqualSDs
+#> N(average-total) = 158.7 (if H0 true) or 109.3 (if H1 true)
+#> (p) Type I error: .05000; Power: .88098
+#> Local alphas: (1) .02092; (2) .02092; (3) .02092
+#> Likelihoods of significance if H0 true: (1) .02162; (2) .01736; (3) .01102
+#> Likelihoods of significance if H1 true: (1) .27931; (2) .41667; (3) .18500
+#> GROUP: pow_UnequalSDs
+#> N(average-total) = 158.7 (if H0 true) or 94.1 (if H1 true)
+#> (p) Type I error: .04998; Power: .92658
+#> Local alphas: (1) .02334; (2) .02334; (3) .02334
+#> Likelihoods of significance if H0 true: (1) .02344; (2) .01513; (3) .01140
+#> Likelihoods of significance if H1 true: (1) .46102; (2) .33549; (3) .13007
+```
+
+Now the results depend notably on SD equality: with equal SDs, the power is lower as compared to equal samples per group, but with unequal SDs it is larger (again in line with [the expected statistical relations](http://doi.org/10.5334/irsp.82)). Along with power, as again logical (due to more early stops), the expected average sample size changes substantially as well (in case of H0).
+
+(See also e.g. O'Brien-Fleming bounds; `pow(dfPvalsUnequal, alpha_locals = c(0.0015, 0.0181, 0.0437), alpha_global = 0.05, adjust = FALSE)`, etc.)
+
+
+### Ranked data
+
+_(Upcoming...)_
+
+### DeLong's test
+
+_(Upcoming...)_
+
+### AOV
+
+_(Upcoming...)_
