@@ -1,5 +1,5 @@
 ---
-title: "Practical examples (unequal variances; ranked data; DeLong's test; AOV)"
+title: "Practical examples (unequal variances; ranked data; ANOVA; DeLong's test)"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{examples}
@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-Below are some `POSSA` power calculation examples for sequential designs that cannot be done with common software.
+Below are some `POSSA` sequential design power calculation examples that cannot be done with previous common software.
 
 ```{r setup}
 library('POSSA')
@@ -238,10 +238,390 @@ MKpower::sim.ssize.wilcox.test(
 
 But of course only `POSSA` allows sequential design; `pow(dfPvalsRank, alpha_locals = NA)`, etc.
 
+### ANOVA
+
+The ANOVA power calculation here follows an [example](https://cran.r-project.org/web/packages/Superpower/vignettes/intro_to_superpower.html#an-example) of the [Superpower](https://github.com/arcaldwell49/Superpower) R package, for comparability.
+
+Writing the code for ANOVA in base R is a fuss due to the weird input (and output) mode of the dedicated function. There are various extension packages available to make this easier via wrapper functions, but for simulations it is better to use the base function to make the process as fast as possible. Even so, packages like [faux](https://debruine.github.io/faux/) make simulated factorial designs less burdensome – although in the present case a special complication is that, due to the subsampling process for sequential designs, each variable has to be passed from the sampling function to the testing function separately.
+
+In any case, here is how a 2 by 2 mixed ANOVA can be implemented. From this one example, it should be clear how to do any other between or within factor combination. The details of the example scenario can be read at Superpower's [example description]([example](https://cran.r-project.org/web/packages/Superpower/vignettes/intro_to_superpower.html#an-example)) – here, just the following minimal necessary information is highlighted: There are two factors for a continuous _rating_ variable: **Voice** (**robot** vs. **human**) and **Emotion** (**sad** vs. **cheerful**). **Voice** is a between-subject factor. **Emotion** is a within-subject factor with a correlation of `.8` between **sad** and **cheerful** ratings. (The groups for **robot** and **human** are equal.) The null hypothesis (H0) is that all variable means are equal (a rating mean of `1.03`), while the alternative hypothesis (H1) is that the variable means have the specific differences as included in the code below (for example, a rating mean of `1.03` for "**human cheerful** voice", but a rating mean of `1.41` for "**human sad** voice").
+
+Hence, for H0 as well as H1, two pairs of correlated ("rating") variables should be generated, one for **robot**, and one for **human**. Within each, one will be **sad**, the other **cheerful** (with a correlation of `.8`). Here is how this looks looks. (Note the grouping notation: `grp_1` for **human** and `grp_2` for **robot**.)
+
+```r
+sampleAOV = function(samp_size) {
+    dat_h0_human = faux::rnorm_multi(
+        n = samp_size,
+        vars = 2,
+        mu = 1,
+        sd = 1.03,
+        r = 0.8
+    )
+    dat_h0_robot = faux::rnorm_multi(
+        n = samp_size,
+        vars = 2,
+        mu = 1,
+        sd = 1.03,
+        r = 0.8
+    )
+    dat_h1_human = faux::rnorm_multi(
+        n = samp_size,
+        vars = 2,
+        mu = c(1.03, 1.41),
+        sd = 1.03,
+        r = 0.8
+    )
+    dat_h1_robot = faux::rnorm_multi(
+        n = samp_size,
+        vars = 2,
+        mu = c(0.98, 1.01),
+        sd = 1.03,
+        r = 0.8
+    )
+    list(
+        # human_cheerful
+        grp_1_human_cheerful_h0 = dat_h0_human$X1,
+        grp_1_human_cheerful_h1 = dat_h1_human$X1,
+        # human_sad
+        grp_1_human_sad_h0  = dat_h0_human$X2,
+        grp_1_human_sad_h1 = dat_h1_human$X2,
+        # robot_cheerful
+        grp_2_robot_cheerful_h0 = dat_h0_robot$X1,
+        grp_2_robot_cheerful_h1 = dat_h1_robot$X1,
+        # robot_sad
+        grp_2_robot_sad_h0 = dat_h0_robot$X2,
+        grp_2_robot_sad_h1 = dat_h1_robot$X2
+    )
+}
+```
+
+Now the testing function will require a data frame to be contructed from the passed variables, to be appropriate for the `aov()` function. (Again, some wrapper function such as `ez::ezANOVA` could be used for readability, but this would make the simulation somewhat slower. However, if speed is of not much importance, those wrapper functions work just as well.)
+
+The way of extracting p values from the output (e.g. `aov_h0[[1]][[1]][['Pr(>F)']][1]`) also look quite extraordinary, but this is just how `aov()` [stores](https://stackoverflow.com/questions/3366506/extract-p-value-from-aov) this information.
+
+Apart from the ANOVA, the function below also includes some specific pair-wise comparisons, namely, comparing the **robot** and **human** ratings separately in the cases of **sad** and **happy** voice.
+
+```r
+testAOV = function(grp_1_human_cheerful_h0,
+                   grp_1_human_cheerful_h1,
+                   grp_1_human_sad_h0,
+                   grp_1_human_sad_h1,
+                   grp_2_robot_cheerful_h0,
+                   grp_2_robot_cheerful_h1,
+                   grp_2_robot_sad_h0,
+                   grp_2_robot_sad_h1) {
+    len_grp1 = length(grp_1_human_cheerful_h0)
+    len_grp2 = length(grp_2_robot_cheerful_h0)
+    raw_data = data.frame(
+        obs = c(
+            grp_1_human_cheerful_h0,
+            grp_1_human_sad_h0,
+            grp_2_robot_cheerful_h0,
+            grp_2_robot_sad_h0
+        ),
+        id = c(paste0('g1_', c(
+            1:len_grp1, 1:len_grp1
+        )),
+        paste0('g2_', c(
+            1:len_grp2, 1:len_grp2
+        ))),
+        voice = c(rep('human', len_grp1 * 2), rep('robot', len_grp2 * 2)),
+        emotion = c(
+            rep('cheerful', len_grp1),
+            rep('sad', len_grp1),
+            rep('cheerful', len_grp2),
+            rep('sad', len_grp2)
+        )
+    )
+    aov_h0 = summary(aov(obs ~ voice * emotion + Error(id / emotion), data =
+                             raw_data))
+    raw_data$obs = c(
+        grp_1_human_cheerful_h1,
+        grp_1_human_sad_h1,
+        grp_2_robot_cheerful_h1,
+        grp_2_robot_sad_h1
+    )
+    aov_h1 = summary(aov(obs ~ voice * emotion + Error(id / emotion), data =
+                             raw_data))
+    return(
+        c(
+            p_voice_h0 = aov_h0[[1]][[1]][['Pr(>F)']][1],
+            p_voice_h1 = aov_h1[[1]][[1]][['Pr(>F)']][1],
+            p_emo_h0 = aov_h0[[2]][[1]][['Pr(>F)']][1],
+            p_emo_h1 = aov_h1[[2]][[1]][['Pr(>F)']][1],
+            p_interact_h0 = aov_h0[[2]][[1]][['Pr(>F)']][2],
+            p_interact_h1 = aov_h1[[2]][[1]][['Pr(>F)']][2],
+            p_sad_rob_vs_hum_h0 = t.test(grp_1_human_sad_h0, grp_2_robot_sad_h0, var.equal = TRUE)$p.value,
+            p_sad_rob_vs_hum_h1 = t.test(grp_1_human_sad_h1, grp_2_robot_sad_h1, var.equal = TRUE)$p.value,
+            p_cheer_rob_vs_hum_h0 = t.test(
+                grp_1_human_cheerful_h0,
+                grp_2_robot_cheerful_h0,
+                var.equal = TRUE
+            )$p.value,
+            p_cheer_rob_vs_hum_h1 = t.test(
+                grp_1_human_cheerful_h1,
+                grp_2_robot_cheerful_h1,
+                var.equal = TRUE
+            )$p.value
+        )
+    )
+}
+```
+
+This lengthy function pair is really good to verify via `do.call(testAOV, sampleAOV(100))`.
+
+The `sim()` and `pow()` function are then straightforward. (However, the simulation can take a while. For quick testing, lower the number of iterations; e.g. `n_iter = 1000` – same as `Superpower::ANOVA_power`'s default.)
+
+```r
+dfPvalsAOV = sim(fun_obs = sampleAOV,
+                 n_obs = 40,
+                 fun_test = testAOV)
+
+#> Note: Observation numbers groupped as "grp_1" for grp_1_human_cheerful_h0, grp_1_human_cheerful_h1, grp_1_human_sad_h0, grp_1_human_sad_h1.
+#> Note: Observation numbers groupped as "grp_2" for grp_2_robot_cheerful_h0, grp_2_robot_cheerful_h1, grp_2_robot_sad_h0, grp_2_robot_sad_h1.
+
+pow(dfPvalsAOV)
+
+#> # POSSA pow() results #
+#> N(average-total) = 80.0 (if H0 true) or 80.0 (if H1 true)
+#> (p_voice) Type I error: .05096; Power: .17422
+#> Local alphas: (1) .05000
+#> (p_emo) Type I error: .04933; Power: .79371
+#> Local alphas: (1) .05000
+#> (p_interact) Type I error: .05020; Power: .65884
+#> Local alphas: (1) .05000
+#> (p_sad_rob_vs_hum) Type I error: .05047; Power: .40084
+#> Local alphas: (1) .05000
+#> (p_cheer_rob_vs_hum) Type I error: .05024; Power: .05398
+#> Local alphas: (1) .05000
+#> Global ("combined significance") type I error: .16453 (included: p_voice, p_emo, p_interact, p_sad_rob_vs_hum, p_cheer_rob_vs_hum; power for reaching the "combined significance": .94742)
+```
+
+Same in `Superpower` below. (Caution: this with 45000 iterations really takes very very long.)
+
+```r
+designResult <- Superpower::ANOVA_design(
+    design = "2b*2w",
+    n = 40,
+    mu = c(1.03, 1.41, 0.98, 1.01),
+    sd = 1.03,
+    r = 0.8,
+    labelnames = c("voice", "human", "robot", "emotion", "cheerful", "sad"),
+    plot = TRUE
+)
+
+superPower <- Superpower::ANOVA_power(
+    designResult,
+    alpha = 0.05,
+    nsims = 45000,
+    seed = 1234,
+    emm = FALSE
+)
+
+#> Power and Effect sizes for ANOVA tests
+#> power effect_size
+#> anova_voice         17.74     0.02567
+#> anova_emotion       79.58     0.10074
+#> anova_voice:emotion 65.85     0.07811
+#> Power and Effect sizes for pairwise comparisons (t-tests)
+#>                                                              power effect_size
+#> p_voice_human_emotion_cheerful_voice_robot_emotion_cheerful  5.507    -0.05149
+#> p_voice_human_emotion_sad_voice_robot_emotion_sad           40.667    -0.39404
+```
+
+Importantly, of course, with `POSSA` there is the option for sequential testing. Here, it is particularly important to pay attention which specific one(s) of the included tests (p values) should have stopping alphas (or to have futility bounds).
+
+For instance, as it often happens, let's say that the interaction is the only really important test in the entire ANOVA analysis. In that case, that could be used alone with stopping alphas and futility bounds. The rest may be included with non-stopping alphas to get the related power and T1ER. This can be done e.g. as below.
+
+```r
+dfPvalsAovSeq = sim(fun_obs = sampleAOV,
+                    n_obs = c(15, 30, 45),
+                    fun_test = testAOV)
+
+#> Note: Observation numbers groupped as "grp_1" for grp_1_human_cheerful_h0, grp_1_human_cheerful_h1, grp_1_human_sad_h0, grp_1_human_sad_h1.
+#> Note: Observation numbers groupped as "grp_2" for grp_2_robot_cheerful_h0, grp_2_robot_cheerful_h1, grp_2_robot_sad_h0, grp_2_robot_sad_h1.
+
+pow(
+    dfPvalsAovSeq,
+    alpha_locals = list(p_interact = c(0.002, 0.018, 0.044)),
+    fut_locals = list(p_interact = c(0.6, 0.4)),
+    alpha_loc_nonstop = list(
+        p_voice = 0.5,
+        p_emo = 0.5,
+        p_sad_rob_vs_hum = 0.5,
+        p_cheer_rob_vs_hum = 0.5
+    )
+)
+
+#> # POSSA pow() results ## POSSA pow() results #
+#> N(average-total) = 56.4 (if H0 true) or 66.5 (if H1 true)
+#> (p_interact) Type I error: .05000; Power: .65662
+#> Local alphas: (1) .00226; (2) .02030; (3) .04963
+#> Likelihoods of significance if H0 true: (1) .00202; (2) .01920; (3) .02878
+#> Likelihoods of significance if H1 true: (1) .04331; (2) .34111; (3) .27220
+#> Futility bounds: (1) .60000; (2) .40000
+#> Likelihoods of exceeding futility alpha if H0 true: (1) .07787; (2) .23536
+#> Likelihoods of exceeding futility alpha if H1 true: (1) .15102; (2) .05380
+#> (non-stopper: p_voice) Type I error: .50089; Power: .65498
+#> Local alphas (secondary): (1) .50000; (2) .50000; (3) .50000
+#> Likelihoods of significance if H0 true: (1) .19976; (2) .15896; (3) .14218
+#> Likelihoods of significance if H1 true: (1) .11129; (2) .25760; (3) .28609
+#> Futility bounds: none
+#> (non-stopper: p_emo) Type I error: .49547; Power: .95351
+#> Local alphas (secondary): (1) .50000; (2) .50000; (3) .50000
+#> Likelihoods of significance if H0 true: (1) .19758; (2) .15911; (3) .13878
+#> Likelihoods of significance if H1 true: (1) .16751; (2) .37978; (3) .40622
+#> Futility bounds: none
+#> (non-stopper: p_sad_rob_vs_hum) Type I error: .49291; Power: .81924
+#> Local alphas (secondary): (1) .50000; (2) .50000; (3) .50000
+#> Likelihoods of significance if H0 true: (1) .19140; (2) .15609; (3) .14542
+#> Likelihoods of significance if H1 true: (1) .12289; (2) .33691; (3) .35944
+#> Futility bounds: none
+#> (non-stopper: p_cheer_rob_vs_hum) Type I error: .49513; Power: .51316
+#> Local alphas (secondary): (1) .50000; (2) .50000; (3) .50000
+#> Likelihoods of significance if H0 true: (1) .19322; (2) .15704; (3) .14487
+#> Likelihoods of significance if H1 true: (1) .10598; (2) .19667; (3) .21051
+#> Futility bounds: none
+```
+
+Again, any different sample sizes could also be [specified]((https://gasparl.github.io/possa/vignettes/intro.html#specifying-initial-local-alphas)) for each of the two groups via n_obs (e.g. `n_obs = list(grp_1 = c(10, 15, 30), grp_2 = c(20, 45, 60))`).
+
 ### DeLong's test
 
-_(Upcoming...)_
+This example is from a recent planning of a real experiment, where the diagnostic efficiencies were compared between a polygraph (autonomic response, AR)-based and a response time (RT)-based versions of a lie detection method. What's interesting here is that, while the RT predictor variable is expected to be normally distributed in case of both liars and truthtellers, the AR predictor variable (which is based on a certain integrated p value) is expected to follow a beta-distribution in case of liars and uniform distribution in case of truthtellers. A typical way to measure diagnostic efficiency (here: distinguishing liars from truthtellers) is area under the receiver operating characteristic curve (AUC), which in this case can be compared with a nonparametric DeLong's test. However, there is no software to calculate power for DeLong's test for independent samples, let alone for sequential analysis. Below is an example of how this could be done with `POSSA`.
 
-### AOV
+Here, the H0 is that the two AUCs are the same, and the H1 is that the RT version yields a larger AUC. (The expectations for the AUC sizes and the distributions are based on previous research. However, since the AUC size is not straightforward to calculate from the given distributions, in order to have equal AUCs for each condition for H0 simulation, the specific distributions below were arrived at by trial-and-error adjustments of the key characteristics of the distributions.)
 
-_(Upcoming...)_
+```{r}
+sampleAUC = function(sampSize) {
+    list(
+        # AR
+        ARtruth = -runif(n = sampSize, 0, 1),
+        ARliar = sort(-rbeta(n = sampSize, shape1 = 0.2, 1)),
+        # RT
+        RTtruth = rnorm(sampSize, mean = 0, sd = 30),
+        RTliar_h0  = rnorm(sampSize, mean = 41, sd = 30),
+        RTliar_h1  = rnorm(sampSize, mean = 60, sd = 30)
+    )
+}
+```
+
+Below the testing function. To denote predictor conditions, `1` represents lies ("positive" cases), and `0` represents truth ("negative" cases, no lies).
+
+```{r}
+testAUC = function(ARtruth,
+                   ARliar,
+                   RTtruth,
+                   RTliar_h0,
+                   RTliar_h1) {
+    predictors = data.frame(
+        guilt = c(rep(0, length(ARtruth)), rep(1, length(ARliar))),
+        pred_ans = c(ARtruth, ARliar),
+        pred_RTh0 = c(RTtruth, RTliar_h0),
+        pred_RTh1 = c(RTtruth, RTliar_h1)
+    )
+    
+    AucAR = pROC::roc(
+        response = predictors$guilt,
+        predictor = predictors$pred_ans,
+        levels = c(0, 1),
+        direction =   "<" # second expected larger
+    )
+    AucRtH0 = pROC::roc(
+        response = predictors$guilt,
+        predictor = predictors$pred_RTh0,
+        levels = c(0, 1),
+        direction =   "<"
+    )
+    AucRtH1 = pROC::roc(
+        response = predictors$guilt,
+        predictor = predictors$pred_RTh1,
+        levels = c(0, 1),
+        direction =   "<"
+    )
+
+    return(
+        c(
+            p_h0 =
+                pROC::roc.test(
+                    AucAR,
+                    AucRtH0,
+                    pair = TRUE,
+                    alternative = "less"
+                )$p.value,
+            p_h1 =
+                pROC::roc.test(
+                    AucAR,
+                    AucRtH1,
+                    pair = TRUE,
+                    alternative = "less"
+                )$p.value,
+            AucAR =
+                as.numeric(pROC::auc(AucAR)),
+            AucRtH0 =
+                as.numeric(pROC::auc(AucRtH0)),
+            AucRtH1 =
+                as.numeric(pROC::auc(AucRtH1))
+        )
+    )
+}
+```
+
+Quick check via `do.call(testAUC, sampleAUC(100000))`, in particular to see (with this very large sample, which thereby gives fairly accurate estimates) that the AUCs are very close in case of H0.
+
+Then just the usual `sim()` and `pow()`.
+
+```r
+dfPvalsAUC = sim(fun_obs = sampleAUC,
+                 n_obs = c(30, 60, 90),
+                 fun_test = testAUC)
+print(dfPvalsAUC)
+
+#> POSSA sim() results (p values)
+#> Sample:
+#>    .iter .look .n_total ARtruth ARliar RTtruth RTliar_h      p_h0         p_h1     AucAR   AucRtH0   AucRtH1
+#> 1:     1     1      120      30     30      30       30 0.7724812 1.820265e-01 0.9100000 0.8666667 0.9544444
+#> 2:     1     2      240      60     60      60       60 0.3407161 3.844820e-03 0.8291667 0.8527778 0.9513889
+#> 3:     1     3      360      90     90      90       90 0.1707108 1.842903e-05 0.8129630 0.8544444 0.9574074
+#> Descriptives:
+#> AucAR: 
+#>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ #> 0.5878  0.8083  0.8353  0.8334  0.8606  0.9844 
+#> AucRtH0: 
+#>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ #> 0.5533  0.8088  0.8353  0.8332  0.8600  0.9844 
+#> AucRtH1: 
+#>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+#> 0.7044  0.9058  0.9233  0.9214  0.9389  1.0000 
+
+pow(dfPvalsAUC)
+#> # POSSA pow() results #
+#> N(average-total) = 360.0 (if H0 true) or 360.0 (if H1 true)
+#> (p) Type I error: .04689; Power: .79536
+#> Local alphas: (1) none; (2) none; (3) .05000
+#> Likelihoods of significance if H0 true: (1) 0; (2) 0; (3) .04689
+#> Likelihoods of significance if H1 true: (1) 0; (2) 0; (3) .79536
+
+pow(
+    dfPvalsAUC,
+    alpha_locals =  c(0.002, 0.018, 0.044),
+    fut_locals = c(0.8, 0.4)
+)
+
+#> # POSSA pow() results #
+#> N(average-total) = 259.3 (if H0 true) or 292.2 (if H1 true)
+#> (p) Type I error: .05000; Power: .78798
+#> Local alphas: (1) .00211; (2) .01900; (3) .04645
+#> Likelihoods of significance if H0 true: (1) .00187; (2) .01684; (3) .03129
+#> Likelihoods of significance if H1 true: (1) .04847; (2) .41316; (3) .32636
+#> Futility bounds: (1) .80000; (2) .40000
+#> Likelihoods of exceeding futility alpha if H0 true: (1) .01180; (2) .17262
+#> Likelihoods of exceeding futility alpha if H1 true: (1) .01216; (2) .03084
+#> 
+```
+
+Instead of the huge sample size of `90*4 = 360` for any decent SESOI (here: an AUC improvement of about 10%), the average required sample is reduced to 259.3 for H0 and292.2 for H1, with only a practically negligible `.007` reduction in power (`.787` instead of `.795`).
+
+---
+
+That's all for now.

@@ -925,11 +925,11 @@ pow = function(p_values,
             iters_out0 = ps_sub0[.look == lk &
                                      h0_stoP == TRUE]
             # remove stopped iterations
-            ps_sub0 = ps_sub0[!.iter %in% iters_out0$.iter,]
+            ps_sub0 = ps_sub0[!.iter %in% iters_out0$.iter, ]
             # (same for H1)
             iters_out1 = ps_sub1[.look == lk &
-                                     h1_stoP == TRUE, ]
-            ps_sub1 = ps_sub1[!.iter %in% iters_out1$.iter, ]
+                                     h1_stoP == TRUE,]
+            ps_sub1 = ps_sub1[!.iter %in% iters_out1$.iter,]
             outs = c()
             # get combined significants
             outs['iters_sign_h0'] = nrow(iters_out0[h0_stoP_sign == TRUE])

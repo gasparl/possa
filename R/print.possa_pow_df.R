@@ -96,7 +96,6 @@ format.possa_pow_df = function(x,
     }
     df_p_names = c()
     df_p_nams_all = c()
-    futilities = FALSE
     for (colnam in names(df_pow)[startsWith(names(df_pow), 'alpha_local_')]) {
         if ('possa_p' %in% class(df_pow[[colnam]])) {
             df_p_names = c(df_p_names, colnam)
@@ -107,16 +106,12 @@ format.possa_pow_df = function(x,
     }
     df_p_names = gsub('alpha_local_', '', df_p_names)
     df_p_nams_all = gsub('alpha_local_', '', df_p_nams_all)
+    df_fut_names = c()
     for (futcol in names(df_pow)[startsWith(names(df_pow), 'futil_local_')]) {
         if ('possa_futility' %in%
             class(df_pow[[futcol]])) {
-            futilities = TRUE
+            df_fut_names = c(df_fut_names, futcol)
         }
-    }
-    if (length(df_p_names) > 1) {
-        multiple_ps = TRUE
-    } else {
-        multiple_ps = FALSE
     }
     cat(
         'N(average-total) = \033[0;4m',
@@ -184,7 +179,11 @@ format.possa_pow_df = function(x,
             sign_ratios
         )
         cat(toprint, fill = TRUE)
-        if (futilities) {
+        if (paste0('futil_local_',
+                   p_nam) %in% df_fut_names) {
+            df_pow[[paste0('futil_local_',
+                           p_nam)]][is.na(df_pow[[paste0('futil_local_', p_nam)]])] = 1
+            df_pow[[futcol]][is.na(df_pow[[futcol]])] = 1
             if (all(df_pow[[paste0('futil_local_', p_nam)]][looks[-mlook]] == 1)) {
                 cat('Futility bounds: none', fill = TRUE)
             } else {
@@ -229,7 +228,7 @@ format.possa_pow_df = function(x,
             }
         }
     }
-    if (multiple_ps) {
+    if (length(df_p_names) > 1) {
         toprint = paste0(
             '\033[0;4mGlobal\033[0m ("combined significance") type I error: ',
             ro(df_pow$ratio_combined_sign_h0[df_nrow],
@@ -266,7 +265,7 @@ format.possa_pow_df = function(x,
                 )),
                 '\033[0m'
             )
-            if (futilities) {
+            if (length(df_fut_names) > 1) {
                 toprint = paste0(
                     toprint,
                     '\n\033[0;3mLikelihoods of stopping for (combined) \033[1mfutility\033[0;3m if H0 true: ',

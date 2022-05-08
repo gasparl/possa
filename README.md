@@ -20,7 +20,7 @@ Please see the vignettes:
 
 1. [General introduction](https://gasparl.github.io/possa/vignettes/intro.html "POSSA: Introduction")
 2. [Multiple hypotheses](https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html "POSSA: Multiple hypotheses")
-3. [Practical examples](https://gasparl.github.io/possa/vignettes/examples.html "POSSA: Practical examples") (unequal variances; ranked data; DeLong's test; AOV)
+3. [Practical examples](https://gasparl.github.io/possa/vignettes/examples.html "POSSA: Practical examples") (unequal variances; ranked data; ANOVA; DeLong's test)
 
 (Less important: [Benchmarking](https://gasparl.github.io/possa/vignettes/benchmarking.html "POSSA: Benchmarking"))
 
