@@ -617,10 +617,9 @@ pow(
 #> Futility bounds: (1) .80000; (2) .40000
 #> Likelihoods of exceeding futility alpha if H0 true: (1) .01180; (2) .17262
 #> Likelihoods of exceeding futility alpha if H1 true: (1) .01216; (2) .03084
-#> 
 ```
 
-Instead of the huge sample size of `90*4 = 360` for any decent SESOI (here: an AUC improvement of about 10%), the average required sample is reduced to 259.3 for H0 and292.2 for H1, with only a practically negligible `.007` reduction in power (`.787` instead of `.795`).
+Instead of the huge sample size of `90*4 = 360` with fixed design for any decent SESOI (here: an AUC improvement of about 9%), with sequential design the average required sample is reduced to 259.3 for H0 and 292.2 for H1, with only a practically negligible `.007` reduction in power (`.787` instead of `.795`).
 
 ---
 
