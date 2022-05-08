@@ -578,5 +578,5 @@ pow(
 
 ### That's all
 
-This is all needed to know to use `POSSA`. For further details about each function and each parameter, see the [manual](https://github.com/gasparl/possa/blob/master/POSSA.pdf).
+This is all needed to know to use `POSSA`. For further details about each function and each parameter, see the [manual](https://github.com/gasparl/possa/blob/master/POSSA.pdf). You also fine practical examples [here](https://gasparl.github.io/possa/vignettes/examples.html).
 

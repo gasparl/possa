@@ -160,7 +160,83 @@ Now the results depend notably on SD equality: with equal SDs, the power is lowe
 
 ### Ranked data
 
-_(Upcoming...)_
+To simulate ranked data, such as the answers to a single Likert scale, [one elegant way](https://stats.stackexchange.com/a/374500/237231) is to first simulate the normally distributed underlying [latent variable](https://en.wikipedia.org/wiki/Latent_variable), then convert that to the desired interval data. See the function below.
+
+```{r}
+createOrdinal = function(s, m) {
+    findInterval(rnorm(s, mean = m, sd = 1.3), vec = c(-Inf, 1, 2, 3, 4, Inf))
+}
+```
+
+The output can be checked e.g. as `neatStats::peek_neat(data.frame(x = createOrdinal(1000, 2)), 'x', f_plot = neatStats::plot_neat)`.
+
+Then the sampling function for two independent samples can be as follows.
+
+```{r}
+sampleRank = function(sample_size) {
+  list(
+    sample1 = createOrdinal(sample_size, 2),
+    sample2_h0 = createOrdinal(sample_size, 2),
+    sample2_h1 = createOrdinal(sample_size, 3)
+  )
+}
+```
+
+(For paired samples, one could first generate normally distributed continuous values via [faux::rnorm_multi](https://debruine.github.io/faux/articles/rnorm_multi.html), then again convert them to interval with `findInterval()`.)
+
+Then the testing function with Wilcoxon rank-sum test.
+
+```{r}
+testWilc = function(sample1, sample2_h0, sample2_h1) {
+  c(
+    p_h0 = wilcox.test(sample1, sample2_h0, alternative = 'less')$p.value,
+    p_h1 = wilcox.test(sample1, sample2_h1, alternative = 'less')$p.value
+  )
+}
+```
+
+
+Then `sim()` and `pow()` as usual.
+
+```r
+dfPvalsRank = sim(fun_obs = sampleRank,
+                  n_obs = c(15, 30, 45),
+                  fun_test = testWilc)
+pow(dfPvalsRank)
+
+#> # POSSA pow() results #
+#> N(average-total) = 90.0 (if H0 true) or 90.0 (if H1 true)
+#> (p) Type I error: .05113; Power: .96142
+#> Local alphas: (1) none; (2) none; (3) .05000
+#> Likelihoods of significance if H0 true: (1) 0; (2) 0; (3) .05113
+#> Likelihoods of significance if H1 true: (1) 0; (2) 0; (3) .96142
+```
+
+These results for fixed design can be verified via another power simulation package, `MKpower`, as follows.
+
+```r
+f1 = function(n) {
+    createOrdinal(n, 2)
+}
+f2 = function(n) {
+    createOrdinal(n, 3)
+}
+MKpower::sim.ssize.wilcox.test(
+    f1,
+    f2,
+    power = 0.9,
+    n.min = 45,
+    n.max = 47,
+    step.size = 1,
+    alternative = 'less'
+)
+
+#>      Wilcoxon rank sum test 
+#>               n = 45
+#>       emp.power = 0.9629
+```
+
+But of course only `POSSA` allows sequential design; `pow(dfPvalsRank, alpha_locals = NA)`, etc.
 
 ### DeLong's test
 
