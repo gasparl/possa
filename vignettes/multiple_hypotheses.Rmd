@@ -162,6 +162,8 @@ testFun = function(GRP_v1, GRP_v2_h0, GRP_v2_h1) {
 }
 ```
 
+(Check via `do.call(testFun, sampFun(30, 2, 0.5))`.)
+
 The `sim()` function works the same as before, except that the varying factors `meanH1` and `corrH1` (the parameters in `sampFun`) need to be provided as part of `fun_obs`: instead of assigning a function as e.g. `fun_obs = sampFun`, a list is needed where the first element is the function (`sampFun`), and the rest of the elements specify the varying factor via their names and their corresponding values in a vector. 
 
 Hence, if one intends to see, for instance, all the combinations of mean differences of `1.5`, `2.5`, `3.5`, and correlations of `0` and `0.5`, this can be specified as `fun_obs = list(sampFun, meanH1 = c(1.5, 2.5, 3.5), corrH1 = c(0, 0.5))`.

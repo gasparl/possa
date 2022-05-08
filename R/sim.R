@@ -126,9 +126,9 @@
 #'various argument values for these parameters of the function as named elements
 #'of the list (e.g., \code{list(my_function, factor1=c(1, 2, 3), factor2=c(0,
 #'5))}), with the name corresponding to the parameter name in the function, and
-#'the varying values. When so specified, a separate simulation procedure will be
-#'run for each combination of the given factors (or, if only one factor is
-#'given, for each element of that factor). The
+#'the varying values (numbers or strings). When so specified, a separate
+#'simulation procedure will be run for each combination of the given factors
+#'(or, if only one factor is given, for each element of that factor). The
 #'\code{\link[POSSA:pow]{POSSA::pow}} function will be able to automatically
 #'detect (by default) the factors generated this way in the present
 #'\code{\link[POSSA:sim]{POSSA::sim}} function, in order to calculate power
@@ -191,7 +191,7 @@ sim = function(fun_obs,
         df_combs = sapply(expand.grid(f_obs_args), as.vector)
         facts_list = list()
         for (rownum in 1:nrow(df_combs)) {
-            facts_list[[rownum]] = as.list(df_combs[rownum, ])
+            facts_list[[rownum]] = as.list(df_combs[rownum,])
         }
     } else {
         # set to have no combinations; single sample test (hence 1 cycle below)
@@ -370,7 +370,6 @@ sim = function(fun_obs,
                 c(
                     .iter = i,
                     .look = n_look,
-                    unlist(facts),
                     unlist(obs_per_it[[n_look]]),
                     do.call(fun_test, samples)
                 )
@@ -392,17 +391,25 @@ sim = function(fun_obs,
                     c(
                         .iter = i,
                         .look = lk,
-                        unlist(facts),
                         unlist(obs_per_it[[lk]]),
                         do.call(fun_test, samples)
                     )
             }
         }
+        df_fact = as.data.frame(do.call(rbind, list_vals))
+        if (is.null(facts)) {
+            df_pvals = df_fact
+        } else if (exists("df_pvals")) {
+            df_pvals = rbind(df_pvals,
+                             data.frame(df_fact[1:2], facts, df_fact[c(-1,-2)]))
+        } else {
+            df_pvals = data.frame(df_fact[1:2], facts, df_fact[c(-1,-2)])
+        }
+        list_vals = list()
     }
     if (hush == FALSE) {
         close(pb)
     }
-    df_pvals = as.data.frame(do.call(rbind, list_vals))
 
     # merge groups into single column (with given group name)
     for (grp_nam in names(grp_samples)) {
@@ -421,7 +428,7 @@ sim = function(fun_obs,
             # renaming the first group member to represent all (since all are identical)
             names(df_pvals)[names(df_pvals) == obs_colnames[1]] = grp_nam
             # remove other group columns from dataframe
-            df_pvals = df_pvals[,!(names(df_pvals) %in% obs_colnames)]
+            df_pvals = df_pvals[, !(names(df_pvals) %in% obs_colnames)]
             # remove all group columns from obs names
             obs_names = obs_names[!obs_names %in% obs_colnames]
             # add group name to obs names, to represent all group columns
@@ -459,11 +466,11 @@ sim = function(fun_obs,
     }
     df_pvals = data.frame(df_pvals[, 1:2],
                           .n_total = adjust_n * n_tots,
-                          df_pvals[, -1:-2])
+                          df_pvals[,-1:-2])
     # order per iter and look
-    df_pvals = df_pvals[order(df_pvals$.iter, df_pvals$.look), ]
+    df_pvals = df_pvals[order(df_pvals$.iter, df_pvals$.look),]
     if (length(f_obs_args) > 0) {
-        df_pvals = df_pvals[do.call('order', df_pvals[names(f_obs_args)]),]
+        df_pvals = df_pvals[do.call('order', df_pvals[names(f_obs_args)]), ]
     }
 
     # add POSSA class names, to be recognized in POSSA::pow

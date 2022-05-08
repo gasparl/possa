@@ -17,7 +17,8 @@ install_github("gasparl/possa")
 ### Usage
 
 Please see the main vignettes: [General introduction](https://gasparl.github.io/possa/vignettes/intro.html "POSSA: Introduction") and
-[Multiple hypotheses](https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html "POSSA: Multiple hypotheses"). (Less important: [Benchmarking](https://gasparl.github.io/possa/vignettes/benchmarking.html "POSSA: Benchmarking").) _Upcoming: Practical examples (unequal samples and SDs; ranked data; DeLong's test; AOV)._
+[Multiple hypotheses](https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html "POSSA: Multiple hypotheses"). In addition, there are several [practical examples presented (unequal variances; ranked data; DeLong's test; AOV)](https://gasparl.github.io/possa/vignettes/examples.html "POSSA: Practical examples") and
+[Multiple hypotheses](https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html "POSSA: Multiple hypotheses"). (Less important: [Benchmarking](https://gasparl.github.io/possa/vignettes/benchmarking.html "POSSA: Benchmarking").)
 
 For detailed information about each function and parameter, see [the manual](https://github.com/gasparl/possa/blob/master/POSSA.pdf "POSSA manual").
 

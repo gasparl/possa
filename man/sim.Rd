@@ -161,9 +161,9 @@ specifying varying factors, while the rest of the elements should contain the
 various argument values for these parameters of the function as named elements
 of the list (e.g., \code{list(my_function, factor1=c(1, 2, 3), factor2=c(0,
 5))}), with the name corresponding to the parameter name in the function, and
-the varying values. When so specified, a separate simulation procedure will be
-run for each combination of the given factors (or, if only one factor is
-given, for each element of that factor). The
+the varying values (numbers or strings). When so specified, a separate
+simulation procedure will be run for each combination of the given factors
+(or, if only one factor is given, for each element of that factor). The
 \code{\link[POSSA:pow]{POSSA::pow}} function will be able to automatically
 detect (by default) the factors generated this way in the present
 \code{\link[POSSA:sim]{POSSA::sim}} function, in order to calculate power
