@@ -1,8 +1,8 @@
-### POSSA
+### POSSA: Power simulation for sequential analysis and multiple hypotheses
 
-Power simulation for sequential analysis and multiple hypotheses.
+This R package serves to calculate, via simulation, power and appropriate "stopping" alpha boundaries (and/or futility bounds) for sequential analyses (i.e., "group sequential design") as well as for multiple hypotheses (multiple tests included in an analysis), given any specified global error rate. This enables the sequential use of practically any significance test, as long as the underlying data can be simulated in advance to a reasonable approximation.
 
-This package is already in working condition as it is, but some parts of the underlying mechanism (and the related parameters) are still being optimized, hence future updates might bring some differences. The first definitive version will be published via CRAN (hopefully soon).
+For how to use, see the vignettes linked below.
 
 ### Installation in R
 
@@ -33,7 +33,7 @@ For detailed information about each function and parameter, see [the manual](htt
 
 ### Contributions
 
-Given that this project is not part of my "day job", the [issues](https://github.com/gasparl/possa/issues "Issues") grew beyond my capacity. Help would be most welcome; if you are up to it, feel free to [email me](mailto:lkcsgaspar@gmail.com) (or to reply to the relevant issue or open a new one).
+Given that this project is not part of my "day job", the [intended additional features](https://github.com/gasparl/possa/issues "Issues") grew beyond my capacity. Help would be most welcome; if you are up to it, feel free to [email me](mailto:lkcsgaspar@gmail.com) (or to reply to the relevant issue or open a new one).
 
 ### Citation
 

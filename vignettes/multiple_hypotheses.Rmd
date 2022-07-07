@@ -18,7 +18,7 @@ This tutorial presupposes having read the [general introduction to `POSSA`](http
 
 To verify that such relatively more complex used-defined functions were written correctly, it is useful to store some descriptive data, such as the means and SDs of the variables, or correlations, effect sizes, etc. Relatedly, in real cases, one should ideally test a [variety of possible scenarios](https://doi.org/10.1177%2F1745691616658637): for this, `POSSA` provides the possibility to easily run multiple simulations with varying factors (e.g., varying correlations, effect sizes, etc.).
 
-Hence, recording descriptives and using varying factors will be explained here first, after which testing for multiple hypotheses is presented. This completes (together with the [intro](https://gasparl.github.io/possa/vignettes/intro.html)) everything important that needs knowing for using `POSSA`.
+Hence, recording descriptives and using varying factors will be explained here first, after which testing for multiple hypotheses is presented. This completes (together with the [intro](https://gasparl.github.io/possa/vignettes/intro.html)) everything important that needs to be known for using `POSSA`.
 
 ```{r setup}
 library('POSSA')
@@ -183,7 +183,7 @@ dfPvalsFacts = sim(
 )
 ```
 
-Now, simply by printing `dfPvalsFacts`, one can check the means, correlations, and SMDs, for each factor combination, to make sure everything is as intended; it's also assuring to see that each look has similar values (e.g., correlations) for each combination; `print(dfPvalsFacts, group_by = c('.look', 'corrH1'), descr_cols = 'corrValueH1')`. Or, again, some plots can give quick insight: `neatStats::peek_neat(dfPvalsFacts, c("corrValueH0", "corrValueH1"), group_by = c('corrH1', '.look'))`; `neatStats::peek_neat(dfPvalsFacts, c("smdValueH1"), group_by = c('meanH1', 'corrH1'))`; etc.
+Now, simply by printing `dfPvalsFacts`, one can check the means, correlations, and SMDs, for each factor combination, to make sure everything is as intended; it's also reassuring to see that each look has similar values (e.g., correlations) for each combination; `print(dfPvalsFacts, group_by = c('.look', 'corrH1'), descr_cols = 'corrValueH1')`. Or, again, some plots can give quick insight: `neatStats::peek_neat(dfPvalsFacts, c("corrValueH0", "corrValueH1"), group_by = c('corrH1', '.look'))`; `neatStats::peek_neat(dfPvalsFacts, c("smdValueH1"), group_by = c('meanH1', 'corrH1'))`; etc.
 
 Finally, `POSSA::pow` will calculate power for each factor combination separately – otherwise behaving just the same as when no varying factors are given.
 

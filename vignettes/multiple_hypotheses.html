@@ -350,7 +350,7 @@ correlations, effect sizes, etc.).</p>
 <p>Hence, recording descriptives and using varying factors will be
 explained here first, after which testing for multiple hypotheses is
 presented. This completes (together with the <a href="https://gasparl.github.io/possa/vignettes/intro.html">intro</a>)
-everything important that needs knowing for using
+everything important that needs to be known for using
 <code>POSSA</code>.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&#39;POSSA&#39;</span>)</span></code></pre></div>
 <div id="recording-descriptives" class="section level3">
@@ -382,7 +382,7 @@ with <code>_h0</code>/<code>_h1</code>).</p>
 <p>See that it’s working:</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">do.call</span>(customTestWithMeans, <span class="fu">customSample</span>(<span class="dv">85</span>))</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;          p_h0          p_h1    meanDiffH0    meanDiffH1 </span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  1.169301e-01  7.122130e-08 -1.786144e+00 -8.449470e+00</span></span></code></pre></div>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  1.101990e-01  9.259284e-06 -1.877102e+00 -6.689310e+00</span></span></code></pre></div>
 <p>Now the simulation as before.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>dfPvalsAndMeans <span class="ot">=</span> <span class="fu">sim</span>(<span class="at">fun_obs =</span> customSample,</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">n_obs =</span> <span class="fu">c</span>(<span class="dv">27</span>, <span class="dv">54</span>, <span class="dv">81</span>),</span>
@@ -514,8 +514,8 @@ e.g. <code>n_iter = 500</code>.)</p>
 <span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
 <p>Now, simply by printing <code>dfPvalsFacts</code>, one can check the
 means, correlations, and SMDs, for each factor combination, to make sure
-everything is as intended; it’s also assuring to see that each look has
-similar values (e.g., correlations) for each combination;
+everything is as intended; it’s also reassuring to see that each look
+has similar values (e.g., correlations) for each combination;
 <code>print(dfPvalsFacts, group_by = c(&#39;.look&#39;, &#39;corrH1&#39;), descr_cols = &#39;corrValueH1&#39;)</code>.
 Or, again, some plots can give quick insight:
 <code>neatStats::peek_neat(dfPvalsFacts, c(&quot;corrValueH0&quot;, &quot;corrValueH1&quot;), group_by = c(&#39;corrH1&#39;, &#39;.look&#39;))</code>;

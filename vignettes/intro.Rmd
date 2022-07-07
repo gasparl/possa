@@ -18,7 +18,7 @@ Below, the essence of `POSSA`'s power (and type 1 error rate, T1ER) calculation 
 
 This tutorial presupposes the basic conceptual understanding of sequential analyses (and the basics or statistical power and T1ER). There are several related free tutorials online (see e.g. [Lakens, 2014](https://psyarxiv.com/9yegd/)).
 
-All parameters mentioned below are described in detail in full the documentation (see `?sim` and `?pow`).
+All parameters mentioned below are described in detail in the full documentation (see `?sim` and `?pow`).
 
 So let's say you want to compare the means of two independent continuous variables with a simple t-test. Your smallest effect size of interest (SESOI) is `5` units (arbitrary units that could represent anything – e.g., the height of a plant in cm, or the time of performing a task in seconds, etc.).
 
@@ -26,7 +26,7 @@ So let's say you want to compare the means of two independent continuous variabl
 
 First, write a function that simulates the samples (i.e., observed values) for a single instance of the hypothetical experiment in case the null hypothesis is true (no actual difference between the two population means) as well as in case the alternative hypothesis is true (there is in fact difference). 
 
-If the null hypothesis "H0" is true, the two samples have the same mean, let's say `0` units; and let's assume normally distributed values an SD of `10` units for each sample. For this, two samples can each be simulated via the function `rnorm(sampleSize, mean = 0, sd = 10)` (where `sampleSize` is a variable to be provided via another function, as explained later). You can assign this to `sample1`, which represents a baseline variable (e.g., "group A"), and, separately, to `sample2_h0`, which represents a sample that does not differ from the baseline ("H0" true). If the null hypothesis "H1" is true, the baseline sample may again have a mean of `0`, but the other sample should have the SESOI, `5` units (again assuming an SD of `10`) – which can be simulated as `rnorm(sampleSize, mean = 0, sd = 10)`. This can be assigned to `sample2_h1`, which represents a sample that does differ from the baseline ("H1" true). (The baseline sample has identical properties in case of H0 and H1, so for it's enough to simulate one.)
+If the null hypothesis "H0" is true, the two samples have the same mean, let's say `0` units; and let's assume normally distributed values an SD of `10` units for each sample. For this, two samples can each be simulated via the function `rnorm(sampleSize, mean = 0, sd = 10)` (where `sampleSize` is a variable to be provided via another function, as explained later). You can assign this to `sample1`, which represents a baseline variable (e.g., "group A"), and, separately, to `sample2_h0`, which represents a sample that does not differ from the baseline ("H0" true). If the null hypothesis "H1" is true, the baseline sample may again have a mean of `0`, but the other sample should have the SESOI, `5` units (again assuming an SD of `10`) – which can be simulated as `rnorm(sampleSize, mean = 5, sd = 10)`. This can be assigned to `sample2_h1`, which represents a sample that does differ from the baseline ("H1" true). (The baseline sample has identical properties in case of H0 and H1, so it's enough to simulate it only once, and use that same resulting sample for both cases – for the sake of brevity as well as of computational speed.)
 
 All this is to be put into a function, which takes a `sampleSize` argument and returns the simulated samples as a named list, as follows.
 
@@ -40,9 +40,9 @@ customSample = function(sampleSize) {
 }
 ```
 
-Note that the `customSample` and `sampleSize` variables were written with camel case (likeThis), while the `_h0` and `_h1` endings used underscores (like_this). This alternate notation is used in the present tutorial to help distinguish what names can be freely chosen, and what is necessarily named so for the `POSSA` package: custom names are all camel case, while underscores indicate notation necessary for `POSSA`. Here specifically, the list names for the sample that varies depending on whether the null (H0) and alternative (H1) hypothesis is true must be indicated with `_h0` and `_h1` endings, respectively, with a common root (here: `sample2_h`). The root name or the other variable names (`customSample` and `sampleSize`) could be named differently, and everything would work just as well.
+Note that the `customSample` and `sampleSize` variables were written with camel case (likeThis), while the `_h0` and `_h1` endings used underscores (like_this). This alternate notation is used in the present tutorial to help distinguish what names can be freely chosen, and what is necessarily named so for the `POSSA` package: custom names are all camel case, while underscores indicate notation necessary for `POSSA`. Here specifically, the returned list's element names for the sample that varies depending on whether the null (H0) and alternative (H1) hypothesis is true must be indicated with `_h0` and `_h1` endings, respectively, with a common root (here: `sample2_h`). The root name or the other variable names (`customSample` and `sampleSize`) could be named differently, and everything would work just as well.
 
-Now, write a function that performs the test; here, a one-sided t-test (with equal variances assumed – this is just for the example's outcome's comparability for other software, normally Welch's test should be preferred).
+Now, write a function that performs the test; here, a one-sided t-test (with equal variances assumed – this is just for the example's outcome's comparability for other software, but normally Welch's test [should be](http://doi.org/10.5334/irsp.82) preferred).
 
 The function's parameters must be identical to the names of the list elements returned by the sample function (here: `sample1`, `sample2_h0`, and `sample2_h1`). The returned value must be a named vector that contains the derived p values. The name of each p value must start with `p_`, and end with `_h0` for the "H0" outcome and with `_h1` for the "H1" outcome. (Below, it's simply `p_h0`/`p_h1`, but it could just as well be, e.g., `p_my_t.test_h0`/`p_my_t.test_h1`).
 
@@ -63,7 +63,7 @@ To make sure the two functions are working correctly, as a quick test you can ru
 do.call(customTest, customSample(55))
 ```
 
-This passes `55` as (arbitrary) sample size to `customSample`, which passes the created samples to `customTest`, which finally returns the named vector with the `p_h0` and `p_h1` p values. (Given the randomization, if you run this line repeatedly, the outcome should differ each time – however, with large enough numbers, `p_h1` is likely to be noticeably smaller then `p_h0`.)
+This passes `55` as (arbitrary) sample size to `customSample`, which passes the created samples to `customTest`, which finally returns the named vector with the `p_h0` and `p_h1` p values. (Given the randomization, if you run this line repeatedly, the outcome should differ each time – however, with large enough numbers, `p_h1` is likely to be noticeably smaller than `p_h0`.)
 
 ### POSSA's *sim* and *pow*
 
@@ -124,11 +124,11 @@ pow(dfPvalsSeq, alpha_locals = NA)
 #> Likelihoods of significance if H1 true: (1) .42324; (2) .32298; (3) .15300
 ```
 
-The `alpha_locals = NA` input specifies that all local alphas are `NA`, in which case they will all gain a single identical number (corresponding to Pocock's correction in case of equally spaced looks). Rounding to the conventional 3 fractional digits, the adjusted constant local alpha number corresponds to the exact statistics (`.023`) provided in other software, e.g. `gsDesign::gsDesign(k = 3, test.type = 1, alpha = 0.05, sfu = 'Pocock')`.
+The `alpha_locals = NA` input specifies that all local alphas are initially `NA`, in which case they will all be calculated to have a single identical number (corresponding to Pocock's correction in case of equally spaced looks). Rounding to the conventional 3 fractional digits, the adjusted constant local alpha number corresponds to the exact statistics (`.023`) provided in other software, e.g. `gsDesign::gsDesign(k = 3, test.type = 1, alpha = 0.05, sfu = 'Pocock')`.
 
 The console output contains only the most important information, but, when assigned, the `pow` function returns a data frame with detailed information per each look (and their totals), including the specified sample sizes, the numbers of iterations, etc. The printed information includes
 
-- the average number of subjects in H0 and in H1 scenarios (i.e., taking of all simulations, on average at how many participants the experiment was stopped),
+- the average number of subjects in H0 and in H1 scenarios (i.e., out of all simulations, on average at how many participants the experiment was stopped),
 - the T1ER (here, it's for a single p value, but, in case of multiple p values, it would be a combined T1ER as specified)
 - the power (again, would be combined in case of multiple p values), 
 - the local alphas per look (and per each p value; but in the present case there is only one, named simply `p`, the root derived from `p_h0`/`p_h1`),
@@ -167,7 +167,7 @@ By default, there are altogether 11 step sizes, chosen in a way that typically r
 
 ### Specifying initial local alphas
 
-Given the above-described default mechanisms, there are, without modifying the adjustment procedure, two easy ways to provide the argument for `alpha_locals` (for any given p value): (a) a vector that includes (or consist entirely of) `NA` values that are to be replaced with a constant number that results in the desired global T1ER, and (b) a vector with all numeric values that are each to be multiplied with a number in order to obtain a vector of alphas that again result in the desired global T1ER.
+Given the above-described default mechanisms, there are, without modifying the adjustment procedure, two easy ways to provide the argument for `alpha_locals` (for any given p value): (a) a vector that includes (or consist entirely of) `NA` values that are to be replaced with a constant number that results in the desired global T1ER, or (b) a vector with all numeric values that are each to be multiplied with a number in order to obtain a vector of alphas that again result in the desired global T1ER.
 
 However, you can also simply check the results, without any adjustment, of any given set of local alphas, by setting `adjust = FALSE`.
 
@@ -186,7 +186,7 @@ pow(dfPvalsSeq, alpha_locals = c(0.001, 0.001, NA), alpha_global = 0.025)
 #> Likelihoods of significance if H1 true: (1) .09224; (2) .21596; (3) .57591
 ```
 
-In this specific scenario, despite noticably decreased average sample in case of H1 (`140.4` instead of the fixed `162`), the adverse effect of interim stops on T1ER is so minimal (see, in case of H0, the tiny ratio significant [false positive] findings at the first and second looks), that the last look's alpha (`.02431`) hardly differs from the specified global alpha (`.025`).
+In this specific scenario, despite noticeably decreased average sample in case of H1 (`140.4` instead of the fixed `162`), the adverse effect of interim stops on T1ER is so minimal (see, in case of H0, the tiny ratio significant [false positive] findings at the first and second looks), that the last look's alpha (`.02431`) hardly differs from the specified global alpha (`.025`).
 
 You can also check what happens without adjustment, using `adjust = FALSE`.
 
@@ -203,7 +203,7 @@ pow(dfPvalsSeq, alpha_locals = c(0.001, 0.001, 0.025), alpha_global = 0.025, adj
 
 Which leads to the same conclusion from the reverse perspective: the T1ER hardly exceeds `.25`.
 
-Nonetheless, more substantial sample reduction can be achieved with somewhat more liberal interim local alphas; besides, normally it makes more sense to increase the local alphas gradually (because, in brief, given the greater uncertainty of the initial smaller samples, beginning with lower local alphas and gradually increasing them provides the most efficient "information gain" for the same eventual T1ER). For this, one could base the adjustment on one of the popular boundary methods used for parametric tests, such as the O'Brien-Fleming bounds. These bounds for parametric tests can be easily calculated via other packages. These bounds may not apply to nonparametric tests in exactly the same way, but the principle of exponentially increasing local alphas remains the same. (To decide what fits your specific scenario best, you could also check the outcomes of various versions of the Wang-Tsiatis bounds by changing its _Delta_ parameter; e.g., in `gsDesign::gsDesign()`, set `sfu = 'WT'` for Wang-Tsiatis, and vary its Delta via `sfupar`.) Most importantly in any case, the adjustment of alphas in `POSSA` will ensure that the T1ER is at the specified level. This will only make a difference for other custom tests and multiple hypotheses, but not for the present t-test example.
+Nonetheless, more substantial sample reduction can be achieved with somewhat more liberal interim local alphas; besides, normally it makes more sense to increase the local alphas gradually (because, in brief, given the greater uncertainty of the initial smaller samples, beginning with lower local alphas and gradually increasing them provides the most efficient "information gain" for the same eventual T1ER). For this, one could base the adjustment on one of the popular boundary methods used for parametric tests, such as the O'Brien-Fleming bounds. These bounds for parametric tests can be easily calculated via other packages. They may not apply to nonparametric tests in exactly the same way, but the principle of exponentially increasing local alphas remains the same. (To decide what fits your specific scenario best, you could also check the outcomes of various versions of the Wang-Tsiatis bounds by changing its _Delta_ parameter; e.g., in `gsDesign::gsDesign()`, set `sfu = 'WT'` for Wang-Tsiatis, and vary its Delta via `sfupar`.) Most importantly in any case, the adjustment of alphas in `POSSA` will ensure that the T1ER is at the specified level. This will only make a difference for other custom tests and multiple hypotheses, but not for the present t-test example.
 
 For our example of three equally spaced interim looks, O'Brien-Fleming bounds can be calculated e.g. via `gsDesign::gsDesign(k = 3, test.type = 1, alpha = 0.05, sfu = 'OF')`, giving the local alphas of `0.0015`, `0.0181`, and `0.0437`. (The same is returned by `rpact::getDesignGroupSequential(typeOfDesign = "OF", informationRates = c(1/3, 2/3, 1), alpha = 0.05)`.)
 

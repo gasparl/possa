@@ -295,7 +295,7 @@ sampleAOV = function(samp_size) {
 }
 ```
 
-Now the testing function will require a data frame to be contructed from the passed variables, to be appropriate for the `aov()` function. (Again, some wrapper function such as `ez::ezANOVA` could be used for readability, but this would make the simulation somewhat slower. However, if speed is of not much importance, those wrapper functions work just as well.)
+Now the testing function will require a data frame to be constructed from the passed variables, to be appropriate for the `aov()` function. (Again, some wrapper function such as `ez::ezANOVA` could be used for readability, but this would make the simulation somewhat slower. However, if speed is of not much importance, those wrapper functions work just as well.)
 
 The way of extracting p values from the output (e.g. `aov_h0[[1]][[1]][['Pr(>F)']][1]`) also look quite extraordinary, but this is just how `aov()` [stores](https://stackoverflow.com/questions/3366506/extract-p-value-from-aov) this information.
 
@@ -368,7 +368,7 @@ testAOV = function(grp_1_human_cheerful_h0,
 }
 ```
 
-This lengthy function pair is really good to verify via `do.call(testAOV, sampleAOV(100))`.
+It's really good to verify this lengthy function pair via `do.call(testAOV, sampleAOV(100))`.
 
 The `sim()` and `pow()` function are then straightforward. (However, the simulation can take a while. For quick testing, lower the number of iterations; e.g. `n_iter = 1000` – same as `Superpower::ANOVA_power`'s default.)
 
@@ -429,7 +429,7 @@ superPower <- Superpower::ANOVA_power(
 #> p_voice_human_emotion_sad_voice_robot_emotion_sad           40.667    -0.39404
 ```
 
-Importantly, of course, with `POSSA` there is the option for sequential testing. Here, it is particularly important to pay attention which specific one(s) of the included tests (p values) should have stopping alphas (or to have futility bounds).
+Importantly, of course, with `POSSA` there is the option for sequential testing. Here, it is particularly important to pay attention which specific one(s) of the included tests (p values) should have stopping alphas (or futility bounds).
 
 For instance, as it often happens, let's say that the interaction is the only really important test in the entire ANOVA analysis. In that case, that could be used alone with stopping alphas and futility bounds. The rest may be included with non-stopping alphas to get the related power and T1ER. This can be done e.g. as below.
 
@@ -484,7 +484,7 @@ pow(
 #> Futility bounds: none
 ```
 
-Again, any different sample sizes could also be [specified]((https://gasparl.github.io/possa/vignettes/intro.html#specifying-initial-local-alphas)) for each of the two groups via n_obs (e.g. `n_obs = list(grp_1 = c(10, 15, 30), grp_2 = c(20, 45, 60))`).
+Again, any different sample sizes could also be [specified]((https://gasparl.github.io/possa/vignettes/intro.html#specifying-initial-local-alphas)) for each of the two groups via `n_obs` (e.g. `n_obs = list(grp_1 = c(10, 15, 30), grp_2 = c(20, 45, 60))`).
 
 ### DeLong's test
 
@@ -508,7 +508,7 @@ sampleAUC = function(sampSize) {
 
 Below the testing function. To denote predictor conditions, `1` represents lies ("positive" cases), and `0` represents truth ("negative" cases, no lies).
 
-```{r}
+```r
 testAUC = function(ARtruth,
                    ARliar,
                    RTtruth,

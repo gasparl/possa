@@ -623,7 +623,7 @@ grouping notation: <code>grp_1</code> for <strong>human</strong> and
 <span id="cb13-42"><a href="#cb13-42" aria-hidden="true" tabindex="-1"></a>        <span class="at">grp_2_robot_sad_h1 =</span> dat_h1_robot<span class="sc">$</span>X2</span>
 <span id="cb13-43"><a href="#cb13-43" aria-hidden="true" tabindex="-1"></a>    )</span>
 <span id="cb13-44"><a href="#cb13-44" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
-<p>Now the testing function will require a data frame to be contructed
+<p>Now the testing function will require a data frame to be constructed
 from the passed variables, to be appropriate for the <code>aov()</code>
 function. (Again, some wrapper function such as <code>ez::ezANOVA</code>
 could be used for readability, but this would make the simulation
@@ -701,7 +701,7 @@ pair-wise comparisons, namely, comparing the <strong>robot</strong> and
 <span id="cb14-62"><a href="#cb14-62" aria-hidden="true" tabindex="-1"></a>        )</span>
 <span id="cb14-63"><a href="#cb14-63" aria-hidden="true" tabindex="-1"></a>    )</span>
 <span id="cb14-64"><a href="#cb14-64" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
-<p>This lengthy function pair is really good to verify via
+<p>It’s really good to verify this lengthy function pair via
 <code>do.call(testAOV, sampleAOV(100))</code>.</p>
 <p>The <code>sim()</code> and <code>pow()</code> function are then
 straightforward. (However, the simulation can take a while. For quick
@@ -761,7 +761,7 @@ iterations really takes very very long.)</p>
 <p>Importantly, of course, with <code>POSSA</code> there is the option
 for sequential testing. Here, it is particularly important to pay
 attention which specific one(s) of the included tests (p values) should
-have stopping alphas (or to have futility bounds).</p>
+have stopping alphas (or futility bounds).</p>
 <p>For instance, as it often happens, let’s say that the interaction is
 the only really important test in the entire ANOVA analysis. In that
 case, that could be used alone with stopping alphas and futility bounds.
@@ -816,7 +816,7 @@ power and T1ER. This can be done e.g. as below.</p>
 <span id="cb17-47"><a href="#cb17-47" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Likelihoods of significance if H1 true: (1) .10598; (2) .19667; (3) .21051</span></span>
 <span id="cb17-48"><a href="#cb17-48" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Futility bounds: none</span></span></code></pre></div>
 <p>Again, any different sample sizes could also be <a href="(https://gasparl.github.io/possa/vignettes/intro.html#specifying-initial-local-alphas)">specified</a>
-for each of the two groups via n_obs
+for each of the two groups via <code>n_obs</code>
 (e.g. <code>n_obs = list(grp_1 = c(10, 15, 30), grp_2 = c(20, 45, 60))</code>).</p>
 </div>
 <div id="delongs-test" class="section level3">
