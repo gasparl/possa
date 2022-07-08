@@ -382,7 +382,7 @@ with <code>_h0</code>/<code>_h1</code>).</p>
 <p>See that it’s working:</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">do.call</span>(customTestWithMeans, <span class="fu">customSample</span>(<span class="dv">85</span>))</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;          p_h0          p_h1    meanDiffH0    meanDiffH1 </span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  1.101990e-01  9.259284e-06 -1.877102e+00 -6.689310e+00</span></span></code></pre></div>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  0.3453496609  0.0008087718 -0.6220011261 -5.3716703579</span></span></code></pre></div>
 <p>Now the simulation as before.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>dfPvalsAndMeans <span class="ot">=</span> <span class="fu">sim</span>(<span class="at">fun_obs =</span> customSample,</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">n_obs =</span> <span class="fu">c</span>(<span class="dv">27</span>, <span class="dv">54</span>, <span class="dv">81</span>),</span>
@@ -401,12 +401,12 @@ printed, and the factors will be automatically shown.</p>
 <span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2:     1     2      108      54        54 0.02521739 0.0001540393 -3.9918067  -6.850594</span></span>
 <span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3:     1     3      162      81        81 0.04303389 0.0000339881 -2.7414472  -6.031900</span></span>
 <span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Descriptives:</span></span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; meanDiffH0: </span></span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;       Min.    1st Qu.     Median       Mean    3rd Qu.       Max. </span></span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; -11.208494  -1.331260   0.003347   0.006194   1.346132  12.649740 </span></span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; meanDiffH1: </span></span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span></span>
-<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; -15.704  -6.350  -5.006  -5.005  -3.656   5.699 </span></span></code></pre></div>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; meanDiffH0:</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;       Min.    1st Qu.     Median       Mean    3rd Qu.       Max.</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; -11.208494  -1.331260   0.003347   0.006194   1.346132  12.649740</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; meanDiffH1:</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; -15.704  -6.350  -5.006  -5.005  -3.656   5.699</span></span></code></pre></div>
 <p>Note that entering a variable name, in this case
 <code>dfPvalsAndMeans</code>, in the console (or, in RStudio,
 highlighting it and pressing <em>Ctrl</em>+<em>Enter</em>) is equivalent
@@ -838,7 +838,7 @@ with stopping alphas.)</p>
 <div id="specifying-observation-numbers-per-each-group" class="section level3">
 <h3>Specifying observation numbers per each group</h3>
 <p>Different observation numbers for each group may be specified via the
-group names (analogously to <a href="https://gasparl.github.io/possa/vignettes/intro.html#specifying-initial-local-alphas">specifying
+group names (analogously to <a href="https://gasparl.github.io/possa/vignettes/intro.html">specifying
 observation numbers per each sample</a>). To be able to specify the two
 group’s observation numbers separately, we need separate parameters for
 each, in the sample generation function, each using the

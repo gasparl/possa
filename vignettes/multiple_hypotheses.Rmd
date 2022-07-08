@@ -79,12 +79,12 @@ print(dfPvalsAndMeans)
 #> 2:     1     2      108      54        54 0.02521739 0.0001540393 -3.9918067  -6.850594
 #> 3:     1     3      162      81        81 0.04303389 0.0000339881 -2.7414472  -6.031900
 #> Descriptives:
-#> meanDiffH0: 
-#>       Min.    1st Qu.     Median       Mean    3rd Qu.       Max. 
-#> -11.208494  -1.331260   0.003347   0.006194   1.346132  12.649740 
-#> meanDiffH1: 
-#>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-#> -15.704  -6.350  -5.006  -5.005  -3.656   5.699 
+#> meanDiffH0:
+#>       Min.    1st Qu.     Median       Mean    3rd Qu.       Max.
+#> -11.208494  -1.331260   0.003347   0.006194   1.346132  12.649740
+#> meanDiffH1:
+#>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+#> -15.704  -6.350  -5.006  -5.005  -3.656   5.699
 ```
 
 Note that entering a variable name, in this case `dfPvalsAndMeans`, in the console (or, in RStudio, highlighting it and pressing *Ctrl*+*Enter*) is equivalent to using the `print()` function.
@@ -164,7 +164,7 @@ testFun = function(GRP_v1, GRP_v2_h0, GRP_v2_h1) {
 
 (Check via `do.call(testFun, sampFun(30, 2, 0.5))`.)
 
-The `sim()` function works the same as before, except that the varying factors `meanH1` and `corrH1` (the parameters in `sampFun`) need to be provided as part of `fun_obs`: instead of assigning a function as e.g. `fun_obs = sampFun`, a list is needed where the first element is the function (`sampFun`), and the rest of the elements specify the varying factor via their names and their corresponding values in a vector. 
+The `sim()` function works the same as before, except that the varying factors `meanH1` and `corrH1` (the parameters in `sampFun`) need to be provided as part of `fun_obs`: instead of assigning a function as e.g. `fun_obs = sampFun`, a list is needed where the first element is the function (`sampFun`), and the rest of the elements specify the varying factor via their names and their corresponding values in a vector.
 
 Hence, if one intends to see, for instance, all the combinations of mean differences of `1.5`, `2.5`, `3.5`, and correlations of `0` and `0.5`, this can be specified as `fun_obs = list(sampFun, meanH1 = c(1.5, 2.5, 3.5), corrH1 = c(0, 0.5))`.
 
@@ -437,7 +437,7 @@ pow(
 
 ### Specifying observation numbers per each group
 
-Different observation numbers for each group may be specified via the group names (analogously to [specifying observation numbers per each sample](https://gasparl.github.io/possa/vignettes/intro.html#specifying-initial-local-alphas)). To be able to specify the two group's observation numbers separately, we need separate parameters for each, in the sample generation function, each using the `grp_` notation; here `grp_1` and `grp_2`.
+Different observation numbers for each group may be specified via the group names (analogously to [specifying observation numbers per each sample](https://gasparl.github.io/possa/vignettes/intro.html)). To be able to specify the two group's observation numbers separately, we need separate parameters for each, in the sample generation function, each using the `grp_` notation; here `grp_1` and `grp_2`.
 
 Unrelatedly, for the sake of an extended example, here there will be, instead of two, three tests included (denoted here as `X`, `Y`, `Z`).
 
@@ -579,4 +579,3 @@ pow(
 ### That's all
 
 This is all needed to know to use `POSSA`. For further details about each function and each parameter, see the [manual](https://github.com/gasparl/possa/blob/master/POSSA.pdf). You also fine practical examples [here](https://gasparl.github.io/possa/vignettes/examples.html).
-

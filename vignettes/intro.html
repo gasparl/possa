@@ -407,7 +407,7 @@ variable names (<code>customSample</code> and <code>sampleSize</code>)
 could be named differently, and everything would work just as well.</p>
 <p>Now, write a function that performs the test; here, a one-sided
 t-test (with equal variances assumed – this is just for the example’s
-outcome’s comparability for other software, but normally Welch’s test <a href="http://doi.org/10.5334/irsp.82">should be</a> preferred).</p>
+outcome’s comparability for other software, but normally Welch’s test <a href="https://doi.org/10.5334/irsp.82">should be</a> preferred).</p>
 <p>The function’s parameters must be identical to the names of the list
 elements returned by the sample function (here: <code>sample1</code>,
 <code>sample2_h0</code>, and <code>sample2_h1</code>). The returned
@@ -430,8 +430,8 @@ vignette</a>.)</p>
 you can run the following line (with any applicable number
 argument).</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">do.call</span>(customTest, <span class="fu">customSample</span>(<span class="dv">55</span>))</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;         p_h0         p_h1 </span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.8284051842 0.0006830212</span></span></code></pre></div>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;       p_h0       p_h1 </span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.48108812 0.00537003</span></span></code></pre></div>
 <p>This passes <code>55</code> as (arbitrary) sample size to
 <code>customSample</code>, which passes the created samples to
 <code>customTest</code>, which finally returns the named vector with the
