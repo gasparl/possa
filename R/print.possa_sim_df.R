@@ -22,6 +22,9 @@
 #'  function (via \code{fun_obs}) that created the given \code{x} data.
 #'@param ... (Allow additional arguments for technical reasons.)
 #'
+#'@return Returns nothing (\code{NULL}); this method serves only to print
+#'  information to the console.
+#'
 #'@seealso \code{\link{sim}}
 #'
 #' @export

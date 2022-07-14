@@ -200,8 +200,10 @@ same number of iterations (e.g., by default, after \code{100}, at
 progress bar) to console.}
 }
 \value{
-The returns a \code{\link{list}} that includes all details of the
- calculated information, and can be printed legibly.
+The returns a \code{\link{list}} (with class \code{"possa_pow_list"})
+ that includes all details of the calculated power, T1ER, and sample
+ information. This list can be printed legibly (via POSSA's
+ \code{\link[POSSA:print.possa_pow_list]{print()}} method).
 }
 \description{
 Calculates power and local alphas based on simulated p values
@@ -230,7 +232,36 @@ This function uses, internally, the \code{\link{data.table}} R package.
 }
 \examples{
 
-# see the vignettes via https://github.com/gasparl/possa#usage
+# below is a (very) minimal example
+# for more, see the vignettes via https://github.com/gasparl/possa#usage
+
+# create sampling function
+customSample = function(sampleSize) {
+    list(
+        sample1 = rnorm(sampleSize, mean = 0, sd = 10),
+        sample2_h0 = rnorm(sampleSize, mean = 0, sd = 10),
+        sample2_h1 = rnorm(sampleSize, mean = 5, sd = 10)
+    )
+}
+
+# create testing function
+customTest = function(sample1, sample2_h0, sample2_h1) {
+ c(
+   p_h0 = t.test(sample1, sample2_h0, 'less', var.equal = TRUE)$p.value,
+   p_h1 = t.test(sample1, sample2_h1, 'less', var.equal = TRUE)$p.value
+ )
+}
+
+# run simulation
+dfPvals = sim(
+    fun_obs = customSample,
+    n_obs = 80,
+    fun_test = customTest,
+    n_iter = 1000
+)
+
+# get power info
+pow(dfPvals)
 
 }
 \seealso{

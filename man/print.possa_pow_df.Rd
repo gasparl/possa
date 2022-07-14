@@ -17,6 +17,10 @@ numbers (\code{5} by default).}
 
 \item{...}{(Allow additional arguments for technical reasons.)}
 }
+\value{
+Returns nothing (\code{NULL}); this method serves only to print
+ information to the console.
+}
 \description{
 Prints, in a readable manner, the main information from any of
  the data frames containing power information from the list created by the

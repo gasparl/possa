@@ -117,14 +117,19 @@ testing or some very specific procedures.)}
 \item{hush}{Logical. If \code{TRUE}, prevents printing any details to console.}
 }
 \value{
-Returns a \code{\link{data.frame}} that includes the columns
- \code{.iter} (the iterations of the simulation procedure numbered from
- \code{1} to \code{n_iter}), \code{.look} (the interim "looks" numbered from
- \code{1} to the maximum number of looks, including the final one), and the
- information returned by the \code{fun_test} function for H0 and H1 outcomes
- (mainly p values; but also other, optional information, if any) and the
- corresponding observation numbers, as well as the total observation number
- per each look under a dedicated \code{.n_total} column.
+Returns a \code{\link{data.frame}} (with class \code{"possa_sim_df"})
+ that includes the columns \code{.iter} (the iterations of the simulation
+ procedure numbered from \code{1} to \code{n_iter}), \code{.look} (the
+ interim "looks" numbered from \code{1} to the maximum number of looks,
+ including the final one), and the information returned by the
+ \code{fun_test} function for H0 and H1 outcomes (mainly p values; but also
+ other, optional information, if any) and the corresponding observation
+ numbers, as well as the total observation number per each look under a
+ dedicated \code{.n_total} column. When this data frame is printed to the
+ console (via POSSA's \code{\link[POSSA:print.possa_pow_list]{print()}}
+ method), the head (first few lines) of the data is shown, as well as, in
+ case of any varying factors included, summary information per factor
+ combination.
 }
 \description{
 This function performs the simulation procedure in order to get
@@ -176,7 +181,37 @@ executed in the beginning of this function, each time it is called; see the
 }
 \examples{
 
-# see the vignettes via https://github.com/gasparl/possa#usage
+# below is a (very) minimal example
+# for more, see the vignettes via https://github.com/gasparl/possa#usage
+
+# create sampling function
+customSample = function(sampleSize) {
+    list(
+        sample1 = rnorm(sampleSize, mean = 0, sd = 10),
+        sample2_h0 = rnorm(sampleSize, mean = 0, sd = 10),
+        sample2_h1 = rnorm(sampleSize, mean = 5, sd = 10)
+    )
+}
+
+# create testing function
+customTest = function(sample1, sample2_h0, sample2_h1) {
+ c(
+   p_h0 = t.test(sample1, sample2_h0, 'less', var.equal = TRUE)$p.value,
+   p_h1 = t.test(sample1, sample2_h1, 'less', var.equal = TRUE)$p.value
+ )
+}
+
+# run simulation
+dfPvals = sim(
+    fun_obs = customSample,
+    n_obs = 80,
+    fun_test = customTest,
+    n_iter = 1000
+)
+
+# get power info
+pow(dfPvals)
+
 
 }
 \seealso{

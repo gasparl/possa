@@ -12,6 +12,9 @@
 #'  \code{\link[POSSA:pow]{POSSA::pow}} function (stored in the returned list).
 #'@param ... (Allow additional arguments for technical reasons.)
 #'
+#'@return Returns nothing (\code{NULL}); this method serves only to print
+#'  information to the console.
+#'
 #'@seealso \code{\link{pow}}, \code{\link{print.possa_pow_df}}
 #'
 #' @export
@@ -59,6 +62,9 @@ print.possa_pow_list = function(x,
 #'  numbers (\code{5} by default).
 #'@param possa_title Set to \code{FALSE} to omit title printing.
 #'@param ... (Allow additional arguments for technical reasons.)
+#'
+#'@return Returns nothing (\code{NULL}); this method serves only to print
+#'  information to the console.
 #'
 #'@seealso \code{\link{pow}}, \code{\link{print.possa_pow_list}}
 #'

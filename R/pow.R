@@ -174,8 +174,10 @@
 #'@param hush Logical. If \code{TRUE}, prevents printing any details (or the
 #'  progress bar) to console.
 #'
-#'@return The returns a \code{\link{list}} that includes all details of the
-#'  calculated information, and can be printed legibly.
+#'@return The returns a \code{\link{list}} (with class \code{"possa_pow_list"})
+#'  that includes all details of the calculated power, T1ER, and sample
+#'  information. This list can be printed legibly (via POSSA's
+#'  \code{\link[POSSA:print.possa_pow_list]{print()}} method).
 #'
 #'@note
 #'
@@ -188,7 +190,36 @@
 #'@seealso \code{\link{sim}}
 #' @examples
 #'
-#'# see the vignettes via https://github.com/gasparl/possa#usage
+#'# below is a (very) minimal example
+#'# for more, see the vignettes via https://github.com/gasparl/possa#usage
+#'
+#' # create sampling function
+#' customSample = function(sampleSize) {
+#'     list(
+#'         sample1 = rnorm(sampleSize, mean = 0, sd = 10),
+#'         sample2_h0 = rnorm(sampleSize, mean = 0, sd = 10),
+#'         sample2_h1 = rnorm(sampleSize, mean = 5, sd = 10)
+#'     )
+#' }
+#'
+#' # create testing function
+#' customTest = function(sample1, sample2_h0, sample2_h1) {
+#'  c(
+#'    p_h0 = t.test(sample1, sample2_h0, 'less', var.equal = TRUE)$p.value,
+#'    p_h1 = t.test(sample1, sample2_h1, 'less', var.equal = TRUE)$p.value
+#'  )
+#' }
+#'
+#' # run simulation
+#' dfPvals = sim(
+#'     fun_obs = customSample,
+#'     n_obs = 80,
+#'     fun_test = customTest,
+#'     n_iter = 1000
+#' )
+#'
+#' # get power info
+#' pow(dfPvals)
 #'
 #'@export
 pow = function(p_values,
@@ -716,7 +747,7 @@ pow = function(p_values,
             # in case of suspiciously many iterations, offer to stop
             safe_count = safe_count + 1
             if (safe_count %% iter_limit == 0) {
-                cat(
+                message(
                     paste0(
                         '\nThere have been ',
                         safe_count,

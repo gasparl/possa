@@ -29,6 +29,10 @@ applicable). By default \code{NULL}, it identifies (similar as
 
 \item{...}{(Allow additional arguments for technical reasons.)}
 }
+\value{
+Returns nothing (\code{NULL}); this method serves only to print
+ information to the console.
+}
 \description{
 Prints information about the simulated p values created by the
  \code{\link[POSSA:sim]{POSSA::sim}} function. This is an extension (method)

@@ -16,6 +16,10 @@ numbers. The default is the value passed from the
 
 \item{...}{(Allow additional arguments for technical reasons.)}
 }
+\value{
+Returns nothing (\code{NULL}); this method serves only to print
+ information to the console.
+}
 \description{
 Prints, in a readable manner, the main information from the list
  created by the \code{\link[POSSA:pow]{POSSA::pow}} function, calling
