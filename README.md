@@ -6,9 +6,17 @@ For how to use, see the vignettes linked below.
 
 ### Installation in R
 
-For now, POSSA is only available via GitHub. It can be installed as follows.
+To install the stable version from [CRAN](https://cran.r-project.org/package=POSSA "The Comprehensive R Archive Network"), just run:
 
+```R
+install.packages("POSSA")
 ```
+
+Then load with: `library("POSSA")`
+
+Alternatively, if you want to install the latest (and potentially unstable) version from this repository:
+
+```R
 install.packages("devtools") # if "devtools" package is not yet installed
 library("devtools")
 install_github("gasparl/possa")
@@ -18,11 +26,11 @@ install_github("gasparl/possa")
 
 Please see the vignettes:
 
-1. [General introduction](https://gasparl.github.io/possa/vignettes/intro.html "POSSA: Introduction")
-2. [Multiple hypotheses](https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html "POSSA: Multiple hypotheses")
-3. [Practical examples](https://gasparl.github.io/possa/vignettes/examples.html "POSSA: Practical examples") (unequal variances; ranked data; ANOVA; DeLong's test)
+1. [General introduction](https://gasparl.github.io/possa/vignettes/1_intro.html "POSSA: Introduction")
+2. [Multiple hypotheses](https://gasparl.github.io/possa/vignettes/2_multiple_hypotheses.html "POSSA: Multiple hypotheses")
+3. [Practical examples](https://gasparl.github.io/possa/vignettes/3_examples.html "POSSA: Practical examples") (unequal variances; ranked data; ANOVA; DeLong's test)
 
-(Less important: [Benchmarking](https://gasparl.github.io/possa/vignettes/benchmarking.html "POSSA: Benchmarking"))
+(Less important: [Benchmarking](https://gasparl.github.io/possa/vignettes/4_benchmarking.html "POSSA: Benchmarking"))
 
 For detailed information about each function and parameter, see [the manual](https://github.com/gasparl/possa/blob/master/POSSA.pdf "POSSA manual").
 
@@ -39,4 +47,4 @@ Given that this project is not part of my "day job", the [intended additional fe
 
 See `citation("POSSA")`.
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6523855.svg)](https://doi.org/10.5281/zenodo.6523855) [![R-CMD-check](https://github.com/gasparl/possa/workflows/R-CMD-check/badge.svg)](https://github.com/gasparl/possa/actions)
+![](https://www.r-pkg.org/badges/version-last-release/POSSA "POSSA CRAN last version") [![R-CMD-check](https://github.com/gasparl/possa/workflows/R-CMD-check/badge.svg)](https://github.com/gasparl/possa/actions) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6523855.svg)](https://doi.org/10.5281/zenodo.6523855)

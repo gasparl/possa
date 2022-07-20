@@ -335,7 +335,7 @@ Testing multiple hypotheses.</h1>
 
 
 
-<p>This tutorial presupposes having read the <a href="https://gasparl.github.io/possa/vignettes/intro.html">general
+<p>This tutorial presupposes having read the <a href="https://gasparl.github.io/possa/vignettes/1_intro.html">general
 introduction to <code>POSSA</code></a>. Here, that introduction is
 extended for cases of multiple hypotheses, i.e., where each analysis (at
 a given “look”) involves multiple significance tests, and hence multiple
@@ -349,7 +349,7 @@ easily run multiple simulations with varying factors (e.g., varying
 correlations, effect sizes, etc.).</p>
 <p>Hence, recording descriptives and using varying factors will be
 explained here first, after which testing for multiple hypotheses is
-presented. This completes (together with the <a href="https://gasparl.github.io/possa/vignettes/intro.html">intro</a>)
+presented. This completes (together with the <a href="https://gasparl.github.io/possa/vignettes/1_intro.html">intro</a>)
 everything important that needs to be known for using
 <code>POSSA</code>.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&#39;POSSA&#39;</span>)</span></code></pre></div>
@@ -382,7 +382,7 @@ with <code>_h0</code>/<code>_h1</code>).</p>
 <p>See that it’s working:</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">do.call</span>(customTestWithMeans, <span class="fu">customSample</span>(<span class="dv">85</span>))</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;          p_h0          p_h1    meanDiffH0    meanDiffH1 </span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  0.3453496609  0.0008087718 -0.6220011261 -5.3716703579</span></span></code></pre></div>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  0.5984020182  0.0003708795  0.3588334207 -4.6619724823</span></span></code></pre></div>
 <p>Now the simulation as before.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>dfPvalsAndMeans <span class="ot">=</span> <span class="fu">sim</span>(<span class="at">fun_obs =</span> customSample,</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">n_obs =</span> <span class="fu">c</span>(<span class="dv">27</span>, <span class="dv">54</span>, <span class="dv">81</span>),</span>
@@ -838,7 +838,7 @@ with stopping alphas.)</p>
 <div id="specifying-observation-numbers-per-each-group" class="section level3">
 <h3>Specifying observation numbers per each group</h3>
 <p>Different observation numbers for each group may be specified via the
-group names (analogously to <a href="https://gasparl.github.io/possa/vignettes/intro.html">specifying
+group names (analogously to <a href="https://gasparl.github.io/possa/vignettes/1_intro.html">specifying
 observation numbers per each sample</a>). To be able to specify the two
 group’s observation numbers separately, we need separate parameters for
 each, in the sample generation function, each using the
@@ -975,7 +975,7 @@ some examples (with output omitted here for brevity).</p>
 <h3>That’s all</h3>
 <p>This is all needed to know to use <code>POSSA</code>. For further
 details about each function and each parameter, see the <a href="https://github.com/gasparl/possa/blob/master/POSSA.pdf">manual</a>.
-You also fine practical examples <a href="https://gasparl.github.io/possa/vignettes/examples.html">here</a>.</p>
+You also fine practical examples <a href="https://gasparl.github.io/possa/vignettes/3_examples.html">here</a>.</p>
 </div>
 </div>
 

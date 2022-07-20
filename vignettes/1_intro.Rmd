@@ -2,7 +2,7 @@
 title: "Introduction to POSSA. Sequential tests for two means (t-tests)."
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{intro}
+  %\VignetteIndexEntry{1_intro}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-Below, the essence of `POSSA`'s power (and type 1 error rate, T1ER) calculation for sequential designs is explained using the simple example of a t-test. Of course, for t-tests specifically, you could use other and potentially more user-friendly software – however, the point here is to understand how the `POSSA` works, and, subsequently, it should be possible for you to extend this example to virtually any statistical null hypothesis test. Cases of multiple hypotheses (and recording descriptives) are explained on a [separate page](https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html), but these too are straightforward extensions of the present examples.
+Below, the essence of `POSSA`'s power (and type 1 error rate, T1ER) calculation for sequential designs is explained using the simple example of a t-test. Of course, for t-tests specifically, you could use other and potentially more user-friendly software – however, the point here is to understand how the `POSSA` works, and, subsequently, it should be possible for you to extend this example to virtually any statistical null hypothesis test. Cases of multiple hypotheses (and recording descriptives) are explained on a [separate page](https://gasparl.github.io/possa/vignettes/2_multiple_hypotheses.html), but these too are straightforward extensions of the present examples.
 
 This tutorial presupposes the basic conceptual understanding of sequential analyses (and the basics or statistical power and T1ER). There are several related free tutorials online (see e.g. [Lakens, 2014](https://psyarxiv.com/9yegd/)).
 
@@ -24,7 +24,7 @@ So let's say you want to compare the means of two independent continuous variabl
 
 ### User functions for sample simulation and testing
 
-First, write a function that simulates the samples (i.e., observed values) for a single instance of the hypothetical experiment in case the null hypothesis is true (no actual difference between the two population means) as well as in case the alternative hypothesis is true (there is in fact difference). 
+First, write a function that simulates the samples (i.e., observed values) for a single instance of the hypothetical experiment in case the null hypothesis is true (no actual difference between the two population means) as well as in case the alternative hypothesis is true (there is in fact difference).
 
 If the null hypothesis "H0" is true, the two samples have the same mean, let's say `0` units; and let's assume normally distributed values an SD of `10` units for each sample. For this, two samples can each be simulated via the function `rnorm(sampleSize, mean = 0, sd = 10)` (where `sampleSize` is a variable to be provided via another function, as explained later). You can assign this to `sample1`, which represents a baseline variable (e.g., "group A"), and, separately, to `sample2_h0`, which represents a sample that does not differ from the baseline ("H0" true). If the null hypothesis "H1" is true, the baseline sample may again have a mean of `0`, but the other sample should have the SESOI, `5` units (again assuming an SD of `10`) – which can be simulated as `rnorm(sampleSize, mean = 5, sd = 10)`. This can be assigned to `sample2_h1`, which represents a sample that does differ from the baseline ("H1" true). (The baseline sample has identical properties in case of H0 and H1, so it's enough to simulate it only once, and use that same resulting sample for both cases – for the sake of brevity as well as of computational speed.)
 
@@ -55,7 +55,7 @@ customTest = function(sample1, sample2_h0, sample2_h1) {
 }
 ```
 
-(Other information, in particular descriptives such as means or SDs, can also be returned via this function – but this is described in a [separate vignette](https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html).)
+(Other information, in particular descriptives such as means or SDs, can also be returned via this function – but this is described in a [separate vignette](https://gasparl.github.io/possa/vignettes/2_multiple_hypotheses.html).)
 
 To make sure the two functions are working correctly, as a quick test you can run the following line (with any applicable number argument).
 
@@ -130,7 +130,7 @@ The console output contains only the most important information, but, when assig
 
 - the average number of subjects in H0 and in H1 scenarios (i.e., out of all simulations, on average at how many participants the experiment was stopped),
 - the T1ER (here, it's for a single p value, but, in case of multiple p values, it would be a combined T1ER as specified)
-- the power (again, would be combined in case of multiple p values), 
+- the power (again, would be combined in case of multiple p values),
 - the local alphas per look (and per each p value; but in the present case there is only one, named simply `p`, the root derived from `p_h0`/`p_h1`),
 - the ratios of significant findings per each look (corresponding to the local alphas).
 
@@ -616,4 +616,4 @@ As can be seen, the power differences are very small. Nonetheless, if it is impo
 
 ### More...
 
-Go to the [next](https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html) (and the only other important) `POSSA` vignette see how to record descriptives, easily check varying factors, and test multiple hypotheses.
+Go to the [next](https://gasparl.github.io/possa/vignettes/2_multiple_hypotheses.html) (and the only other important) `POSSA` vignette see how to record descriptives, easily check varying factors, and test multiple hypotheses.

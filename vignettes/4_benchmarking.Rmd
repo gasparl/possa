@@ -2,7 +2,7 @@
 title: "Benchmarking POSSA."
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{benchmarking}
+  %\VignetteIndexEntry{4_benchmarking}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

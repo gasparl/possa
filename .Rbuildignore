@@ -2,6 +2,7 @@
 ^\.Rproj\.user$
 ^LICENSE\.md$
 ^POSSA\.pdf$
+^paper
 .RData
 .Rhistory
 ^\.github$

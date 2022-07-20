@@ -2,7 +2,7 @@
 title: "Practical examples (unequal variances; ranked data; ANOVA; DeLong's test)"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{examples}
+  %\VignetteIndexEntry{3_examples}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -23,7 +23,7 @@ library('POSSA')
 
 ### Unequal variances
 
-This is a relatively small modification of the first t-test examples given in the [introduction](https://gasparl.github.io/possa/vignettes/intro.html): Here it's [Welch's test](https://doi.org/10.5334/irsp.82) expecting unequal variances. The effect sizes and total samples are always the same as in the intro examples, for the easier comparison.
+This is a relatively small modification of the first t-test examples given in the [introduction](https://gasparl.github.io/possa/vignettes/1_intro.html): Here it's [Welch's test](https://doi.org/10.5334/irsp.82) expecting unequal variances. The effect sizes and total samples are always the same as in the intro examples, for the easier comparison.
 
 First, a function to have some added information along with the Welch's test p value.
 
@@ -484,7 +484,7 @@ pow(
 #> Futility bounds: none
 ```
 
-Again, any different sample sizes could also be [specified](https://gasparl.github.io/possa/vignettes/intro.html) for each of the two groups via `n_obs` (e.g. `n_obs = list(grp_1 = c(10, 15, 30), grp_2 = c(20, 45, 60))`).
+Again, any different sample sizes could also be [specified](https://gasparl.github.io/possa/vignettes/1_intro.html) for each of the two groups via `n_obs` (e.g. `n_obs = list(grp_1 = c(10, 15, 30), grp_2 = c(20, 45, 60))`).
 
 ### DeLong's test
 

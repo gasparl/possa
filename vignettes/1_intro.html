@@ -342,7 +342,7 @@ could use other and potentially more user-friendly software – however,
 the point here is to understand how the <code>POSSA</code> works, and,
 subsequently, it should be possible for you to extend this example to
 virtually any statistical null hypothesis test. Cases of multiple
-hypotheses (and recording descriptives) are explained on a <a href="https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html">separate
+hypotheses (and recording descriptives) are explained on a <a href="https://gasparl.github.io/possa/vignettes/2_multiple_hypotheses.html">separate
 page</a>, but these too are straightforward extensions of the present
 examples.</p>
 <p>This tutorial presupposes the basic conceptual understanding of
@@ -424,14 +424,14 @@ but it could just as well be, e.g.,
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  )</span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <p>(Other information, in particular descriptives such as means or SDs,
-can also be returned via this function – but this is described in a <a href="https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html">separate
+can also be returned via this function – but this is described in a <a href="https://gasparl.github.io/possa/vignettes/2_multiple_hypotheses.html">separate
 vignette</a>.)</p>
 <p>To make sure the two functions are working correctly, as a quick test
 you can run the following line (with any applicable number
 argument).</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">do.call</span>(customTest, <span class="fu">customSample</span>(<span class="dv">55</span>))</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;       p_h0       p_h1 </span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.48108812 0.00537003</span></span></code></pre></div>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.41845059 0.02427678</span></span></code></pre></div>
 <p>This passes <code>55</code> as (arbitrary) sample size to
 <code>customSample</code>, which passes the created samples to
 <code>customTest</code>, which finally returns the named vector with the
@@ -1085,7 +1085,7 @@ that’s rather questionable.)</p>
 </div>
 <div id="more" class="section level3">
 <h3>More…</h3>
-<p>Go to the <a href="https://gasparl.github.io/possa/vignettes/multiple_hypotheses.html">next</a>
+<p>Go to the <a href="https://gasparl.github.io/possa/vignettes/2_multiple_hypotheses.html">next</a>
 (and the only other important) <code>POSSA</code> vignette see how to
 record descriptives, easily check varying factors, and test multiple
 hypotheses.</p>

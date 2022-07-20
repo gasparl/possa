@@ -2,7 +2,7 @@
 title: "Recording descriptives. Varying factors. Testing multiple hypotheses."
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{multiple_hypotheses}
+  %\VignetteIndexEntry{2_multiple_hypotheses}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -14,11 +14,11 @@ knitr::opts_chunk$set(
 )
 ```
 
-This tutorial presupposes having read the [general introduction to `POSSA`](https://gasparl.github.io/possa/vignettes/intro.html). Here, that introduction is extended for cases of multiple hypotheses, i.e., where each analysis (at a given "look") involves multiple significance tests, and hence multiple p values.
+This tutorial presupposes having read the [general introduction to `POSSA`](https://gasparl.github.io/possa/vignettes/1_intro.html). Here, that introduction is extended for cases of multiple hypotheses, i.e., where each analysis (at a given "look") involves multiple significance tests, and hence multiple p values.
 
 To verify that such relatively more complex used-defined functions were written correctly, it is useful to store some descriptive data, such as the means and SDs of the variables, or correlations, effect sizes, etc. Relatedly, in real cases, one should ideally test a [variety of possible scenarios](https://doi.org/10.1177%2F1745691616658637): for this, `POSSA` provides the possibility to easily run multiple simulations with varying factors (e.g., varying correlations, effect sizes, etc.).
 
-Hence, recording descriptives and using varying factors will be explained here first, after which testing for multiple hypotheses is presented. This completes (together with the [intro](https://gasparl.github.io/possa/vignettes/intro.html)) everything important that needs to be known for using `POSSA`.
+Hence, recording descriptives and using varying factors will be explained here first, after which testing for multiple hypotheses is presented. This completes (together with the [intro](https://gasparl.github.io/possa/vignettes/1_intro.html)) everything important that needs to be known for using `POSSA`.
 
 ```{r setup}
 library('POSSA')
@@ -437,7 +437,7 @@ pow(
 
 ### Specifying observation numbers per each group
 
-Different observation numbers for each group may be specified via the group names (analogously to [specifying observation numbers per each sample](https://gasparl.github.io/possa/vignettes/intro.html)). To be able to specify the two group's observation numbers separately, we need separate parameters for each, in the sample generation function, each using the `grp_` notation; here `grp_1` and `grp_2`.
+Different observation numbers for each group may be specified via the group names (analogously to [specifying observation numbers per each sample](https://gasparl.github.io/possa/vignettes/1_intro.html)). To be able to specify the two group's observation numbers separately, we need separate parameters for each, in the sample generation function, each using the `grp_` notation; here `grp_1` and `grp_2`.
 
 Unrelatedly, for the sake of an extended example, here there will be, instead of two, three tests included (denoted here as `X`, `Y`, `Z`).
 
@@ -578,4 +578,4 @@ pow(
 
 ### That's all
 
-This is all needed to know to use `POSSA`. For further details about each function and each parameter, see the [manual](https://github.com/gasparl/possa/blob/master/POSSA.pdf). You also fine practical examples [here](https://gasparl.github.io/possa/vignettes/examples.html).
+This is all needed to know to use `POSSA`. For further details about each function and each parameter, see the [manual](https://github.com/gasparl/possa/blob/master/POSSA.pdf). You also fine practical examples [here](https://gasparl.github.io/possa/vignettes/3_examples.html).
