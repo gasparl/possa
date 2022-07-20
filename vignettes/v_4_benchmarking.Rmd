@@ -1,0 +1,144 @@
+---
+title: "Benchmarking POSSA."
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{v_4_benchmarking}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+This page serve simply to provide some benchmarks for the `POSSA::sim()` function's internal mechanism. The rather speedy completion of calculations with empty functions highlights that `POSSA`'s overhead is minimal, the bulk of the time consumed in simulations is due to the user-given sampling and testing functions. Hence, attention should be paid to minimize the execution time of these user functions.
+
+```{r setup}
+library('POSSA')
+```
+
+Some "empty" sampling and testing functions:
+
+```{r}
+# minimal output
+sampleEmpty = function(sample_size) {
+  list(
+    sample1 = rep(1, sample_size),
+    sample2_h0 = rep(1, sample_size),
+    sample2_h1 = rep(1, sample_size)
+  )
+}
+testEmpty = function(sample1, sample2_h0, sample2_h1) {
+  c(
+    p_h0 = 0.5,
+    p_h1 = 0.5
+  )
+}
+
+# multiple (five) hypotheses
+sampleEmptyMulti = function(sample_size) {
+  list(
+    sample1 = rep(1, sample_size),
+    sample2_h0 = rep(1, sample_size),
+    sample2_h1 = rep(1, sample_size),
+    sample3_h0 = rep(1, sample_size),
+    sample3_h1 = rep(1, sample_size),
+    sample4_h0 = rep(1, sample_size),
+    sample4_h1 = rep(1, sample_size),
+    sample5_h0 = rep(1, sample_size),
+    sample5_h1 = rep(1, sample_size)
+  )
+}
+testEmptyMulti = function(sample1, sample2_h0, sample2_h1, sample3_h0, sample3_h1, sample4_h0, sample4_h1, sample5_h0, sample5_h1) {
+  c(
+    p_h0 = 0.5,
+    p_h1 = 0.5,
+    p_test_2_h0 = 0.5,
+    p_test_2_h1 = 0.5,
+    p_test_3_h0 = 0.5,
+    p_test_3_h1 = 0.5,
+    p_test_4_h0 = 0.5,
+    p_test_4_h1 = 0.5,
+    p_test_5_h0 = 0.5,
+    p_test_5_h1 = 0.5
+  )
+}
+
+# to check that they work correctly:
+# do.call(testEmpty, sampleEmpty(100))
+# do.call(testEmptyMulti, sampleEmptyMulti(100))
+
+```
+
+Now the benchmarking. (Caution: actually running all this takes a while.)
+
+```r
+bm_results = microbenchmark::microbenchmark(
+  fixed_120_obs =
+    {
+      sim(
+        fun_obs = sampleEmpty,
+        n_obs = 120,
+        fun_test = testEmpty,
+        n_iter = 10000,
+        hush = TRUE
+      )
+    },
+  sequential_120_obs =
+    {
+      sim(
+        fun_obs = sampleEmpty,
+        n_obs = c(40, 80, 120),
+        fun_test = testEmpty,
+        n_iter = 10000,
+        hush = TRUE
+      )
+    },
+  sequential_1200_obs =
+    {
+      sim(
+        fun_obs = sampleEmpty,
+        n_obs = c(400, 800, 1200),
+        fun_test = testEmpty,
+        n_iter = 10000,
+        hush = TRUE
+      )
+    },
+  sequential_120_obs_multi =
+    {
+      sim(
+        fun_obs = sampleEmptyMulti,
+        n_obs = c(40, 80, 120),
+        fun_test = testEmptyMulti,
+        n_iter = 10000,
+        hush = TRUE
+      )
+    },
+  sequential_1200_obs_multi =
+    {
+      sim(
+        fun_obs = sampleEmptyMulti,
+        n_obs = c(400, 800, 1200),
+        fun_test = testEmptyMulti,
+        n_iter = 10000,
+        hush = TRUE
+      )
+    },
+  times = 5
+)
+print(bm_results)
+
+#> Unit: milliseconds
+#>                       expr      min        lq       mean    median         uq        max neval
+#>              fixed_120_obs  148.011  154.4439   172.5028  156.2547   175.3121   228.4922     5
+#>         sequential_120_obs 1216.329 1499.6831  1512.8659 1524.3713  1571.4734  1752.4722     5
+#>        sequential_1200_obs 3134.309 3218.3147  3496.8585 3685.3403  3711.9782  3734.3506     5
+#>   sequential_120_obs_multi 3270.239 3387.0647  3794.1274 3739.9446  3881.3312  4692.0578     5
+#>  sequential_1200_obs_multi 8980.836 9861.9136 10112.6613 9925.8795 10623.9350 11170.7427     5
+```
+
+Voila, even the extremely large-sample multiple-hypothesis sequential design takes only about 10 seconds (on my pretty much low-end PC).

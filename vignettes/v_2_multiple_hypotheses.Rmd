@@ -1,0 +1,581 @@
+---
+title: "Recording descriptives. Varying factors. Testing multiple hypotheses."
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{v_2_multiple_hypotheses}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+This tutorial presupposes having read the [general introduction to `POSSA`](https://gasparl.github.io/possa/vignettes/v_1_intro.html). Here, that introduction is extended for cases of multiple hypotheses, i.e., where each analysis (at a given "look") involves multiple significance tests, and hence multiple p values.
+
+To verify that such relatively more complex used-defined functions were written correctly, it is useful to store some descriptive data, such as the means and SDs of the variables, or correlations, effect sizes, etc. Relatedly, in real cases, one should ideally test a [variety of possible scenarios](https://doi.org/10.1177%2F1745691616658637): for this, `POSSA` provides the possibility to easily run multiple simulations with varying factors (e.g., varying correlations, effect sizes, etc.).
+
+Hence, recording descriptives and using varying factors will be explained here first, after which testing for multiple hypotheses is presented. This completes (together with the [intro](https://gasparl.github.io/possa/vignettes/v_1_intro.html)) everything important that needs to be known for using `POSSA`.
+
+```{r setup}
+library('POSSA')
+```
+
+### Recording descriptives
+
+Let's take again a t-test. The sample generating function is like before.
+
+```{r}
+customSample = function(sampleSize) {
+  list(
+    sample1 = rnorm(sampleSize, mean = 0, sd = 10),
+    sample2_h0 = rnorm(sampleSize, mean = 0, sd = 10),
+    sample2_h1 = rnorm(sampleSize, mean = 5, sd = 10)
+  )
+}
+```
+
+However, the test function will return, apart from the p values, some additional information. For a simple example, let's calculate the mean difference in case of both H0 and H1, and store it as `meanDiffH0` and `meanDiffH1` (but any other custom name could just as well be given – except for the notation reserved for p values, i.e., starting with `p_` and ending with `_h0`/`_h1`).
+
+```{r}
+customTestWithMeans = function(sample1, sample2_h0, sample2_h1) {
+  c(
+    p_h0 = t.test(sample1, sample2_h0, 'less', var.equal = TRUE)$p.value,
+    p_h1 = t.test(sample1, sample2_h1, 'less', var.equal = TRUE)$p.value,
+    meanDiffH0 = mean(sample1 - sample2_h0),
+    meanDiffH1 = mean(sample1 - sample2_h1)
+  )
+}
+```
+
+See that it's working:
+
+```{r}
+do.call(customTestWithMeans, customSample(85))
+```
+
+Now the simulation as before.
+
+```r
+dfPvalsAndMeans = sim(fun_obs = customSample,
+                      n_obs = c(27, 54, 81),
+                      fun_test = customTestWithMeans)
+```
+
+The power calculation could be accessed as before via `pow`, e.g. `pow(dfPvalsAndMeans)`, and the results will be the same – but that's not important here.
+
+What's important is that the `dfPvalsAndMeans` can be printed, and the factors will be automatically shown.
+
+```r
+print(dfPvalsAndMeans)
+
+#> POSSA sim() results (p values)
+#> Sample:
+#>    .iter .look .n_total sample1 sample2_h       p_h0         p_h1 meanDiffH0 meanDiffH1
+#> 1:     1     1       54      27        27 0.57639929 0.0206001019  0.5229246  -5.886524
+#> 2:     1     2      108      54        54 0.02521739 0.0001540393 -3.9918067  -6.850594
+#> 3:     1     3      162      81        81 0.04303389 0.0000339881 -2.7414472  -6.031900
+#> Descriptives:
+#> meanDiffH0:
+#>       Min.    1st Qu.     Median       Mean    3rd Qu.       Max.
+#> -11.208494  -1.331260   0.003347   0.006194   1.346132  12.649740
+#> meanDiffH1:
+#>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+#> -15.704  -6.350  -5.006  -5.005  -3.656   5.699
+```
+
+Note that entering a variable name, in this case `dfPvalsAndMeans`, in the console (or, in RStudio, highlighting it and pressing *Ctrl*+*Enter*) is equivalent to using the `print()` function.
+
+As can be seen, summary information for the additional values returned from the testing function is automatically printed (under a "Descriptives" title). When only p values are included, no such information is printed. For some optional arguments, such as to change the function used for summary information, see `?print.possa_sim_df`. Some examples are also given below.
+
+```r
+print(dfPvalsAndMeans, descr_cols = 'meanDiffH0')
+print(dfPvalsAndMeans, descr_cols = c('meanDiffH0', '.n_total'))
+print(dfPvalsAndMeans, descr_func = sd)
+print(dfPvalsAndMeans, group_by = '.look')
+```
+
+Of course, one can also just check the data frame directly via other functions, including plots. For example, `neatStats::peek_neat(dfPvalsAndMeans, c("meanDiffH0", "meanDiffH1"), group_by = c('.look'))`.
+
+### Varying factors
+
+To get some additional information from each mean comparison, here is an extended "t-test" function that returns, apart from the p value, the mean difference, correlation, and the standardized mean difference (SMD; Cohen's d).
+
+```{r}
+tTestPlus = function(x, y) {
+  t_info = stats::t.test(x, y, paired = TRUE, var.equal = T)
+  sdx = sd(x)
+  sdy = sd(y)
+  corr = cor(x, y)
+  sd_p = sqrt((sdx ** 2 + sdy ** 2) - 2 * corr * sdx * sdy)
+  return(
+    list(
+      pval = t_info$p.value,
+      mean_diff = as.numeric(t_info$estimate),
+      corr =  corr,
+      smd = as.numeric(t_info$estimate) / sd_p
+    )
+  )
+}
+```
+
+Now, the function for sample generation. What's new here is that, apart from the sample size (here: `sampSize`), there are two additional parameters, `meanH1` and `corrH1`, which specify the mean difference and the correlation, respectively, for the differing variable in case of H1.
+
+```{r}
+sampFun = function(sampSize, meanH1, corrH1) {
+  correlatedSamples = faux::rnorm_multi(
+    n = sampSize,
+    vars = 3,
+    mu = c(0, 0, meanH1),
+    sd = 5,
+    r = c(corrH1, corrH1, 0)
+  )
+  list(
+    GRP_v1 = correlatedSamples$X1,
+    GRP_v2_h0 = correlatedSamples$X2,
+    GRP_v2_h1 = correlatedSamples$X3
+  )
+}
+```
+
+And then the test function that return related additional information (using the extra t-test function): the mean differences, correlations, and SMDs, per H0 and H1.
+
+```{r}
+testFun = function(GRP_v1, GRP_v2_h0, GRP_v2_h1) {
+  t0 = tTestPlus(GRP_v2_h0, GRP_v1)
+  t1 = tTestPlus(GRP_v2_h1, GRP_v1)
+  return(
+    c(
+      p_h0 = t0$pval,
+      meanDiffValueH0 = t0$mean_diff,
+      corrValueH0 = t0$corr,
+      smdValueH0 = t0$smd,
+      p_h1 = t1$pval,
+      meanDiffValueH1 = t1$mean_diff,
+      corrValueH1 = t1$corr,
+      smdValueH1 = t1$smd
+    )
+  )
+}
+```
+
+(Check via `do.call(testFun, sampFun(30, 2, 0.5))`.)
+
+The `sim()` function works the same as before, except that the varying factors `meanH1` and `corrH1` (the parameters in `sampFun`) need to be provided as part of `fun_obs`: instead of assigning a function as e.g. `fun_obs = sampFun`, a list is needed where the first element is the function (`sampFun`), and the rest of the elements specify the varying factor via their names and their corresponding values in a vector.
+
+Hence, if one intends to see, for instance, all the combinations of mean differences of `1.5`, `2.5`, `3.5`, and correlations of `0` and `0.5`, this can be specified as `fun_obs = list(sampFun, meanH1 = c(1.5, 2.5, 3.5), corrH1 = c(0, 0.5))`.
+
+(Given 2x3 = 6 combinations, each with the default 45000 iterations, this simulation would take a while – for quick testing, one can set e.g. `n_iter = 500`.)
+
+```r
+dfPvalsFacts = sim(
+  fun_obs = list(
+    sampFun,
+    meanH1 = c(1.5, 2.5, 3.5),
+    corrH1 = c(0, 0.5)
+  ),
+  n_obs = c(27, 54, 81),
+  fun_test = testFun,
+  n_iter = 500
+)
+```
+
+Now, simply by printing `dfPvalsFacts`, one can check the means, correlations, and SMDs, for each factor combination, to make sure everything is as intended; it's also reassuring to see that each look has similar values (e.g., correlations) for each combination; `print(dfPvalsFacts, group_by = c('.look', 'corrH1'), descr_cols = 'corrValueH1')`. Or, again, some plots can give quick insight: `neatStats::peek_neat(dfPvalsFacts, c("corrValueH0", "corrValueH1"), group_by = c('corrH1', '.look'))`; `neatStats::peek_neat(dfPvalsFacts, c("smdValueH1"), group_by = c('meanH1', 'corrH1'))`; etc.
+
+Finally, `POSSA::pow` will calculate power for each factor combination separately – otherwise behaving just the same as when no varying factors are given.
+
+```r
+pow(dfPvalsFacts)
+
+#> # POSSA pow() results #
+#> GROUP: pow_1.5_0
+#> N(average-total) = 81.0 (if H0 true) or 81.0 (if H1 true)
+#> (p) Type I error: .10000; Power: .43000
+#> Local alphas: (1) none; (2) none; (3) .05000
+#> Likelihoods of significance if H0 true: (1) 0; (2) 0; (3) .10000
+#> Likelihoods of significance if H1 true: (1) 0; (2) 0; (3) .43000
+#> GROUP: pow_1.5_0.5
+#> N(average-total) = 81.0 (if H0 true) or 81.0 (if H1 true)
+#> (p) Type I error: .07000; Power: .80000
+#> Local alphas: (1) none; (2) none; (3) .05000
+#> Likelihoods of significance if H0 true: (1) 0; (2) 0; (3) .07000
+#> Likelihoods of significance if H1 true: (1) 0; (2) 0; (3) .80000
+#> GROUP: pow_2.5_0
+#> N(average-total) = 81.0 (if H0 true) or 81.0 (if H1 true)
+#> (p) Type I error: .03000; Power: .84000
+#> Local alphas: (1) none; (2) none; (3) .05000
+#> Likelihoods of significance if H0 true: (1) 0; (2) 0; (3) .03000
+#> Likelihoods of significance if H1 true: (1) 0; (2) 0; (3) .84000
+#> ...
+```
+
+(For brevity here, only the three first combinations are printed.)
+
+To check any one or subset of the factor combinations, the `dfPvalsFacts` data frame can be subset, as, for instance, `pow(dfPvalsFacts[dfPvalsFacts$meanH1 == 1.5 & dfPvalsFacts$corrH1 == 0,])`.
+
+Alternatively, any of the data frames contained in the list returned by `pow()` can be printed separately. E.g., `all_pow_data = pow(dfPvalsFacts)`; then `print(all_pow_data$pow_1.5_0)`.
+
+## Testing multiple hypotheses
+
+### Basics – notation for multiple groups
+
+It is possible to perform tests for multiple hypotheses where each test's sample is independent from all the other tests' samples, and this is possible to do with `POSSA` too. However, the outcome is fairly straightforward in such cases: each test will have its own power and T1ER independently from the rest, and these can be rather easily combined into some total power or T1ER values as needed. What is more interesting is how correlated samples' testing affect the global outcomes (e.g., the likelihood that any of the tests give a false positive finding). Hence, the focus here is on correlated samples. Nonetheless, by removing the `grp_` notation (see below), independent tests can just as well be used in `POSSA`.
+
+Now, the `GRP` notation served to designate a single group within the entire analysis. This could have any additions in the name, such as `GRP_x`, `GRP_Y`, etc., it makes no difference. The lowercase `grp_` notation on the other hand will designate variables that belong to one of several groups, each of which requires a specific group name following this `grp_` prefix. For instance, to designate a group "`1`", the variable name can be any of the following: `grp_1`, `grp_1_x`, `grp_1_YZ`. To designate a group "`green`", the variable name can be any of the following: `grp_green`, `grp_green_y`, `grp_green_Xz`. In other words, the name must be separated by underscores, and the first element must be `grp`, and the second element the group name, which allows all group members to be categorized together.
+
+Let's say we have two independent groups, and we want to compare two different variables (`A` and `B`), that we suspect will be correlated within each group. For simplicity, let's say that in each case, the baseline has a mean of zero, and the SESOI is a mean difference of `5` units. Since the baseline is identical in either case, here it's enough to assign it to one variable. To simulate the correlation of the two variables in the other group, which is expected to change (in case of H1), two pairs of correlated variables have to be generated, one pair for H0, and one pair for H1.
+
+```{r}
+multiSample = function(sampSize) {
+  corr_vars_h0 = faux::rnorm_multi(
+    n = sampSize,
+    vars = 2,
+    mu = 0,
+    sd = 10,
+    r = 0.6
+  )
+  corr_vars_h1 = faux::rnorm_multi(
+    n = sampSize,
+    vars = 2,
+    mu = 5,
+    sd = 10,
+    r = 0.6
+  )
+  v1 = rnorm(sampSize, mean = 0, sd = 10)
+  list(
+    grp_1_myTest_base = v1,
+    grp_2_myTestA_h0 = corr_vars_h0$X1,
+    grp_2_myTestA_h1 = corr_vars_h1$X1,
+    grp_2_myTestB_h0 = corr_vars_h0$X2,
+    grp_2_myTestB_h1 = corr_vars_h1$X2
+  )
+}
+```
+
+The `myTest`/`myTestA`/`myTestB` parts of the names could each be named differently, everything would work just the same.
+
+The test function is then straightforward. (The p values do not have to have the same mid-part names as the sample names, e.g. `myTestA`/`myTestB` here, but it does help clarity.)
+
+```{r}
+multiTest = function(grp_1_myTest_base,
+                     grp_2_myTestA_h0,
+                     grp_2_myTestA_h1,
+                     grp_2_myTestB_h0,
+                     grp_2_myTestB_h1) {
+  c(
+    p_myTestA_h0 = t.test(grp_1_myTest_base, grp_2_myTestA_h0, 'less', var.equal = TRUE)$p.value,
+    p_myTestA_h1 = t.test(grp_1_myTest_base, grp_2_myTestA_h1, 'less', var.equal = TRUE)$p.value,
+    p_myTestB_h0 = t.test(grp_1_myTest_base, grp_2_myTestB_h0, 'less', var.equal = TRUE)$p.value,
+    p_myTestB_h1 = t.test(grp_1_myTest_base, grp_2_myTestB_h1, 'less', var.equal = TRUE)$p.value
+  )
+}
+```
+
+The `sim` and `pow` functions also essentially work the same; only `pow` will return separate results for each test (each p value), as well as a "combined" result. This combined result, by default, uses the `any` option, meaning that, in each set of analysis (performing the two t-tests), if _any_ (in this case: either) of the t-tests is significant (i.e., p value below the specified alpha), this will be counted as a global "combined" significant finding. Hence, for instance, in case of a single look (fixed design), if either (or both) of the t-tests gives a significant result in case of H0, the result of that analysis is counted as a type 1 error, increasing the combined T1ER. Similarly, either test's significance in case of H1 will mean that the analysis set is counted as a correct finding, increasing combined power. (Hardly needs saying, the combined T1ER and power greatly depends on the strength of the correlation; e.g. here the rather high correlation lowers both.)
+
+```r
+dfPvalsMulti = sim(
+  fun_obs = multiSample,
+  n_obs = c(27, 54, 81),
+  fun_test = multiTest
+)
+
+#> Note: Observation numbers groupped as "grp_1" for grp_1_myTest_base.
+#> Note: Observation numbers groupped as "grp_2" for grp_2_myTestA_h0, grp_2_myTestA_h1, grp_2_myTestB_h0, grp_2_myTestB_h1.
+
+pow(dfPvalsMulti)
+#> # POSSA pow() results #
+#> N(average-total) = 162.0 (if H0 true) or 162.0 (if H1 true)
+#> (p_myTestA) Type I error: .05122; Power: .93807
+#> Local alphas: (1) none; (2) none; (3) .05000
+#> Likelihoods of significance if H0 true: (1) 0; (2) 0; (3) .05122
+#> Likelihoods of significance if H1 true: (1) 0; (2) 0; (3) .93807
+#> (p_myTestB) Type I error: .05056; Power: .93556
+#> Local alphas: (1) none; (2) none; (3) .05000
+#> Likelihoods of significance if H0 true: (1) 0; (2) 0; (3) .05056
+#> Likelihoods of significance if H1 true: (1) 0; (2) 0; (3) .93556
+#> Global ("combined significance") type I error: .07604 (included: p_myTestA, p_myTestB; power for reaching the "combined significance": .96751)
+#> Likelihoods of stopping for (combined) significance if H0 true: (1) 0; (2) 0; (3) .07604
+#> Likelihoods of stopping for (combined) significance if H1 true: (1) 0; (2) 0; (3) .96751
+```
+
+The method for combined results can be changed via `multi_logic_global`. For instance, `pow(dfPvalsMulti, multi_logic_global = 'all')` lowers both global combined T1ER and power, because each evaluation is based on all (here: both) tests being significant to count the set of analysis (two t-tests) as a significant finding.
+
+### Sequential design
+
+In case of a sequential design, the stopping logic is in principle similar to the calculation of combined T1ER and power, although the default here is `all`: data collection is stopped only when all included tests have significant results (i.e., p value below the given local alpha).
+
+```r
+pow(dfPvalsMulti, alpha_locals = NA)
+
+#> # POSSA pow() results #
+#> N(average-total) = 160.4 (if H0 true) or 108.1 (if H1 true)
+#> (p_myTestA) Type I error: .03773; Power: .89769
+#> Local alphas: (1) .02444; (2) .02444; (3) .02444
+#> Likelihoods of significance if H0 true: (1) .01100; (2) .00802; (3) .01871
+#> Likelihoods of significance if H1 true: (1) .33047; (2) .33673; (3) .23049
+#> (p_myTestB) Type I error: .03767; Power: .89896
+#> Local alphas: (1) .02444; (2) .02444; (3) .02444
+#> Likelihoods of significance if H0 true: (1) .01100; (2) .00802; (3) .01864
+#> Likelihoods of significance if H1 true: (1) .33047; (2) .33673; (3) .23176
+#> Global ("combined significance") type I error: .05000 (included: p_myTestA, p_myTestB; power for reaching the "combined significance": .93847)
+#> Likelihoods of stopping for (combined) significance if H0 true: (1) .01100; (2) .00802; (3) .03098
+#> Likelihoods of stopping for (combined) significance if H1 true: (1) .33047; (2) .33673; (3) .27127
+```
+
+The stopping logic can be modified via `multi_logic_a`. E.g., setting `multi_logic_a = 'any'` means that collection is stopped whenever any of the included tests are significant; hence stopping is more likely, the average expected observation number will decrease, and the global combined T1ER and/or power will increase (see `pow(dfPvalsMulti, alpha_locals = NA, multi_logic_a = 'any')` – here, the combined T1ER remains `.05` because of the default adjustment procedure).
+
+### Specifying local alphas per each test
+
+So far, `alpha_locals` were assigned a single value (or single vector) that was then applied for each test, which were detected automatically. However, using a named list, one could also assign a separate vector to each test – more specifically, to each p value, via their root name (without the `_h0`/`_h1` endings). Here, for instance, the `p_myTestB_h0`/`p_myTestB_h1` can be assigned local alphas as `p_myTestB = c(.01,.02,.04)`; see an example below with different local alphas for `p_myTestA` and `p_myTestB`.
+
+(To clearly show the assigned alpha values in the results, below `adjust = FALSE` is set, as the adjustment procedure would otherwise multiply the all given local alphas so that the combined T1ER would be at the specified level.)
+
+```r
+pow(dfPvalsMulti,
+    alpha_locals = list(
+      p_myTestA = c(.02, .03, .03),
+      p_myTestB = c(.005, .02, .04)
+    ),
+    adjust = FALSE)
+
+#> # POSSA pow() results #
+#> N(average-total) = 161.2 (if H0 true) or 117.1 (if H1 true)
+#> (p_myTestA) Type I error: .03749; Power: .90891
+#> Local alphas: (1) .02000; (2) .03000; (3) .03000
+#> Likelihoods of significance if H0 true: (1) .00302; (2) .00938; (3) .02509
+#> Likelihoods of significance if H1 true: (1) .18542; (2) .46093; (3) .26256
+#> (p_myTestB) Type I error: .04604; Power: .92553
+#> Local alphas: (1) .00500; (2) .02000; (3) .04000
+#> Likelihoods of significance if H0 true: (1) .00302; (2) .00938; (3) .03364
+#> Likelihoods of significance if H1 true: (1) .18542; (2) .46093; (3) .27918
+#> Global ("combined significance") type I error: .05958 (included: p_myTestA, p_myTestB; power for reaching the "combined significance": .95367)
+#> Likelihoods of stopping for (combined) significance if H0 true: (1) .00302; (2) .00938; (3) .04718
+#> Likelihoods of stopping for (combined) significance if H1 true: (1) .18542; (2) .46093; (3) .30731
+```
+
+If only a subset (here: one) of the tests are indicated in the list, the calculation will include only the selected one(s).
+
+```r
+pow(dfPvalsMulti,
+    alpha_locals = list(p_myTestA = c(.02, .03, .03)))
+
+#> # POSSA pow() results #
+#> N(average-total) = 159.1 (if H0 true) or 101.5 (if H1 true)
+#> (p_myTestA) Type I error: .05000; Power: .90522
+#> Local alphas: (1) .01709; (2) .02563; (3) .02563
+#> Likelihoods of significance if H0 true: (1) .01769; (2) .01862; (3) .01369
+#> Likelihoods of significance if H1 true: (1) .37082; (2) .37942; (3) .15498
+```
+
+Setting futility bounds (for interim looks) works just the same.
+
+```r
+pow(
+  dfPvalsMulti,
+  alpha_locals = list(
+    p_myTestA = c(.02, .03, .03),
+    p_myTestB = c(.005, .02, .04)
+  ),
+  fut_locals = list(p_myTestA = c(.6, .5),
+                    p_myTestB = c(.8, .4)),
+  adjust = FALSE
+)
+
+#> # POSSA pow() results #
+#> N(average-total) = 126.5 (if H0 true) or 116.7 (if H1 true)
+#> (p_myTestA) Type I error: .03711; Power: .90796
+#> Local alphas: (1) .02000; (2) .03000; (3) .03000
+#> Likelihoods of significance if H0 true: (1) .00302; (2) .00938; (3) .02471
+#> Likelihoods of significance if H1 true: (1) .18542; (2) .46089; (3) .26164
+#> Futility bounds: (1) .60000; (2) .50000
+#> Likelihoods of exceeding futility alpha if H0 true: (1) .02727; (2) .18969
+#> Likelihoods of exceeding futility alpha if H1 true: (1) .00253; (2) .00189
+#> (p_myTestB) Type I error: .04591; Power: .92453
+#> Local alphas: (1) .00500; (2) .02000; (3) .04000
+#> Likelihoods of significance if H0 true: (1) .00302; (2) .00938; (3) .03351
+#> Likelihoods of significance if H1 true: (1) .18542; (2) .46089; (3) .27822
+#> Futility bounds: (1) .80000; (2) .40000
+#> Likelihoods of exceeding futility alpha if H0 true: (1) .00993; (2) .24111
+#> Likelihoods of exceeding futility alpha if H1 true: (1) .00253; (2) .00189
+#> Global ("combined significance") type I error: .05911 (included: p_myTestA, p_myTestB; power for reaching the "combined significance": .95231)
+#> Likelihoods of stopping for (combined) significance if H0 true: (1) .00302; (2) .00938; (3) .04671
+#> Likelihoods of stopping for (combined) significance if H1 true: (1) .18542; (2) .46089; (3) .30600
+#> Likelihoods of stopping for (combined) futility if H0 true: (1) .17609; (2) .28896
+#> Likelihoods of stopping for (combined) futility if H1 true: (1) .00253; (2) .00189
+```
+
+### Non-stopping local alphas
+
+Prevent any of the local alphas of any of the included tests to stop the data collection, it can be set to zero (`0`; so that it's never significant – similarly, again, futility bounds can be set to `1` to avoid stopping for futility at any look, for any given test). However, one might want to know the power and T1ER for a test that has no "stopping" alphas: for instance, there may be a secondary/supplementary test at whose significant finding one does not intend to stop data collection, but at the same time one would like to know its power and T1ER – which depend on the other included tests' stopping alphas (and the correlations between the variables, if any).
+
+Such "non-stopping" local alphas can be specified for any of the included tests (p values) via the `alpha_loc_nonstop` parameter. This parameter works the same way as `alpha_locals`, except that they never stop data collection, regardless of whatever p value they have at any given look. They also do not count towards the "combined" power or T1ER. Hence, the results of each test with such non-stopping local alphas are reported stand-alone, unrelated to the rest of the results.
+
+```r
+pow(
+  dfPvalsMulti,
+  alpha_locals = list(p_myTestA = c(.005, .01, .025)),
+  alpha_loc_nonstop = list(p_myTestB = c(.01, .01, .02))
+)
+
+#> # POSSA pow() results #
+#> N(average-total) = 160.4 (if H0 true) or 111.2 (if H1 true)
+#> (p_myTestA) Type I error: .04993; Power: .92713
+#> Local alphas: (1) .00797; (2) .01595; (3) .03987
+#> Likelihoods of significance if H0 true: (1) .00858; (2) .01291; (3) .02844
+#> Likelihoods of significance if H1 true: (1) .26496; (2) .41029; (3) .25189
+#> (non-stopper: p_myTestB) Type I error: .02256; Power: .72098
+#> Local alphas (secondary): (1) .01000; (2) .01000; (3) .02000
+#> Likelihoods of significance if H0 true: (1) .00318; (2) .00411; (3) .01527
+#> Likelihoods of significance if H1 true: (1) .19242; (2) .30551; (3) .22304
+```
+
+(Here, there is no combined power/T1ER, since there is only one test with stopping alphas.)
+
+### Specifying observation numbers per each group
+
+Different observation numbers for each group may be specified via the group names (analogously to [specifying observation numbers per each sample](https://gasparl.github.io/possa/vignettes/v_1_intro.html)). To be able to specify the two group's observation numbers separately, we need separate parameters for each, in the sample generation function, each using the `grp_` notation; here `grp_1` and `grp_2`.
+
+Unrelatedly, for the sake of an extended example, here there will be, instead of two, three tests included (denoted here as `X`, `Y`, `Z`).
+
+```{r}
+multiSampleGroupParam = function(grp_1, grp_2) {
+  corrVarsH0 = faux::rnorm_multi(
+    n = grp_2,
+    vars = 3,
+    mu = 0,
+    sd = 10,
+    r = c(0, 0.4, 0.8)
+  )
+  corrVarsH1 = faux::rnorm_multi(
+    n = grp_2,
+    vars = 3,
+    mu = 4,
+    sd = 10,
+    r = c(0, 0.4, 0.8)
+  )
+  v1 = rnorm(grp_1, mean = 0, sd = 10)
+  list(
+    grp_1_test_base = v1,
+    grp_2_testX_h0 = corrVarsH0$X1, # correlates with X3 (.4)
+    grp_2_testX_h1 = corrVarsH1$X1,
+    grp_2_testY_h0 = corrVarsH0$X2, # correlates with X3 (.8)
+    grp_2_testY_h1 = corrVarsH1$X2,
+    grp_2_testZ_h0 = corrVarsH0$X3, # correlates with X1 and X3
+    grp_2_testZ_h1 = corrVarsH1$X3
+  )
+}
+```
+
+The test function can then be like this.
+
+```{r}
+multiTest3 = function(grp_1_test_base,
+                      grp_2_testX_h0,
+                      grp_2_testX_h1,
+                      grp_2_testY_h0,
+                      grp_2_testY_h1,
+                      grp_2_testZ_h0,
+                      grp_2_testZ_h1) {
+  c(
+    p_testX_h0 = t.test(grp_1_test_base, grp_2_testX_h0, 'less', var.equal = TRUE)$p.value,
+    p_testX_h1 = t.test(grp_1_test_base, grp_2_testX_h1, 'less', var.equal = TRUE)$p.value,
+    p_testY_h0 = t.test(grp_1_test_base, grp_2_testY_h0, 'less', var.equal = TRUE)$p.value,
+    p_testY_h1 = t.test(grp_1_test_base, grp_2_testY_h1, 'less', var.equal = TRUE)$p.value,
+    p_testZ_h0 = t.test(grp_1_test_base, grp_2_testY_h0, 'less', var.equal = TRUE)$p.value,
+    p_testZ_h1 = t.test(grp_1_test_base, grp_2_testY_h1, 'less', var.equal = TRUE)$p.value
+  )
+}
+```
+
+(Check via `do.call(multiTest3, multiSampleGroupParam(70, 90))`.)
+
+Now the observation numbers can be specified via the group names `grp_1` and `grp_2`, in a list argument for `n_obs`.
+
+```r
+dfPvalsMultiUnequalGrps = sim(
+  fun_obs = multiSampleGroupParam,
+  n_obs = list(grp_1 = c(27, 54, 81),
+               grp_2 = c(60, 90, 120)),
+  fun_test = multiTest3
+)
+```
+
+Now the `pow` function can be used as before. Here are some examples (with output omitted here for brevity).
+
+```r
+pow(dfPvalsMultiUnequalGrps,
+    alpha_locals = c(0.03, 0.04, 0.05))
+
+# same with different notation
+pow(dfPvalsMultiUnequalGrps,
+    alpha_locals = list(
+      p_testX = c(0.03, 0.04, 0.05),
+      p_testY = c(0.03, 0.04, 0.05),
+      p_testZ = c(0.03, 0.04, 0.05)
+    ))
+
+# include only two tests in the calculation
+pow(dfPvalsMultiUnequalGrps,
+    alpha_locals = list(
+      p_testY = c(0.03, 0.04, 0.05),
+      p_testZ = c(0.03, 0.04, 0.05)
+    ))
+
+# include only one
+pow(dfPvalsMultiUnequalGrps,
+    alpha_locals = list(p_testX = c(0.03, 0.04, 0.05)))
+
+# include again one but add info for two non-stoppers
+pow(
+  dfPvalsMultiUnequalGrps,
+  alpha_locals = list(p_testY = c(0.03, 0.04, 0.05)),
+  alpha_loc_nonstop = list(
+    p_testX = c(0.03, 0.04, 0.05),
+    p_testZ = c(0.03, 0.04, 0.05)
+  )
+)
+
+# same but with different alphas for each
+pow(
+  dfPvalsMultiUnequalGrps,
+  alpha_locals = list(p_testY = c(0.03, 0.04, 0.05)),
+  alpha_loc_nonstop = list(
+    p_testX = c(0.03, 0.02, 0.01),
+    p_testZ = c(0.04, 0.03, 0.0)
+  )
+)
+
+# futility bounds for all tests
+pow(dfPvalsMultiUnequalGrps,
+    fut_locals =  c(0.6, 0.4))
+
+# futility bounds with "any" logic
+pow(
+  dfPvalsMultiUnequalGrps,
+  fut_locals =  c(0.6, 0.4),
+  multi_logic_fut = 'any'
+)
+
+# futility bounds for one test only
+pow(dfPvalsMultiUnequalGrps,
+    fut_locals = list(p_testY = c(0.6, 0.4)))
+
+# stopping local alphas and futility bounds together, for two tests
+pow(
+  dfPvalsMultiUnequalGrps,
+  alpha_locals =  list(
+    p_testY = c(0, 0.3, 0.5),
+    p_testZ = c(0, 0.2, 0.5)
+  ),
+  fut_locals = list(p_testY = c(0.5, 0.2),
+                    p_testZ = c(0.6, 0.3))
+)
+```
+
+### That's all
+
+This is all needed to know to use `POSSA`. For further details about each function and each parameter, see the [manual](https://github.com/gasparl/possa/blob/master/POSSA.pdf). You also fine practical examples [here](https://gasparl.github.io/possa/vignettes/v_3_examples.html).
