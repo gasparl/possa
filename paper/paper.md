@@ -1,5 +1,5 @@
 ---
-title: 'POSSA: Power simulations for sequential analyses and multiple hypotheses'
+title: 'POSSA: Power simulation for sequential analyses and multiple hypotheses'
 tags:
   - r
   - statistical power
