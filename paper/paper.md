@@ -24,7 +24,13 @@ Conventional experiment designs have a fixed sample size: observations are colle
 
 The present `POSSA` R package serves to perform, via a simulation framework, the necessary adjustments and calculate power for sequential analyses as well as for multiple hypotheses for practically any significance test.
 
-Below is a basic example.
+# Statement of need
+
+While sequential designs can be extremely useful, their application is limited by the lack of software that performs the necessary statistical adjustments. Recently, there have been several new related software solutions [e.g., the R packages by @anderson:2022; @pahl:2022; @wassmer:2022; for more, see @weigl:2020], but all of these apply only to single and specific parametric tests. Solutions for simulation-based power analysis also exist [e.g., @green:2016; @hughes:2017; @lakens:2021], but none specifically for sequential designs or multiple hypotheses. The `POSSA` R package allows power and Type 1 error calculations and corrections for analyses in fixed as well as sequential designs including any, and any number of, statistical null hypothesis tests.
+
+# Example
+
+A simplistic example is presented below to demonstrate how `POSSA` works.
 
 First, create a custom sampling function, simulating the data that would be obtained in an actual single run of the experiment in case of (a) existing true effect in the population, and (b) no effect. In this example, it is simply two normally distributed sets of numbers.
 
@@ -70,8 +76,6 @@ pow(dfPvalsSeq, alpha_locals = NA)
 
 The information returned by this function includes the values of the local alphas (to achieve, by default, a Type 1 error rate of `.05`), the actual Type 1 error rate, the statistical power, and the average expected sample sizes in case of a true effect and in case of no effect.
 
-# Statement of need
-
-While sequential designs can be extremely useful, their application is limited by the lack of software that performs the necessary statistical adjustments. Recently, there have been several new related software solutions [e.g., the R packages by @anderson:2022; @pahl:2022; @wassmer:2022; for more, see @weigl:2020], but all of these apply only to single and specific parametric tests. Solutions for simulation-based power analysis also exist [e.g., @green:2016; @hughes:2017; @lakens:2021], but none specifically for sequential designs or multiple hypotheses. The `POSSA` R package allows power and Type 1 error calculations and corrections for analyses in fixed as well as sequential designs including any, and any number of, statistical null hypothesis tests.
+The same workflow can be used to accommodate any other analyses.
 
 # References
