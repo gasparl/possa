@@ -47,4 +47,4 @@ Given that this project is not part of my "day job", the [intended additional fe
 
 See `citation("POSSA")`.
 
-![](https://www.r-pkg.org/badges/version-last-release/POSSA "POSSA CRAN last version") [![R-CMD-check](https://github.com/gasparl/possa/workflows/R-CMD-check/badge.svg)](https://github.com/gasparl/possa/actions) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6523855.svg)](https://doi.org/10.5281/zenodo.6523855)
+![](https://www.r-pkg.org/badges/version-last-release/POSSA "POSSA CRAN last version") [![R-CMD-check](https://github.com/gasparl/possa/workflows/R-CMD-check/badge.svg)](https://github.com/gasparl/possa/actions) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6523855.svg)](https://doi.org/10.5281/zenodo.6523855) [![codecov](https://codecov.io/gh/gasparl/possa/branch/master/graph/badge.svg?token=YVA1OCIDD7)](https://codecov.io/gh/gasparl/possa)
