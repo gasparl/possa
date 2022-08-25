@@ -1,5 +1,6 @@
 ^POSSA\.Rproj$
 ^\.Rproj\.user$
+^CONTRIBUTING.md$
 ^POSSA\.pdf$
 ^paper
 .RData
