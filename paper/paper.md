@@ -68,7 +68,7 @@ dfPvalsSeq = sim(fun_obs = customSample,
                 fun_test = customTest)
 ```
 
-Pass the obtained `dfPvalsSeq` `data.frame` to the `POSSA::pow` function. In this case, `alpha_locals = NA` specifies that all local alphas should be identical (Pocock’s correction).
+Fourth and last, pass the obtained `dfPvalsSeq` `data.frame` to the `POSSA::pow` function. In this case, `alpha_locals = NA` specifies that all local alphas should be identical [Pocock's correction; @pocock:1977].
 
 ```r
 pow(dfPvalsSeq, alpha_locals = NA)
