@@ -1,6 +1,6 @@
 ^POSSA\.Rproj$
 ^\.Rproj\.user$
-^LICENSE\.md$
+^LICENSE$
 ^POSSA\.pdf$
 ^paper
 .RData
