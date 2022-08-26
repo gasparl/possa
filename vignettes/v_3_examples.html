@@ -629,10 +629,17 @@ function. (Again, some wrapper function such as <code>ez::ezANOVA</code>
 could be used for readability, but this would make the simulation
 somewhat slower. However, if speed is of not much importance, those
 wrapper functions work just as well.)</p>
-<p>The way of extracting p values from the output
-(e.g. <code>aov_h0[[1]][[1]][[&#39;Pr(&gt;F)&#39;]][1]</code>) also look quite
-extraordinary, but this is just how <code>aov()</code> <a href="https://stackoverflow.com/questions/3366506/extract-p-value-from-aov">stores</a>
-this information.</p>
+<p>The way of extracting p values from the output (e.g.,
+<code>aov_sum[[1]][[1]][[&#39;Pr(&gt;F)&#39;]][1]</code>, where
+<code>aov_sum = summary(aov(...))</code>) also look quite extraordinary,
+but this is just how <code>aov()</code> <a href="https://stackoverflow.com/questions/3366506/extract-p-value-from-aov">stores</a>
+this information. You can also use the <code>POSSA::get_p()</code>
+function to get more readable code (e.g.,
+<code>aov_ps = get_p(aov(...))</code>, then
+<code>aov_ps$``Error:id``$voice</code>); though over many iterations
+this too adds a little bit of extra processing time. In either case,
+make sure you are extracting the correct p values (e.g., compare the
+values with the printed results of <code>summary(aov(...))</code>).</p>
 <p>Apart from the ANOVA, the function below also includes some specific
 pair-wise comparisons, namely, comparing the <strong>robot</strong> and
 <strong>human</strong> ratings separately in the cases of

@@ -297,7 +297,7 @@ sampleAOV = function(samp_size) {
 
 Now the testing function will require a data frame to be constructed from the passed variables, to be appropriate for the `aov()` function. (Again, some wrapper function such as `ez::ezANOVA` could be used for readability, but this would make the simulation somewhat slower. However, if speed is of not much importance, those wrapper functions work just as well.)
 
-The way of extracting p values from the output (e.g. `aov_h0[[1]][[1]][['Pr(>F)']][1]`) also look quite extraordinary, but this is just how `aov()` [stores](https://stackoverflow.com/questions/3366506/extract-p-value-from-aov) this information.
+The way of extracting p values from the output (e.g., `aov_sum[[1]][[1]][['Pr(>F)']][1]`, where `aov_sum = summary(aov(...))`) also look quite extraordinary, but this is just how `aov()` [stores](https://stackoverflow.com/questions/3366506/extract-p-value-from-aov) this information. You can also use the `POSSA::get_p()` function to get more readable code (e.g., `aov_ps = get_p(aov(...))`, then `aov_ps$``Error:id``$voice`); though over many iterations this too adds a little bit of extra processing time. In either case, make sure you are extracting the correct p values (e.g., compare the values with the printed results of `summary(aov(...))`).
 
 Apart from the ANOVA, the function below also includes some specific pair-wise comparisons, namely, comparing the **robot** and **human** ratings separately in the cases of **sad** and **happy** voice.
 
