@@ -4,7 +4,7 @@
 \name{POSSA-package}
 \alias{POSSA}
 \alias{POSSA-package}
-\title{POSSA: Power Simulation for Sequential Analysis}
+\title{POSSA: Power Simulation for Sequential Analyses}
 \description{
 This R package serves to calculate, via simulation, power and appropriate
 "stopping" alpha boundaries (and/or futility bounds) for sequential analyses

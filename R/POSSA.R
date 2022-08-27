@@ -1,4 +1,4 @@
-#' POSSA: Power Simulation for Sequential Analysis
+#' POSSA: Power Simulation for Sequential Analyses
 #'
 #' This R package serves to calculate, via simulation, power and appropriate
 #' "stopping" alpha boundaries (and/or futility bounds) for sequential analyses
