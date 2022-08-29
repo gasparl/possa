@@ -2,6 +2,7 @@
 ^\.Rproj\.user$
 ^CONTRIBUTING.md$
 ^POSSA\.pdf$
+^LICENSE\.md$
 ^paper
 .RData
 .Rhistory
