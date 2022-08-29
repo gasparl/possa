@@ -43,8 +43,14 @@ For detailed information about each function and parameter, see [the manual](htt
 
 Given that this project is not part of my "day job", the [intended additional features](https://github.com/gasparl/possa/issues "Issues") grew beyond my capacity. Help would be most welcome; if you are up to it, feel free to [email me](mailto:lkcsgaspar@gmail.com) (or to reply to the relevant issue or open a new one; see details [here](https://github.com/gasparl/possa/blob/master/CONTRIBUTING.md "CONTRIBUTING")).
 
+### Etymology
+
+The name "POSSA" refers not to the Italian meaning ["power, strength" (/ˈpɔs.sa/)](https://en.wiktionary.org/wiki/possa#Italian), but to the plural of ["possum" (/ˈpɑsə/)](https://en.wiktionary.org/wiki/possa#English).
+
 ### Citation
 
-See `citation("POSSA")`.
+When you use neatStats in a publication, you can either cite the specific version you used (enter `citation("POSSA")` in R), or the following paper:
 
-![](https://www.r-pkg.org/badges/version-last-release/POSSA "POSSA CRAN last version") [![R-CMD-check](https://github.com/gasparl/possa/workflows/R-CMD-check/badge.svg)](https://github.com/gasparl/possa/actions) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6523855.svg)](https://doi.org/10.5281/zenodo.6523855) [![codecov](https://codecov.io/gh/gasparl/possa/branch/master/graph/badge.svg?token=YVA1OCIDD7)](https://codecov.io/gh/gasparl/possa)
+Lukács, G. (2022). POSSA: Power simulation for sequential analyses and multiple hypotheses. _Journal of Open Source Software, 7_(76), 4643. https://doi.org/10.21105/joss.04643
+
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.04643/status.svg)](https://doi.org/10.21105/joss.04643) ![](https://www.r-pkg.org/badges/version-last-release/POSSA "POSSA CRAN last version") ![](http://cranlogs.r-pkg.org/badges/POSSA?color=8585ad "POSSA CRAN monthly download count") [![R-CMD-check](https://github.com/gasparl/possa/workflows/R-CMD-check/badge.svg)](https://github.com/gasparl/possa/actions) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6523855.svg)](https://doi.org/10.5281/zenodo.6523855) [![codecov](https://codecov.io/gh/gasparl/possa/branch/master/graph/badge.svg?token=YVA1OCIDD7)](https://codecov.io/gh/gasparl/possa)
