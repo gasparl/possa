@@ -49,7 +49,7 @@ The name "POSSA" refers not to the Italian meaning ["power, strength" (/ˈpɔs.s
 
 ### Citation
 
-When you use neatStats in a publication, you can either cite the specific version you used (enter `citation("POSSA")` in R), or the following paper:
+When you use POSSA in a publication, you can either cite the specific version you used (enter `citation("POSSA")` in R), or the following paper:
 
 Lukács, G. (2022). POSSA: Power simulation for sequential analyses and multiple hypotheses. _Journal of Open Source Software, 7_(76), 4643. https://doi.org/10.21105/joss.04643
 
