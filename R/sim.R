@@ -97,7 +97,10 @@
 #'  suffixes in the \code{fun_test} function arguments. Set to \code{TRUE} to
 #'  completely ignore these (neither error nor warning). (Might be useful for
 #'  testing or some very specific procedures.)
-#'@param hush Logical. If \code{TRUE}, prevents printing any details to console.
+#'@param prog_bar Logical, \code{FALSE} by default. If \code{TRUE}, shows
+#'  progress bar.
+#'@param hush Logical, \code{FALSE} by default. If \code{TRUE}, prevents
+#'  printing any details to console.
 #'
 #'@details
 #'
@@ -198,6 +201,7 @@ sim = function(fun_obs,
                seed = 8,
                pair = NULL,
                ignore_suffix = FALSE,
+               prog_bar = FALSE,
                hush = FALSE) {
     validate_args(
         match.call(),
@@ -209,6 +213,7 @@ sim = function(fun_obs,
             val_arg(seed, c('null', 'num'), 1),
             val_arg(pair, c('bool', 'null'), 1),
             val_arg(ignore_suffix, c('null', 'bool'), 1),
+            val_arg(prog_bar, c('bool'), 1),
             val_arg(hush, c('bool'), 1)
         )
     )
@@ -367,8 +372,13 @@ sim = function(fun_obs,
     obs_per_it = do.call(Map, c(f = list, n_obs)) # transpose input for iteration below
     obs_names = names(obs_per_it[[1]]) # the names of all sample columns
     list_vals = list() # all end results will be collected in this list
+    
+    if (hush == TRUE) {
+        prog_bar = FALSE
+    }
+    
     # set progress bar
-    if (hush == FALSE) {
+    if (prog_bar == TRUE) {
         pb = utils::txtProgressBar(
             min = 0,
             max = n_iter * length(facts_list),
@@ -395,7 +405,7 @@ sim = function(fun_obs,
         }
         for (i in 1:n_iter) {
             pb_count = pb_count + 1
-            if (hush == FALSE) {
+            if (prog_bar == TRUE) {
                 utils::setTxtProgressBar(pb, pb_count)
             }
             # call the full (max) samples
@@ -442,7 +452,7 @@ sim = function(fun_obs,
         }
         list_vals = list()
     }
-    if (hush == FALSE) {
+    if (prog_bar == TRUE) {
         close(pb)
     }
 

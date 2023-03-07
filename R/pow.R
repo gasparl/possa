@@ -171,6 +171,8 @@
 #'  \code{200}, then \code{300}, etc.).
 #'@param seed Number for \code{\link{set.seed}}; \code{8} by default. Set to
 #'  \code{NULL} for random seed.
+#'@param prog_bar Logical, \code{FALSE} by default. If \code{TRUE}, shows
+#'  progress bar.
 #'@param hush Logical. If \code{TRUE}, prevents printing any details (or the
 #'  progress bar) to console.
 #'
@@ -238,6 +240,7 @@ pow = function(p_values,
                round_to = 5,
                iter_limit = 100,
                seed = 8,
+               prog_bar = FALSE,
                hush = FALSE) {
     all_args = mget(names(formals()), sys.frame(sys.nframe()))
     p_values = data.table::copy(p_values)
@@ -262,6 +265,7 @@ pow = function(p_values,
             val_arg(round_to, c('num'), 1),
             val_arg(iter_limit, c('num'), 1),
             val_arg(seed, c('num'), 1),
+            val_arg(prog_bar, c('bool'), 1),
             val_arg(hush, c('bool'), 1)
         )
     )
@@ -566,9 +570,7 @@ pow = function(p_values,
             fa_locals = fut_locals
         }
     }
-    if (hush == FALSE) {
-        prog_bar = TRUE
-    } else {
+    if (hush == TRUE) {
         prog_bar = FALSE
     }
     if (isFALSE(adjust)) {
