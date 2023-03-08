@@ -21,6 +21,7 @@ pow(
   round_to = 5,
   iter_limit = 100,
   seed = 8,
+  prog_bar = FALSE,
   hush = FALSE
 )
 }
@@ -195,6 +196,9 @@ same number of iterations (e.g., by default, after \code{100}, at
 
 \item{seed}{Number for \code{\link{set.seed}}; \code{8} by default. Set to
 \code{NULL} for random seed.}
+
+\item{prog_bar}{Logical, \code{FALSE} by default. If \code{TRUE}, shows
+progress bar.}
 
 \item{hush}{Logical. If \code{TRUE}, prevents printing any details (or the
 progress bar) to console.}

@@ -31,11 +31,11 @@ and the \code{aov()} function (\code{aov} and \code{aovlist} classes).
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{aov}: get_p method for class 'aov'
+\item \code{get_p(aov)}: get_p method for class 'aov'
 
-\item \code{aovlist}: get_p method for class 'aovlist'
+\item \code{get_p(aovlist)}: get_p method for class 'aovlist'
+
 }}
-
 \examples{
 
 get_p(t.test(extra ~ group, data = sleep))

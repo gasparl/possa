@@ -13,6 +13,7 @@ sim(
   seed = 8,
   pair = NULL,
   ignore_suffix = FALSE,
+  prog_bar = FALSE,
   hush = FALSE
 )
 }
@@ -114,7 +115,11 @@ suffixes in the \code{fun_test} function arguments. Set to \code{TRUE} to
 completely ignore these (neither error nor warning). (Might be useful for
 testing or some very specific procedures.)}
 
-\item{hush}{Logical. If \code{TRUE}, prevents printing any details to console.}
+\item{prog_bar}{Logical, \code{FALSE} by default. If \code{TRUE}, shows
+progress bar.}
+
+\item{hush}{Logical, \code{FALSE} by default. If \code{TRUE}, prevents
+printing any details to console.}
 }
 \value{
 Returns a \code{\link{data.frame}} (with class \code{"possa_sim_df"})

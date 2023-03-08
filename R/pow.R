@@ -864,7 +864,7 @@ pow = function(p_values,
                     # change staircase direction (and also decrease step) if needed
                     a_step = -stair_steps[1] * sign(a_step)
                     stair_steps = stair_steps[-1]
-                    if (hush == FALSE) {
+                    if (prog_bar == TRUE) {
                         utils::setTxtProgressBar(p_bar,
                                                  utils::getTxtProgressBar(p_bar) + 1)
                     }

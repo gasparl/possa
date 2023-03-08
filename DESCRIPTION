@@ -16,7 +16,7 @@ Depends: R (>= 3.6.0)
 Imports: data.table, methods
 License: BSD_2_clause + file LICENSE
 Encoding: UTF-8
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.2
 Suggests:
     testthat (>= 3.0.0),
     faux,
