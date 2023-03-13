@@ -19,7 +19,6 @@ Encoding: UTF-8
 RoxygenNote: 7.2.2
 Suggests:
     testthat (>= 3.0.0),
-    faux,
     knitr,
     rmarkdown
 Config/testthat/edition: 3
