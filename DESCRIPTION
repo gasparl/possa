@@ -1,7 +1,7 @@
 Package: POSSA
 Title: Power Simulation for Sequential Analyses and Multiple Hypotheses
-Version: 0.6.2
-Date: 2022-03-07
+Version: 0.6.4
+Date: 2023-04-22
 Authors@R: c(person("Gáspár", "Lukács", email = "lkcsgaspar@gmail.com", role =
   c("aut", "cre")))
 Description: Calculates, via simulation, power and appropriate stopping
@@ -20,6 +20,7 @@ RoxygenNote: 7.2.2
 Suggests:
     testthat (>= 3.0.0),
     knitr,
-    rmarkdown
+    rmarkdown,
+    faux
 Config/testthat/edition: 3
 VignetteBuilder: knitr
