@@ -232,7 +232,7 @@ For the replicability, in case the \code{adjust} function uses any
 randomization, \code{\link{set.seed}} is executed in the beginning of this
 function, each time it is called; see the \code{seed} parameter.
 
-This function uses, internally, the \code{\link{data.table}} R package.
+This function uses, internally, the \code{\link[data.table]{data.table}} R package.
 }
 \examples{
 
