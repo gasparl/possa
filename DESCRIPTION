@@ -1,6 +1,6 @@
 Package: POSSA
 Title: Power Simulation for Sequential Analyses and Multiple Hypotheses
-Version: 0.6.4
+Version: 0.6.5
 Date: 2023-04-22
 Authors@R: c(person("Gáspár", "Lukács", email = "lkcsgaspar@gmail.com", role =
   c("aut", "cre")))
