@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 
 Below, the essence of `POSSA`'s power (and type 1 error rate, T1ER) calculation for sequential designs is explained using the simple example of a t-test. Of course, for t-tests specifically, you could use other and potentially more user-friendly software – however, the point here is to understand how the `POSSA` works, and, subsequently, it should be possible for you to extend this example to virtually any statistical null hypothesis test. Cases of multiple hypotheses (and recording descriptives) are explained on a [separate page](https://gasparl.github.io/possa/vignettes/v_2_multiple_hypotheses.html), but these too are straightforward extensions of the present examples.
 
-This tutorial presupposes the basic conceptual understanding of sequential analyses (and the basics or statistical power and T1ER). There are several related free tutorials online (see e.g. [Lakens, 2014](https://psyarxiv.com/9yegd/)).
+This tutorial presupposes the basic conceptual understanding of sequential analyses (and the basics or statistical power and T1ER). There are several related free tutorials online (see e.g. [Lakens, 2014](https://osf.io/preprints/psyarxiv/9yegd_v1)).
 
 All parameters mentioned below are described in detail in the full documentation (see `?sim` and `?pow`).
 
